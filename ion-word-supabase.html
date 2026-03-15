@@ -1454,6 +1454,8 @@ async function loadDB() {
     else renderMyBooks();
     // 읽지 않은 쪽지 배지
     setTimeout(updateUnreadBadge, 500);
+    // Supabase에서 Groq 키 로드
+    loadGroqKeyFromDB();
 
   } catch(e) {
     console.error('loadDB 오류:', e);
@@ -5243,16 +5245,36 @@ function openApiKeyModal() {
   setTimeout(() => document.getElementById('gemini-key-input')?.focus(), 80);
 }
 
-function saveApiKey() {
+async function saveApiKey() {
   const key = document.getElementById('gemini-key-input').value.trim();
   if (!key) { showToast('키를 입력하세요.', 'error'); return; }
   if (!key.startsWith('gsk_')) { showToast('올바른 Groq API 키 형식이 아닙니다. (gsk_...로 시작)', 'error'); return; }
-  localStorage.setItem('ion_gemini_key', key);
-  closeModal();
-  showToast('✅ Groq API 키가 저장되었습니다!', 'success');
+
+  try {
+    // Supabase에 저장 (모든 사용자 공유)
+    await sb.from('app_settings').upsert(
+      { key: 'groq_api_key', value: key },
+      { onConflict: 'key' }
+    );
+    // 로컬에도 캐시
+    _cachedGroqKey = key;
+    localStorage.setItem('ion_gemini_key', key);
+    closeModal();
+    showToast('✅ Groq API 키가 저장되었습니다! (모든 학생 공유)', 'success');
+  } catch(e) {
+    // Supabase 저장 실패해도 로컬에는 저장
+    _cachedGroqKey = key;
+    localStorage.setItem('ion_gemini_key', key);
+    closeModal();
+    showToast('✅ Groq API 키가 저장되었습니다!', 'success');
+  }
 }
 
-function clearApiKey() {
+async function clearApiKey() {
+  try {
+    await sb.from('app_settings').delete().eq('key', 'groq_api_key');
+  } catch(e) {}
+  _cachedGroqKey = null;
   localStorage.removeItem('ion_gemini_key');
   closeModal();
   showToast('AI 키가 삭제되었습니다.', 'success');
@@ -5282,9 +5304,24 @@ function refreshSelects() {
 //  AI — Google Gemini API
 //  아래 GEMINI_API_KEY에 본인 키를 입력하세요
 // =========================================================
-// API 키는 localStorage에서 읽음 (설정 화면에서 입력)
+// API 키: 선생님이 Supabase에 저장 → 모든 사용자 공유
+// 로컬 캐시 (매번 DB 조회 안 하도록)
+let _cachedGroqKey = null;
+
 function getGeminiKey() {
-  return localStorage.getItem('ion_gemini_key') || '';
+  return _cachedGroqKey || localStorage.getItem('ion_gemini_key') || '';
+}
+
+async function loadGroqKeyFromDB() {
+  try {
+    const { data } = await sb.from('app_settings')
+      .select('value').eq('key', 'groq_api_key').single();
+    if (data?.value) {
+      _cachedGroqKey = data.value;
+    }
+  } catch(e) {
+    // 테이블 없거나 키 없으면 무시
+  }
 }
 
 async function callClaude(prompt) {
