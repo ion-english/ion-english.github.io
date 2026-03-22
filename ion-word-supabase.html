@@ -932,46 +932,57 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
       </div>
 
       <!-- ===== STUDENT: FLASHCARD ===== -->
-      <div id="pg-flashcard" class="page">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
-          <select class="form-input" id="fc-sel" style="width:auto;min-width:200px" onchange="startFC()">
-            <option value="">— 단어장 선택 —</option>
-          </select>
-          <label class="toggle-wrap" style="font-size:13px;color:var(--text-muted)">
-            <label class="toggle"><input type="checkbox" id="fc-shuffle"><span class="toggle-slider"></span></label>
-            섞기
-          </label>
-          <label class="toggle-wrap" style="font-size:13px;color:var(--text-muted)">
-            <label class="toggle"><input type="checkbox" id="fc-auto-speak" checked><span class="toggle-slider"></span></label>
-            자동 발음
-          </label>
-        </div>
-        <div id="fc-body">
-          <div class="empty"><div class="empty-icon">🃏</div><div class="empty-title">단어장을 선택하면 학습이 시작됩니다</div></div>
-        </div>
-      </div>
+       <div id="pg-flashcard" class="page">
+         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+           <select class="form-input" id="fc-sel" style="width:auto;min-width:200px" onchange="startFC()">
+             <option value="">— 단어장 선택 —</option>
+           </select>
+           <label class="toggle-wrap" style="font-size:13px;color:var(--text-muted)">
+             <label class="toggle"><input type="checkbox" id="fc-shuffle"><span class="toggle-slider"></span></label>
+             섞기
+           </label>
+           <label class="toggle-wrap" style="font-size:13px;color:var(--text-muted)">
+             <label class="toggle"><input type="checkbox" id="fc-auto-speak" checked><span class="toggle-slider"></span></label>
+             자동 발음
+           </label>
+           <label class="toggle-wrap" style="font-size:13px;color:var(--red,#dc2626)">
+             <label class="toggle"><input type="checkbox" id="fc-unmemorized-only" onchange="startFC()"><span class="toggle-slider" style="--toggle-on:#ef4444"></span></label>
+             미암기만
+           </label>
+           <span id="fc-unmemorized-badge" style="display:none;font-size:11px;color:var(--red);background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:2px 10px"></span>
+         </div>
+         <div id="fc-body">
+           <div class="empty"><div class="empty-icon">🃏</div><div class="empty-title">단어장을 선택하면 학습이 시작됩니다</div></div>
+         </div>
+       </div>
+
 
       <!-- ===== STUDENT: QUIZ ===== -->
-      <div id="pg-quiz" class="page">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
-          <select class="form-input" id="quiz-sel" style="width:auto;min-width:200px">
-            <option value="">— 단어장 선택 —</option>
-          </select>
-          <select class="form-input" id="quiz-dir" style="width:auto">
-            <option value="en2ko">영어 → 한국어</option>
-            <option value="ko2en">한국어 → 영어</option>
-          </select>
-          <select class="form-input" id="quiz-mode" style="width:auto">
-            <option value="choice">4지 선다</option>
-            <option value="input">단답형 입력</option>
-            <option value="essay">주관식 (채점)</option>
-          </select>
-          <button class="btn btn-primary" onclick="startQuiz()">▶ 시작</button>
-        </div>
-        <div id="quiz-body">
-          <div class="empty"><div class="empty-icon">📝</div><div class="empty-title">단어장을 선택하고 퀴즈를 시작하세요</div></div>
-        </div>
-      </div>
+       <div id="pg-quiz" class="page">
+         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+           <select class="form-input" id="quiz-sel" style="width:auto;min-width:200px">
+             <option value="">— 단어장 선택 —</option>
+           </select>
+           <select class="form-input" id="quiz-dir" style="width:auto">
+             <option value="en2ko">영어 → 한국어</option>
+             <option value="ko2en">한국어 → 영어</option>
+           </select>
+           <select class="form-input" id="quiz-mode" style="width:auto">
+             <option value="choice">4지 선다</option>
+             <option value="input">단답형 입력</option>
+             <option value="essay">주관식 (채점)</option>
+           </select>
+           <label class="toggle-wrap" style="font-size:13px;color:var(--red,#dc2626)">
+             <label class="toggle"><input type="checkbox" id="quiz-unmemorized-only"><span class="toggle-slider" style="--toggle-on:#ef4444"></span></label>
+             미암기만
+           </label>
+           <button class="btn btn-primary" onclick="startQuiz()">▶ 시작</button>
+         </div>
+         <div id="quiz-body">
+           <div class="empty"><div class="empty-icon">📝</div><div class="empty-title">단어장을 선택하고 퀴즈를 시작하세요</div></div>
+         </div>
+       </div>
+
 
       <!-- ===== STUDENT: MY PROGRESS ===== -->
       <div id="pg-progress" class="page">
@@ -1546,10 +1557,10 @@ function showPage(id) {
   if (window.innerWidth <= 600) closeSidebar();
 
   if (id==='pg-dashboard') renderDashboard();
-  if (id==='pg-library') renderLibrary();
+  if (id==='pg-library') { closeLibEditor(); renderLibrary(); }
   if (id==='pg-students') renderStudentsMgmt();
   if (id==='pg-editor') { refreshSelects(); document.getElementById('editor-sel').value=''; loadEditor(); }
-  if (id==='pg-sentences') { loadSentenceBooks().then(() => { loadSentColls(); renderSentMgmt(); }).catch(()=>{renderSentMgmt();}); }
+  if (id==='pg-sentences') { sentShowMgmtView(); loadSentenceBooks().then(() => { loadSentColls(); renderSentMgmt(); }).catch(()=>{renderSentMgmt();}); }
   if (id==='pg-sentence-study') renderSentenceStudy();
   if (id==='pg-assign') { refreshSelects(); renderAssign(); refreshSentBookSel(); }
   if (id==='pg-ai') { refreshSelects(); populateAIDest(); }
@@ -2020,10 +2031,14 @@ async function loadSentColls() {
 }
 
 function sentShowMgmtView() {
-  document.getElementById('sent-mgmt-view').style.display = '';
-  document.getElementById('sent-editor-view').style.display = 'none';
-  renderSentMgmt();
+  const mgmt = document.getElementById('sent-mgmt-view');
+  const editor = document.getElementById('sent-editor-view');
+  if (mgmt) mgmt.style.display = '';
+  if (editor) editor.style.display = 'none';
+  _sentEditorBookId = null;
+  window._sentEditorBookId = null;
 }
+
 
 function sentShowEditorView(bookId) {
   _sentEditorBookId = bookId;
@@ -3076,7 +3091,7 @@ async function renderSentenceStudy() {
 
   if (!DB_sentBooks.length) {
     body.innerHTML = `<div class="empty">
-      <div class="empty-icon">💬</div>
+      <div class="empty-icon">📄</div>
       <div class="empty-title">배정된 문장집이 없습니다</div>
       <div class="empty-sub">선생님이 문장집을 배정하면 여기에 나타납니다</div>
     </div>`;
@@ -3084,16 +3099,22 @@ async function renderSentenceStudy() {
   }
 
   body.innerHTML = `<div class="cards-grid">${DB_sentBooks.map(b => `
-    <div class="book-card" style="cursor:pointer" onclick="startSentStudy('${b.id}')">
+    <div class="book-card" style="position:relative">
       <div class="book-card-stripe" style="background:#6d28d9"></div>
-      <div style="font-size:28px;margin-bottom:10px">💬</div>
-      <div class="book-name">${b.name}</div>
+      <!-- 오른쪽 상단 문장 보기 버튼 -->
+      <div style="position:absolute;top:10px;right:10px;z-index:2">
+        <button onclick="event.stopPropagation();openSentListModal('${b.id}')"
+          style="font-size:11px;padding:2px 9px;background:rgba(109,40,217,0.15);border:1px solid rgba(109,40,217,0.4);border-radius:7px;cursor:pointer;color:#6d28d9;font-family:'Outfit',sans-serif;font-weight:600;line-height:1.6">
+          보기
+        </button>
+      </div>
+      <div class="book-name" style="padding-right:54px">${b.name}</div>
       <div class="book-meta">${b.tag||''}</div>
       <div class="book-footer">
-        <button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();startSentStudy('${b.id}','unscramble')">문장 배열</button>
-        <button class="btn btn-secondary btn-sm" style="flex:1" onclick="event.stopPropagation();startSentStudy('${b.id}','dictation')">빈칸 채우기</button>
-        <button class="btn btn-gold btn-sm" style="flex:1" onclick="event.stopPropagation();startSentRecording('${b.id}')">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="startSentStudy('${b.id}','unscramble')">문장 배열</button>
+        <button class="btn btn-secondary btn-sm" style="flex:1" onclick="startSentStudy('${b.id}','dictation')">빈칸 채우기</button>
+        <button class="btn btn-gold btn-sm" style="flex:1" onclick="startSentRecording('${b.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
           낭독
         </button>
       </div>
@@ -3225,13 +3246,21 @@ function sentRemoveWord(e) { /* 탭 영역 클릭 시 처리 - 각 단어 클릭
 function sentCheckUnscramble() {
   const answer = (window._sentSelected||[]).join(' ').toLowerCase().trim();
   const correct = window._sentAnswer?.toLowerCase().trim();
+  const isCorrect = answer === correct;
   const area = document.getElementById('sent-check-area');
   const nextBtn = document.getElementById('sent-next-btn');
-  if (answer === correct) {
+  if (isCorrect) {
     if (area) area.innerHTML = '<div style="color:#6ee7b7;font-size:16px;font-weight:700">✓ 정답!</div>';
   } else {
     if (area) area.innerHTML = `<div style="color:#fca5a5;font-size:14px">✗ 다시 해보세요<br><span style="font-size:12px;color:rgba(255,255,255,0.5)">정답: ${_sentStudyItems[_sentStudyIdx].en}</span></div>`;
   }
+  // 결과 기록
+  if (!window._sentSessionResults) window._sentSessionResults = [];
+  window._sentSessionResults.push({
+    item: _sentStudyItems[_sentStudyIdx],
+    correct: isCorrect,
+    type: 'unscramble'
+  });
   if (nextBtn) nextBtn.style.display = '';
 }
 
@@ -3253,6 +3282,13 @@ function sentCheckDictation() {
   if (area) area.innerHTML = allCorrect
     ? '<div style="color:#6ee7b7;font-size:16px;font-weight:700">✓ 정답!</div>'
     : `<div style="color:#fca5a5;font-size:14px">✗ 빨간 칸을 확인하세요<br><span style="font-size:12px;color:rgba(255,255,255,0.5)">${_sentStudyItems[_sentStudyIdx].en}</span></div>`;
+  // 결과 기록
+  if (!window._sentSessionResults) window._sentSessionResults = [];
+  window._sentSessionResults.push({
+    item: _sentStudyItems[_sentStudyIdx],
+    correct: allCorrect,
+    type: 'dictation'
+  });
   if (nextBtn) nextBtn.style.display = '';
 }
 
@@ -3264,7 +3300,26 @@ function sentSkip() {
   if (area) area.innerHTML = `<div style="color:rgba(255,255,255,0.4);font-size:12px">건너뜀 — 정답: ${_sentStudyItems[_sentStudyIdx].en}</div>`;
 }
 
-function sentFinish() {
+async function sentFinish() {
+  // 세션 결과 DB 저장
+  const results = window._sentSessionResults || [];
+  if (results.length > 0 && _sentStudyBook && currentUser) {
+    const total   = results.length;
+    const correct = results.filter(r => r.correct).length;
+    const wrongItems = results.filter(r => !r.correct).map(r => r.item.en);
+    try {
+      await sb.from('sentence_submissions').insert({
+        student_id: currentUser.id,
+        book_id: _sentStudyBook,
+        item_id: null,
+        type: _sentStudyMode, // 'unscramble' | 'dictation'
+        answer: JSON.stringify({ total, correct, wrong: wrongItems }),
+        correct: correct === total,
+        recorded_url: null
+      }).catch(e => console.warn('결과 저장 실패:', e.message));
+    } catch(e) { console.warn(e); }
+    window._sentSessionResults = [];
+  }
   const body = document.getElementById('sent-student-body');
   if (!body) return;
   const b = DB_sentBooks.find(b => b.id === _sentStudyBook);
@@ -3464,27 +3519,58 @@ function recRedo() {
 }
 
 async function recSaveWhole() {
-  let savedUrl = null;
-  if (window._recBlob) {
-    const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.webm`;
-    try {
-      const { data: upData, error: upErr } = await sb.storage.from('recordings').upload(path, window._recBlob, { contentType:'audio/webm', upsert:true });
-      if (upErr) {
-        console.warn('Storage 업로드 실패 (버킷 없을 수 있음):', upErr.message);
-        // Storage 없어도 submissions에 기록만 남김
-      } else {
-        const { data: urlData } = sb.storage.from('recordings').getPublicUrl(path);
-        savedUrl = urlData?.publicUrl || null;
-      }
-    } catch(e) { console.warn('Storage 오류:', e); }
-    // submissions에는 항상 기록 (url 없어도)
-    try {
-      await sb.from('sentence_submissions').insert({
-        student_id: currentUser.id, book_id: window._recBookId, item_id: null,
-        type: 'record_full', recorded_url: savedUrl
-      });
-    } catch(e) { console.warn('제출 기록 실패:', e.message); }
+  if (!window._recBlob) {
+    showToast('낭독 완료! 잘 했어요 🎉', 'success');
+    sentFinish();
+    return;
   }
+
+  showToast('녹음 저장 중...', 'success');
+
+  // 1차 시도: Supabase Storage
+  let savedUrl = null;
+  const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.webm`;
+  try {
+    const { error: upErr } = await sb.storage.from('recordings').upload(
+      path, window._recBlob, { contentType:'audio/webm', upsert:true }
+    );
+    if (!upErr) {
+      const { data: urlData } = sb.storage.from('recordings').getPublicUrl(path);
+      savedUrl = urlData?.publicUrl || null;
+    } else {
+      console.warn('Storage 업로드 실패:', upErr.message);
+    }
+  } catch(e) { console.warn('Storage 접근 불가:', e.message); }
+
+  // 2차 시도: base64로 DB에 직접 저장
+  if (!savedUrl) {
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onload  = () => resolve(reader.result); // data:audio/webm;base64,...
+        reader.onerror = reject;
+        reader.readAsDataURL(window._recBlob);
+      });
+      savedUrl = base64; // data URI 그대로 저장
+      console.log('base64 fallback 사용 (길이:', base64.length, ')');
+    } catch(e) { console.warn('base64 변환 실패:', e); }
+  }
+
+  // DB에 기록
+  try {
+    await sb.from('sentence_submissions').insert({
+      student_id: currentUser.id,
+      book_id: window._recBookId,
+      item_id: null,
+      type: 'record_full',
+      recorded_url: savedUrl
+    });
+  } catch(e) {
+    console.warn('제출 기록 실패:', e.message);
+    showToast('기록 저장에 실패했습니다: ' + e.message, 'error');
+    return;
+  }
+
   showToast('낭독 완료! 잘 했어요 🎉', 'success');
   sentFinish();
 }
@@ -5377,21 +5463,50 @@ async function openStudentDetailModal(studentId) {
       byBook[key].push(s);
     });
     sentSectionsHTML = Object.entries(byBook).map(([bookId, subs]) => {
-      const bookName = sentBooksMap[bookId] || '삭제된 문장집';
-      const recSubs  = subs.filter(s => s.type === 'record_full' || s.type === 'record');
+      const bookName   = sentBooksMap[bookId] || '삭제된 문장집';
+      const recSubs    = subs.filter(s => s.type === 'record_full' || s.type === 'record');
+      const unscramble = subs.filter(s => s.type === 'unscramble');
+      const dictation  = subs.filter(s => s.type === 'dictation');
+
+      function miniStat(typeSubs, label) {
+        if (!typeSubs.length) return '';
+        const pcts = typeSubs.map(s => {
+          try { const d = JSON.parse(s.answer||'{}'); return d.total ? Math.round(d.correct/d.total*100) : null; } catch { return null; }
+        }).filter(v => v !== null);
+        const best = pcts.length ? Math.max(...pcts) : null;
+        const avg  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+        const c = best >= 80 ? 'var(--green)' : best >= 60 ? '#f59e0b' : 'var(--red)';
+        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;text-align:center;flex:1">
+          <div style="font-size:10px;color:var(--t3)">${label}</div>
+          <div style="font-size:15px;font-weight:700;color:${c}">${best !== null ? best+'%' : '-'}</div>
+          <div style="font-size:10px;color:var(--t3)">평균 ${avg !== null ? avg+'%' : '-'} · ${typeSubs.length}회</div>
+        </div>`;
+      }
+
       return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
-        <div style="font-size:14px;font-weight:700;margin-bottom:10px">📄 ${bookName}
-          <span style="font-size:12px;font-weight:400;color:var(--t3);margin-left:8px">낭독 ${recSubs.length}회 제출</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700">📄 ${bookName}</div>
+          <span style="font-size:12px;color:var(--t3)">배열 ${unscramble.length}회 · 빈칸 ${dictation.length}회 · 낭독 ${recSubs.length}회</span>
         </div>
-        ${recSubs.length ? recSubs.slice(0,5).map((s,i) => `
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:8px;margin-bottom:4px;border:1px solid var(--border)">
-            <span style="font-size:11px;color:var(--t3);min-width:20px">${i+1}.</span>
-            <span style="font-size:11px;color:var(--t3);flex:1">${new Date(s.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-            ${s.recorded_url
-              ? `<audio src="${s.recorded_url}" controls style="height:26px;flex:2;min-width:140px;border-radius:6px"></audio>`
-              : `<span style="font-size:11px;color:var(--t3);background:var(--surface2);padding:2px 8px;border-radius:6px">완료 기록 (파일 없음)</span>`}
-          </div>`).join('')
-        : '<span style="font-size:12px;color:var(--t3)">낭독 기록 없음</span>'}
+        ${(unscramble.length || dictation.length) ? `
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          ${miniStat(unscramble,'문장 배열')}
+          ${miniStat(dictation,'빈칸 채우기')}
+        </div>` : ''}
+        ${recSubs.length ? `
+        <div style="border-top:1px solid var(--border);padding-top:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:6px">낭독 기록</div>
+          ${recSubs.slice(0,3).map((s,i) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:8px;margin-bottom:4px;border:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--t3);min-width:20px">${i+1}.</span>
+              <span style="font-size:11px;color:var(--t3);flex:1">${new Date(s.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+              ${s.recorded_url
+                ? `<audio src="${s.recorded_url}" controls style="height:26px;flex:2;min-width:120px;border-radius:6px"></audio>`
+                : `<span style="font-size:11px;color:var(--t3)">완료 기록</span>`}
+              <button onclick="adminDeleteSentRecOne('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:0 4px"
+                title="삭제" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+            </div>`).join('')}
+        </div>` : ''}
       </div>`;
     }).join('');
   }
@@ -5442,6 +5557,18 @@ async function openStudentDetailModal(studentId) {
         학생 삭제
       </button>
     </div>`);
+}
+
+
+// 선생님: 학생 낭독 기록 삭제
+async function adminDeleteSentRecOne(subId) {
+  try {
+    await sb.from('sentence_submissions').delete().eq('id', subId);
+    showToast('삭제됐습니다.', 'success');
+    // 모달 새로고침 (현재 열린 학생 ID 재조회)
+    const modal = document.getElementById('modal-bg');
+    if (modal) closeModal();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
 }
 
 function sdmSetTab(tab) {
@@ -5691,11 +5818,36 @@ function startFC() {
   if(!id){document.getElementById('fc-body').innerHTML=emptyHTML('단어장을 선택하세요');return;}
   const book=getBookForUser(id);
   if(!book)return;
-  fcWords=[...book.words];
-  if(document.getElementById('fc-shuffle').checked) fcWords=shuffle(fcWords);
-  fcIdx=0;
+
   // 미암기 체크 로드
   window._fcChecked = new Set(JSON.parse(localStorage.getItem('wl_check_' + id)||'[]'));
+
+  const onlyUnmemorized = document.getElementById('fc-unmemorized-only')?.checked;
+  const badge = document.getElementById('fc-unmemorized-badge');
+
+  if (onlyUnmemorized && window._fcChecked.size > 0) {
+    fcWords = book.words.filter(w => window._fcChecked.has(w.id||w.en));
+    if (badge) { badge.style.display=''; badge.textContent = `미암기 ${fcWords.length}개 학습 중`; }
+    if (!fcWords.length) {
+      document.getElementById('fc-body').innerHTML = `<div class="empty">
+        <div class="empty-icon">🎉</div>
+        <div class="empty-title">미암기 단어가 없습니다!</div>
+        <div class="empty-sub">모든 단어를 외웠어요 🎊</div>
+      </div>`;
+      return;
+    }
+  } else {
+    fcWords=[...book.words];
+    if (badge) badge.style.display='none';
+    // 미암기 뱃지 표시 (토글 OFF여도 개수 힌트)
+    if (window._fcChecked.size > 0 && badge) {
+      badge.style.display='';
+      badge.textContent = `미암기 ${window._fcChecked.size}개`;
+    }
+  }
+
+  if(document.getElementById('fc-shuffle').checked) fcWords=shuffle(fcWords);
+  fcIdx=0;
   renderFC();
 }
 
@@ -5803,8 +5955,23 @@ function startQuiz(){
   if(!id){showToast('단어장을 선택하세요.','error');return;}
   const book=getBookForUser(id);
   const mode=document.getElementById('quiz-mode').value;
-  if(book.words.length<(mode==='choice'?4:1)){showToast(mode==='choice'?'4지선다는 최소 4개 이상의 단어가 필요합니다.':'단어가 없습니다.','error');return;}
-  quizWords=shuffle([...book.words]);
+
+  // 미암기 필터
+  const onlyUnmemorized = document.getElementById('quiz-unmemorized-only')?.checked;
+  let pool = [...book.words];
+  if (onlyUnmemorized) {
+    const checked = new Set(JSON.parse(localStorage.getItem('wl_check_' + id)||'[]'));
+    if (checked.size > 0) {
+      pool = pool.filter(w => checked.has(w.id||w.en));
+      if (!pool.length) { showToast('미암기 단어가 없습니다. 먼저 단어 보기에서 미암기 표시를 해주세요.', 'error'); return; }
+      showToast(`미암기 ${pool.length}개 단어로 퀴즈 시작!`, 'success');
+    } else {
+      showToast('미암기 표시된 단어가 없습니다.', 'error'); return;
+    }
+  }
+
+  if(pool.length<(mode==='choice'?4:1)){showToast(mode==='choice'?`4지선다는 최소 4개 필요 (현재 ${pool.length}개)`:'단어가 없습니다.','error');return;}
+  quizWords=shuffle(pool);
   quizIdx=0; quizScore=0; quizAnswered=false; quizWrong=[];
   renderQuiz();
 }
@@ -6037,48 +6204,114 @@ async function renderSentProgress() {
     await loadSentenceBooks();
     if (!DB_sentBooks.length) { body.innerHTML = emptyHTML('배포된 문장집이 없습니다'); return; }
 
-    // 낭독 제출 기록 로드
     const { data: subs } = await sb.from('sentence_submissions')
       .select('*')
       .eq('student_id', currentUser.id)
       .order('created_at', { ascending: false });
     const submissions = subs || [];
 
+    const modeLabel = { unscramble:'문장 배열', dictation:'빈칸 채우기', record_full:'낭독', record:'낭독' };
+
     body.innerHTML = DB_sentBooks.map(b => {
       const bookSubs = submissions.filter(s => s.book_id === b.id);
       const recSubs  = bookSubs.filter(s => s.type === 'record_full' || s.type === 'record');
-      const lastRec  = recSubs[0];
+      const studySubs = bookSubs.filter(s => s.type === 'unscramble' || s.type === 'dictation');
+
+      // 학습 통계
+      const totalStudy  = studySubs.length;
+      const correctStudy = studySubs.filter(s => s.correct).length;
+      const studyPct = totalStudy ? Math.round(correctStudy/totalStudy*100) : null;
+
+      // 유형별 분리
+      const unscrambleSubs = studySubs.filter(s => s.type === 'unscramble');
+      const dictationSubs  = studySubs.filter(s => s.type === 'dictation');
+
+      function studySection(typeSubs, label) {
+        if (!typeSubs.length) return '';
+        const pcts = typeSubs.map(s => {
+          try { const d = JSON.parse(s.answer||'{}'); return d.total ? Math.round(d.correct/d.total*100) : null; } catch { return null; }
+        }).filter(v => v !== null);
+        const avg  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+        const best = pcts.length ? Math.max(...pcts) : null;
+        const c    = best >= 80 ? 'var(--green)' : best >= 60 ? '#f59e0b' : 'var(--red)';
+        return `<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;min-width:100px">
+          <div style="font-size:11px;color:var(--t3);margin-bottom:4px">${label}</div>
+          <div style="font-size:18px;font-weight:700;color:${c}">${best !== null ? best+'%' : '-'}</div>
+          <div style="font-size:10px;color:var(--t3)">최고 · 평균 ${avg !== null ? avg+'%' : '-'} · ${typeSubs.length}회</div>
+        </div>`;
+      }
 
       return `<div style="background:white;border:1.5px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:var(--sh)">
+        <!-- 헤더 -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
           <div>
             <div style="font-size:16px;font-weight:700;color:var(--t1)">${b.name}</div>
             <div style="font-size:12px;color:var(--t3);margin-top:2px">${b.tag||''}</div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:13px;font-weight:700;color:${recSubs.length>0?'var(--green)':'var(--t3)'}">
-              낭독 ${recSubs.length}회
-            </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--t3)">학습 ${totalStudy}회 · 낭독 ${recSubs.length}회</span>
           </div>
         </div>
+
+        <!-- 학습 유형별 통계 -->
+        ${(unscrambleSubs.length || dictationSubs.length) ? `
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          ${studySection(unscrambleSubs, '문장 배열')}
+          ${studySection(dictationSubs, '빈칸 채우기')}
+        </div>` : ''}
+
+        <!-- 낭독 기록 -->
         ${recSubs.length ? `
-          <div style="border-top:1px solid var(--border);padding-top:12px">
-            <div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">낭독 기록</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              ${recSubs.slice(0,5).map((s,i) => `
-                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-                  <span style="font-size:11px;color:var(--t3);min-width:24px">${i+1}.</span>
-                  <span style="font-size:11px;color:var(--t3);flex:1">${new Date(s.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-                  ${s.recorded_url
-                    ? `<audio src="${s.recorded_url}" controls style="height:28px;flex:2;min-width:140px;border-radius:6px"></audio>`
-                    : `<span style="font-size:11px;color:var(--t3)">파일 없음 (완료 기록만)</span>`}
-                </div>`).join('')}
-            </div>
-          </div>` : `<div style="font-size:13px;color:var(--t3);text-align:center;padding:8px 0">아직 낭독 기록이 없습니다</div>`}
+        <div style="border-top:1px solid var(--border);padding-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px">낭독 기록</div>
+            <button onclick="deleteSentRec('${b.id}')" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              전체 삭제
+            </button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${recSubs.slice(0,5).map((s,i) => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+                <span style="font-size:11px;color:var(--t3);min-width:20px">${i+1}.</span>
+                <span style="font-size:11px;color:var(--t3);flex:1">${new Date(s.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                ${s.recorded_url
+                  ? `<audio src="${s.recorded_url}" controls style="height:28px;flex:2;min-width:140px;border-radius:6px"></audio>`
+                  : `<span style="font-size:11px;color:var(--t3)">완료 기록</span>`}
+                <button onclick="deleteSentRecOne('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:0 4px;flex-shrink:0"
+                  title="이 기록 삭제" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+              </div>`).join('')}
+            ${recSubs.length > 5 ? `<div style="font-size:12px;color:var(--t3);text-align:center">... 외 ${recSubs.length-5}개</div>` : ''}
+          </div>
+        </div>` : `<div style="font-size:13px;color:var(--t3);text-align:center;padding:6px 0">낭독 기록 없음</div>`}
       </div>`;
     }).join('');
   } catch(e) { body.innerHTML = emptyHTML('기록을 불러오지 못했습니다'); console.error(e); }
 }
+
+// 낭독 전체 삭제 (책 단위)
+async function deleteSentRec(bookId) {
+  if (!confirm('이 문장집의 낭독 기록을 모두 삭제할까요?')) return;
+  try {
+    await sb.from('sentence_submissions')
+      .delete()
+      .eq('student_id', currentUser.id)
+      .eq('book_id', bookId)
+      .in('type', ['record_full', 'record']);
+    showToast('낭독 기록이 삭제됐습니다.', 'success');
+    renderSentProgress();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+// 낭독 개별 삭제
+async function deleteSentRecOne(subId) {
+  try {
+    await sb.from('sentence_submissions').delete().eq('id', subId);
+    showToast('삭제됐습니다.', 'success');
+    renderSentProgress();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
 
 // =========================================================
 //  PROGRESS
@@ -7972,19 +8205,45 @@ function openWordListModal(bookId) {
 
     <div class="modal-actions" style="margin-top:14px">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal();${currentUser?.role==='teacher'?`openBook('${bookId}')`:`openStudentStudy('${bookId}')`}">
-        ${currentUser?.role==='teacher'?'편집':'암기'}
-      </button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal();openWordListPrint('${bookId}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         인쇄
       </button>
+      ${window._wlChecked?.size > 0 ? `
+      <button class="btn btn-secondary btn-sm" style="border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="closeModal();wlStartUnmemorized('${bookId}','fc')">
+        <span style="font-size:10px;background:rgba(239,68,68,0.12);padding:1px 6px;border-radius:8px;margin-right:3px">❌ ${window._wlChecked.size}</span>미암기 암기
+      </button>
+      <button class="btn btn-secondary btn-sm" style="border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="closeModal();wlStartUnmemorized('${bookId}','quiz')">
+        <span style="font-size:10px;background:rgba(239,68,68,0.12);padding:1px 6px;border-radius:8px;margin-right:3px">❌ ${window._wlChecked.size}</span>미암기 퀴즈
+      </button>` : ''}
       <button class="btn btn-primary btn-sm" onclick="closeModal();${currentUser?.role==='teacher'?`openBookStudy('${bookId}')`:`openStudentQuiz('${bookId}')`}">
         ${currentUser?.role==='teacher'?'학습':'퀴즈'}
       </button>
     </div>`);
 
   wlRenderCard();
+}
+
+
+// 단어 보기 → 미암기만 암기/퀴즈 바로 시작
+function wlStartUnmemorized(bookId, mode) {
+  // fc-sel / quiz-sel 동기화
+  const fcSel = document.getElementById('fc-sel');
+  const qSel  = document.getElementById('quiz-sel');
+  if (fcSel) fcSel.value = bookId;
+  if (qSel)  qSel.value  = bookId;
+
+  if (mode === 'fc') {
+    const onlyChk = document.getElementById('fc-unmemorized-only');
+    if (onlyChk) onlyChk.checked = true;
+    showPage('pg-flashcard');
+    startFC();
+  } else {
+    const onlyChk = document.getElementById('quiz-unmemorized-only');
+    if (onlyChk) onlyChk.checked = true;
+    showPage('pg-quiz');
+    startQuiz();
+  }
 }
 
 function wlToggleCheck(wordKey, rowIdx, checked, bookId) {
