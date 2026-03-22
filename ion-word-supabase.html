@@ -2148,7 +2148,9 @@ async function loadSentenceBooks() {
   try {
     let books = [];
     if (currentUser.role === 'teacher') {
-      const { data } = await sb.from('sentence_books').select('*').order('created_at', {ascending:false});
+      const { data, error: sbErr } = await sb.from('sentence_books').select('*').order('created_at', {ascending:false});
+      if (sbErr) console.error('🔴 sentence_books 조회 에러:', sbErr.message, sbErr.code);
+      console.log('📚 sentence_books 조회 결과:', data?.length ?? 'null', '건', sbErr ? '(에러있음)' : '(정상)');
       books = data || [];
     } else {
       const { data: assigns } = await sb.from('sentence_assignments').select('book_id').eq('student_id', currentUser.id);
@@ -2159,23 +2161,21 @@ async function loadSentenceBooks() {
       DB_sentAssigns = assigns || [];
     }
 
-    // 문장 개수 미리 집계 (book_id 기준 count)
+    // 문장 개수 미리 집계 — 실패해도 books는 반드시 저장
+    DB_sentBooks = books; // 먼저 저장
     if (books.length > 0) {
       try {
         const bookIds = books.map(b => b.id);
-        const { data: countData } = await sb.from('sentence_items')
+        const { data: countData, error: cErr } = await sb.from('sentence_items')
           .select('book_id')
           .in('book_id', bookIds);
-        const countMap = {};
-        (countData || []).forEach(r => {
-          countMap[r.book_id] = (countMap[r.book_id] || 0) + 1;
-        });
-        books = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
-        // DB_sentItems 캐시도 채워두기 (이미 로드된 경우 덮어쓰지 않음)
-      } catch(e2) { console.warn('문장 개수 집계 실패:', e2.message); }
+        if (!cErr && countData) {
+          const countMap = {};
+          countData.forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
+          DB_sentBooks = DB_sentBooks.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
+        }
+      } catch(e2) { console.warn('문장 개수 집계 실패 (무시):', e2.message); }
     }
-
-    DB_sentBooks = books;
   } catch(e) { console.warn('sentence_books 로드 실패:', e.message); DB_sentBooks = []; }
 }
 
