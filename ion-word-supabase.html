@@ -3707,8 +3707,9 @@ async function recStart() {
     window._recMimeType = _mediaRecorder.mimeType || 'audio/webm';
     console.log('녹음 형식:', window._recMimeType);
     _recordedChunks = [];
-    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
+    _mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = recOnStop;
+    _mediaRecorder.onerror = (e) => { showToast('녹음 오류: ' + (e.error?.message || e.error?.name || '알 수 없음'), 'error'); };
     _mediaRecorder.start(100);
 
     document.getElementById('rec-btn-start').style.display = 'none';
@@ -3731,7 +3732,14 @@ async function recStart() {
     _recAnalyser.fftSize = 64;
     _recAudioCtx.createMediaStreamSource(_recStream).connect(_recAnalyser);
     recAnimWave();
-  } catch(e) { showToast('마이크 권한이 필요합니다. 브라우저 설정을 확인하세요.', 'error'); }
+  } catch(e) {
+    const msg = e.name === 'NotAllowedError' ? '마이크 권한을 허용해주세요.'
+              : e.name === 'NotFoundError'   ? '마이크를 찾을 수 없습니다.'
+              : e.name === 'NotSupportedError' ? '이 기기에서 녹음을 지원하지 않습니다.'
+              : '녹음 오류: ' + (e.message || e.name);
+    showToast(msg, 'error');
+    console.error('recStart 오류:', e.name, e.message);
+  }
 }
 
 function recAnimWave() {
@@ -3783,38 +3791,37 @@ async function recSaveWhole() {
 
   showToast('녹음 저장 중...', 'success');
 
-  // 1차 시도: Supabase Storage
   let savedUrl = null;
-  const mimeType = window._recMimeType || 'audio/webm';
-  const ext = mimeType.includes('mp4') || mimeType.includes('aac') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
-  const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.${ext}`;
+  const mimeType = window._recMimeType || (window._recBlob?.type) || 'audio/webm';
+  const ext = mimeType.includes('mp4') || mimeType.includes('aac') ? 'm4a'
+            : mimeType.includes('ogg') ? 'ogg' : 'webm';
+
+  // 1차: Supabase Storage 업로드
   try {
-    const { error: upErr } = await sb.storage.from('recordings').upload(
-      path, window._recBlob, { contentType: mimeType, upsert:true }
-    );
+    const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.${ext}`;
+    const { data: upData, error: upErr } = await sb.storage.from('recordings')
+      .upload(path, window._recBlob, { contentType: mimeType, upsert: true });
     if (!upErr) {
       const { data: urlData } = sb.storage.from('recordings').getPublicUrl(path);
       savedUrl = urlData?.publicUrl || null;
     } else {
-      console.warn('Storage 업로드 실패:', upErr.message);
+      console.warn('Storage 실패:', upErr.message);
     }
-  } catch(e) { console.warn('Storage 접근 불가:', e.message); }
+  } catch(e) { console.warn('Storage 예외:', e.message); }
 
-  // 2차 시도: base64로 DB에 직접 저장
+  // 2차: base64 fallback
   if (!savedUrl) {
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve, reject) => {
-        reader.onload  = () => resolve(reader.result); // data:audio/webm;base64,...
-        reader.onerror = reject;
-        reader.readAsDataURL(window._recBlob);
+      savedUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('FileReader 실패'));
+        r.readAsDataURL(window._recBlob);
       });
-      savedUrl = base64; // data URI 그대로 저장
-      console.log('base64 fallback 사용 (길이:', base64.length, ')');
-    } catch(e) { console.warn('base64 변환 실패:', e); }
+    } catch(e) { console.warn('base64 실패:', e.message); savedUrl = null; }
   }
 
-  // DB에 기록
+  // DB 저장 (실패해도 완료 처리)
   try {
     await sb.from('sentence_submissions').insert({
       student_id: currentUser.id,
@@ -3823,10 +3830,7 @@ async function recSaveWhole() {
       type: 'record_full',
       recorded_url: savedUrl || null
     });
-  } catch(e) {
-    console.warn('제출 기록 실패 (무시):', e.message);
-    // DB 저장 실패해도 낭독 자체는 완료 처리
-  }
+  } catch(e) { console.warn('DB 저장 실패 (무시):', e.message); }
 
   showToast('낭독 완료! 잘 했어요 🎉', 'success');
   sentFinish();
