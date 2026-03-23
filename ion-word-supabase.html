@@ -939,7 +939,7 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
       <div id="pg-mybooks" class="page">
         <div class="section-head">
           <div>
-            <div class="section-title">내 단어장</div>
+            <div class="section-title">단어학습</div>
             <div class="section-sub">선생님이 배포한 단어장입니다</div>
           </div>
         </div>
@@ -1658,9 +1658,7 @@ const teacherNav = [
 ];
 const studentNav = [
   { group:'학습', items:[
-    {id:'pg-mybooks',icon:'library',label:'내 단어장'},
-    {id:'pg-flashcard',icon:'flashcard',label:'암기'},
-    {id:'pg-quiz',icon:'quiz',label:'퀴즈 테스트'},
+    {id:'pg-mybooks',icon:'library',label:'단어학습'},
     {id:'pg-sentence-study',icon:'sentences',label:'문장학습'},
     {id:'pg-progress',icon:'progress',label:'내 학습 기록'},
     {id:'pg-messages',icon:'messages',label:'쪽지함'},
@@ -1700,7 +1698,7 @@ function buildNav() {
 const pageTitles = {
   'pg-dashboard':'대시보드','pg-library':'단어장 보관함',
   'pg-assign':'학생 배포','pg-ai':'AI 단어 생성','pg-filevault':'파일 보관함',
-  'pg-mybooks':'내 단어장','pg-flashcard':'암기 학습',
+  'pg-mybooks':'단어학습','pg-flashcard':'암기 학습',
   'pg-quiz':'퀴즈 테스트','pg-progress':'내 학습 기록',
   'pg-sentences':'문장 보관함','pg-sentence-study':'문장학습',
   'pg-classes':'반 관리','pg-messages':'쪽지함'
@@ -3315,7 +3313,7 @@ async function renderSentenceStudy() {
     const viewWrap = document.createElement('div');
     viewWrap.style.cssText = 'position:absolute;top:10px;right:10px;z-index:2';
     const viewBtn = document.createElement('button');
-    viewBtn.textContent = '\ubcf4\uae30';
+    viewBtn.textContent = '문장 보기';
     viewBtn.style.cssText = 'font-size:11px;padding:2px 9px;background:rgba(109,40,217,0.15);border:1px solid rgba(109,40,217,0.4);border-radius:7px;cursor:pointer;color:#6d28d9;font-weight:600';
     viewBtn.addEventListener('click', function(e){ e.stopPropagation(); openSentListModal(b.id); });
     viewWrap.appendChild(viewBtn);
@@ -3815,7 +3813,7 @@ async function recSaveWhole() {
       book_id: window._recBookId,
       item_id: null,
       type: 'record_full',
-      recorded_url: savedUrl
+      recorded_url: savedUrl || null
     });
   } catch(e) {
     console.warn('제출 기록 실패:', e.message);
@@ -3860,7 +3858,7 @@ async function renderSentSubmissions(bookId) {
               <div style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
                 <div style="font-size:12px;color:var(--t2);margin-bottom:6px;font-family:'JetBrains Mono',monospace">${s.sentence_items?.en || ''}</div>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <audio src="${s.recorded_url}" controls style="height:30px;flex:1;min-width:180px"></audio>
+                  <audio src="${s.recorded_url || ''}" controls style="height:30px;flex:1;min-width:180px"></audio>
                   <span style="font-size:10px;color:var(--t3)">${new Date(s.created_at).toLocaleDateString('ko-KR')}</span>
                 </div>
               </div>`).join('')}
@@ -6813,11 +6811,13 @@ async function renderSentProgress() {
     await loadSentenceBooks();
     if (!DB_sentBooks.length) { body.innerHTML = emptyHTML('배포된 문장집이 없습니다'); return; }
 
-    const { data: subs } = await sb.from('sentence_submissions')
-      .select('*')
+    const { data: subs, error: subsErr } = await sb.from('sentence_submissions')
+      .select('id, book_id, type, recorded_url, created_at')
       .eq('student_id', currentUser.id)
       .order('created_at', { ascending: false });
+    if (subsErr) console.error('🔴 sentence_submissions 오류:', subsErr.message, subsErr.code);
     const submissions = subs || [];
+    console.log('📊 sentence_submissions 조회:', submissions.length, '건');
 
     const modeLabel = { unscramble:'문장 배열', dictation:'빈칸 채우기', record_full:'낭독', record:'낭독' };
 
@@ -8378,6 +8378,20 @@ function fvConvertBookConfirm(id, words) {
 // 기존 fvViewFile → fvOpenFile로 대체 (하위호환)
 function fvViewFile(id) { fvOpenFile(id); }
 
+
+// 품사 표기 제거 (명사, 동사, 형용사 등 괄호/텍스트 형태)
+function removePOS(str) {
+  return str
+    // (n.), (v.), (adj.) 등 영문 품사 약어
+    .replace(/\(?(n|v|adj|adv|prep|conj|pron|interj|art|det|aux|modal|vt|vi|abbr)\.?\)?/gi, '')
+    // 한국어 품사: 명사, 동사, 형용사, 부사, 전치사, 접속사, 대명사, 감탄사 등
+    .replace(/[《《〈〈<【\[（(]?(명사|동사|형용사|부사|전치사|접속사|대명사|감탄사|조동사|관사|한정사|약어|고유명사|집합명사|불가산명사|가산명사|자동사|타동사|구동사|phrasal)[》》〉〉>】\]）)]?/g, '')
+    // 앞뒤 공백/쉼표 정리
+    .replace(/^[,\s]+|[,\s]+$/g, '')
+    .replace(/,\s*,/g, ',')
+    .trim();
+}
+
 function fvParseWords(f) {
   const lines = (f.content || '').split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
   const rows = lines.map(l => l.split(/[,\t]/).map(c => c.trim().replace(/^"|"$/g, '')));
@@ -8398,12 +8412,20 @@ function fvParseWords(f) {
     }
   }
   return dataRows
-    .map((row, i) => ({
-      id: crypto.randomUUID(),
-      en: String(row[enCol]||'').trim(),
-      ko: String(row[koCol]||'').trim(),
-      example: String(row.find((_,ci) => ci!==enCol && ci!==koCol) || '').trim()
-    }))
+    .map((row, i) => {
+      const en = String(row[enCol]||'').trim();
+      // 한 셀 내 여러 뜻 (/, ;, ·, ① 등 구분자) + 이후 열의 추가 뜻
+      const koRaw = String(row[koCol]||'').trim();
+      // 셀 내부 분리: /, ;, ·, ①②, 줄바꿈
+      const koSplit = koRaw.split(/[\/;·]|\n|\r|①|②|③|④|⑤/).map(s => removePOS(s.trim())).filter(Boolean);
+      const extraKo = row.slice(koCol + 1)
+        .map(c => removePOS(String(c || '').trim()))
+        .filter(c => c && c !== en && /[ㄱ-ㅎ가-힣a-zA-Z]/.test(c));
+      const allKo = [...koSplit, ...extraKo].filter(Boolean);
+      const ko = allKo.join(', ') || removePOS(koRaw);
+      const example = String(row.find((_,ci) => ci!==enCol && ci!==koCol) || '').trim();
+      return { id: crypto.randomUUID(), en, ko, example };
+    })
     .filter(w => w.en && w.ko && /[a-zA-Z]/.test(w.en) && w.en.length > 1);
 }
 
@@ -8451,7 +8473,12 @@ function fvSendToLibrary(fileId) {
     const words = [];
     dataRows.forEach((row, i) => {
       const en = String(row[enCol] || '').trim();
-      const ko = String(row[koCol] || '').trim();
+       const koRaw2 = String(row[koCol] || '').trim();
+       const koSplit2 = koRaw2.split(/[\/;·]|\n|\r|①|②|③|④|⑤/).map(s => removePOS(s.trim())).filter(Boolean);
+       const extraKo2 = row.slice(koCol + 1)
+         .map(c => removePOS(String(c || '').trim()))
+         .filter(c => c && c !== en && /[ㄱ-ㅎ가-힣a-zA-Z]/.test(c));
+       const ko = [...koSplit2, ...extraKo2].filter(Boolean).join(', ') || removePOS(koRaw2);
       const example = exCol >= 0 ? String(row[exCol] || '').trim() : '';
       if (en && ko && /[a-zA-Z]/.test(en) && en.length > 1) {
         words.push({ id: crypto.randomUUID(), en, ko, example });
@@ -8499,6 +8526,7 @@ async function fvExtractAndSend(f) {
   try {
     const res = await callClaude(
       '다음 파일에서 영어 단어와 한국어 뜻 쌍을 추출하세요.\n' +
+      '뜻에서 품사 표기(명사, 동사, 형용사, n., v., adj. 등)는 제거하고 뜻만 추출하세요.\n' +
       '어떤 열/행 구조든 영어와 한국어 뜻을 찾아내세요.\n' +
       '헤더, 번호, 설명 행은 제외하세요.\n\n' +
       '파일 내용:\n' + raw + '\n\n' +
@@ -8817,10 +8845,10 @@ async function openWordListModal(bookId) {
 
     <div class="modal-actions" style="margin-top:14px">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal();openWordListPrint('${bookId}')">
+      ${currentUser?.role==='teacher' ? `<button class="btn btn-secondary btn-sm" onclick="closeModal();openWordListPrint('${bookId}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         인쇄
-      </button>
+      </button>` : ''}
       ${window._wlChecked?.size > 0 ? `
       <button class="btn btn-secondary btn-sm" style="border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="closeModal();wlStartUnmemorized('${bookId}','fc')">
         <span style="font-size:10px;background:rgba(239,68,68,0.12);padding:1px 6px;border-radius:8px;margin-right:3px">❌ ${window._wlChecked.size}</span>미암기 암기
@@ -9305,6 +9333,7 @@ async function openSentListModal(bookId) {
 
     <div class="modal-actions" style="margin-top:14px">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      ${currentUser?.role==='teacher' ? `
       <button class="btn btn-secondary btn-sm" onclick="closeModal();sentShowEditorView('${bookId}')">편집</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal();openSentListPrint('${bookId}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -9313,7 +9342,7 @@ async function openSentListModal(bookId) {
       <button class="btn btn-primary btn-sm" onclick="closeModal();sentMakeTest('${bookId}')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         시험지
-      </button>
+      </button>` : ''}
     </div>`);
 
   slRenderCard();
