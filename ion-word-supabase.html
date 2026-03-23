@@ -1280,6 +1280,7 @@ async function loadDB() {
     }
     // Supabase에서 Groq 키 로드
     loadGroqKeyFromDB();
+    // 문장집 백그라운드 미리 로드 (탭 전환 시 빠른 표시용)
     loadSentenceBooks().catch(()=>{});
 
   } catch(e) {
@@ -3285,9 +3286,11 @@ async function saveSentAssign(bookId) {
 async function renderSentenceStudy() {
   const body = document.getElementById('sent-student-body');
   if (!body) return;
-  body.innerHTML = '<div class="empty"><div class="empty-icon">\u23f3</div></div>';
-  await loadSentenceBooks();
-  console.log('\ud83c\udfaf renderSentenceStudy \uc9c4\uc785, DB_sentBooks:', DB_sentBooks.length, '\uac1c');
+  // 캐시된 데이터가 있으면 즉시 렌더링, 없으면 로드
+  if (!DB_sentBooks.length) {
+    body.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div></div>';
+    await loadSentenceBooks();
+  }
 
   if (!DB_sentBooks.length) {
     body.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udcc4</div><div class="empty-title">\ubc30\uc815\ub41c \ubb38\uc7a5\uc9d1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4</div><div class="empty-sub">\uc120\uc0dd\ub2d8\uc774 \ubb38\uc7a5\uc9d1\uc744 \ubc30\uc815\ud558\uba74 \uc5ec\uae30\uc5d0 \ub098\ud0c0\ub0a9\ub2c8\ub2e4</div></div>';
