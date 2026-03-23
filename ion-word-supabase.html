@@ -3764,11 +3764,29 @@ function recStop() {
 }
 
 function recOnStop() {
-  const mimeType = window._recMimeType || 'audio/webm';
+  const mimeType = window._recMimeType || _mediaRecorder?.mimeType || 'audio/webm';
   const blob = new Blob(_recordedChunks, { type: mimeType });
   window._recBlob = blob;
-  const audio = document.getElementById('rec-audio');
-  if (audio) audio.src = URL.createObjectURL(blob);
+
+  // base64 data URI로 변환 (모바일 blob URL 재생 오류 방지)
+  const reader = new FileReader();
+  reader.onload = () => {
+    const audio = document.getElementById('rec-audio');
+    if (audio) {
+      audio.src = reader.result;
+      audio.onerror = () => {
+        // 재생 불가 시 blob URL 재시도
+        try { audio.src = URL.createObjectURL(blob); } catch(e) {}
+      };
+    }
+  };
+  reader.onerror = () => {
+    // FileReader 실패 시 blob URL fallback
+    const audio = document.getElementById('rec-audio');
+    if (audio) audio.src = URL.createObjectURL(blob);
+  };
+  reader.readAsDataURL(blob);
+
   const resultEl = document.getElementById('rec-result');
   if (resultEl) resultEl.style.display = '';
   const timerEl = document.getElementById('rec-timer');
