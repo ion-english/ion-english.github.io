@@ -3700,7 +3700,12 @@ async function startSentRecording(bookId) {
 async function recStart() {
   try {
     _recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    _mediaRecorder = new MediaRecorder(_recStream);
+    // 브라우저/모바일 지원 형식 자동 감지
+    const mimeTypes = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4','audio/aac'];
+    const supportedMime = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    _mediaRecorder = supportedMime ? new MediaRecorder(_recStream, { mimeType: supportedMime }) : new MediaRecorder(_recStream);
+    window._recMimeType = _mediaRecorder.mimeType || 'audio/webm';
+    console.log('녹음 형식:', window._recMimeType);
     _recordedChunks = [];
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = recOnStop;
@@ -3751,7 +3756,8 @@ function recStop() {
 }
 
 function recOnStop() {
-  const blob = new Blob(_recordedChunks, { type: 'audio/webm' });
+  const mimeType = window._recMimeType || 'audio/webm';
+  const blob = new Blob(_recordedChunks, { type: mimeType });
   window._recBlob = blob;
   const audio = document.getElementById('rec-audio');
   if (audio) audio.src = URL.createObjectURL(blob);
@@ -3779,10 +3785,12 @@ async function recSaveWhole() {
 
   // 1차 시도: Supabase Storage
   let savedUrl = null;
-  const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.webm`;
+  const mimeType = window._recMimeType || 'audio/webm';
+  const ext = mimeType.includes('mp4') || mimeType.includes('aac') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+  const path = `recordings/${currentUser.id}/${window._recBookId}/full_${Date.now()}.${ext}`;
   try {
     const { error: upErr } = await sb.storage.from('recordings').upload(
-      path, window._recBlob, { contentType:'audio/webm', upsert:true }
+      path, window._recBlob, { contentType: mimeType, upsert:true }
     );
     if (!upErr) {
       const { data: urlData } = sb.storage.from('recordings').getPublicUrl(path);
@@ -3816,9 +3824,8 @@ async function recSaveWhole() {
       recorded_url: savedUrl || null
     });
   } catch(e) {
-    console.warn('제출 기록 실패:', e.message);
-    showToast('기록 저장에 실패했습니다: ' + e.message, 'error');
-    return;
+    console.warn('제출 기록 실패 (무시):', e.message);
+    // DB 저장 실패해도 낭독 자체는 완료 처리
   }
 
   showToast('낭독 완료! 잘 했어요 🎉', 'success');
