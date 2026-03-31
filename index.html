@@ -1192,6 +1192,12 @@ body.student-mode { background: #e8f0f8; }
   .table-wrap{font-size:12px}.ex-text{max-width:120px}
   .toast{bottom:16px;right:16px;left:16px;max-width:none}
   #groq-quota-badge{left:16px;bottom:70px}.login-box{max-width:100vw;padding:0 16px}
+  /* quiz/fc/sent 2-col → 1-col */
+  .slime-two-col{grid-template-columns:1fr !important;max-width:100% !important}
+  /* quiz setup bar selects */
+  #quiz-setup-bar,#fc-setup-bar{flex-direction:column;align-items:stretch}
+  #quiz-setup-bar select,#fc-setup-bar select,
+  #quiz-setup-bar .toggle-wrap,#quiz-setup-bar button{width:100% !important;min-width:unset !important;box-sizing:border-box}
 }
 @media print{.sidebar,.topbar,#modal-bg,.toast{display:none !important}.main{margin-left:0 !important}.content{padding:0 !important}}
 
@@ -1340,15 +1346,16 @@ body.student-mode { background: #e8f0f8; }
          </div>
 
 
-        <!-- 컬렉션 -->
+        <!-- 즐겨찾기 -->
         <div class="section-head" style="margin-top:4px">
-          <div><div class="section-title">컬렉션</div><div class="section-sub">단어장 · 문장집 그룹 · 클릭하면 이동</div></div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-secondary btn-sm" onclick="openNewCollectionModal()">단어장 컬렉션</button>
-            <button class="btn btn-secondary btn-sm" onclick="openNewSentCollModal()">문장집 컬렉션</button>
-          </div>
+          <div><div class="section-title">즐겨찾기</div><div class="section-sub">북마크한 단어장 · 문장집 · 클릭하면 이동</div></div>
         </div>
-        <div id="dash-collections" style="margin-bottom:8px"></div>
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:0.04em;margin:6px 0 4px">단어장</div>
+          <div id="dash-word-collections"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:0.04em;margin:10px 0 4px">문장집</div>
+          <div id="dash-sent-collections"></div>
+        </div>
 
         <hr class="divider">
         <div class="section-head">
@@ -2280,7 +2287,7 @@ body.student-mode { background: #e8f0f8; }
 
       <!-- ===== STUDENT: FLASHCARD ===== -->
        <div id="pg-flashcard" class="page">
-         <div style="background:linear-gradient(135deg,var(--slime-accent,#6ee7b7)12,var(--slime-light,#d1fae5)20);
+         <div id="fc-setup-bar" style="background:linear-gradient(135deg,var(--slime-accent,#6ee7b7)12,var(--slime-light,#d1fae5)20);
            border:1.5px solid var(--slime-accent,#6ee7b7)30;border-radius:18px;
            padding:14px 18px;margin-bottom:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
            <select class="form-input" id="fc-sel" style="width:auto;min-width:180px;border-radius:12px;border:2px solid var(--border);font-weight:600" onchange="startFC()">
@@ -2903,6 +2910,40 @@ let _libCollSelected  = new Set();
 let _sentCollEditMode = false;
 let _sentCollSelected = new Set();
 
+// ── 대시보드 컬렉션 수정 모드 ──
+let _dashCollEditMode = false;
+function dashCollSetEdit(on) {
+  _dashCollEditMode = on;
+}
+async function dashCollDeleteOne(id, type) {
+  if (type === 'word') {
+    if (!confirm('이 컬렉션을 삭제할까요?\n포함된 단어장은 미분류로 이동됩니다.')) return;
+    try { await deleteCollectionById(id); showToast('컬렉션이 삭제됐습니다', 'success'); }
+    catch(e) { showToast('삭제 실패: ' + e.message, 'error'); return; }
+  } else {
+    if (!confirm('이 컬렉션을 삭제할까요?\n포함된 문장집은 미분류로 이동됩니다.')) return;
+    try { await sentDeleteCollById(id); showToast('컬렉션이 삭제됐습니다', 'success'); }
+    catch(e) { showToast('삭제 실패: ' + e.message, 'error'); return; }
+  }
+  renderDashboard();
+}
+async function dashCollRenameWord(collId, newName) {
+  const trimmed = newName.trim();
+  const c = (DB.collections||[]).find(c=>c.id===collId);
+  if (!c || !trimmed || trimmed === c.name) return;
+  c.name = trimmed;
+  try { await sb.from('collections').update({ name: trimmed }).eq('id', collId); }
+  catch(e) { showToast('이름 저장 실패: ' + e.message, 'error'); }
+}
+async function dashCollRenameSent(collId, newName) {
+  const trimmed = newName.trim();
+  const c = (DB_sentColls||[]).find(c=>c.id===collId);
+  if (!c || !trimmed || trimmed === c.name) return;
+  c.name = trimmed;
+  try { await sb.from('sentence_collections').update({ name: trimmed }).eq('id', collId); }
+  catch(e) { showToast('이름 저장 실패: ' + e.message, 'error'); }
+}
+
 function libCollSetEdit(on) {
   _libCollEditMode = on;
   if (!on) _libCollSelected.clear();
@@ -3006,6 +3047,13 @@ document.addEventListener('mousedown', function(e) {
     const inGrid = grid && grid.contains(e.target);
     const inHdr  = hdr  && hdr.contains(e.target);
     if (!inGrid && !inHdr) { sentCollSetEdit(false); renderSentMgmt(); }
+  }
+  if (_dashCollEditMode) {
+    const wordGrid = document.getElementById('dash-word-coll-grid');
+    const sentGrid = document.getElementById('dash-sent-coll-grid');
+    const inWordGrid = wordGrid && wordGrid.contains(e.target);
+    const inSentGrid = sentGrid && sentGrid.contains(e.target);
+    if (!inWordGrid && !inSentGrid) { dashCollSetEdit(false); renderDashboard(); }
   }
 });
 
@@ -4346,6 +4394,24 @@ window.addEventListener('popstate', function(e) {
 // ── 최근 열람 추적 ─────────────────────────────────────────
 const _RECENT_KEY_W = () => 'ion_recent_word_' + (currentUser?.id||'');
 const _RECENT_KEY_S = () => 'ion_recent_sent_' + (currentUser?.id||'');
+
+// ── 즐겨찾기 헬퍼 ──
+const _FAV_KEY_W = () => 'ion_fav_word_' + (currentUser?.id||'');
+const _FAV_KEY_S = () => 'ion_fav_sent_' + (currentUser?.id||'');
+function _getFavIds(type) {
+  const key = type === 'word' ? _FAV_KEY_W() : _FAV_KEY_S();
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+}
+function _isFav(type, id) { return _getFavIds(type).includes(id); }
+function _toggleFav(type, id) {
+  const key = type === 'word' ? _FAV_KEY_W() : _FAV_KEY_S();
+  const ids = _getFavIds(type);
+  const idx = ids.indexOf(id);
+  if (idx >= 0) ids.splice(idx, 1); else ids.push(id);
+  localStorage.setItem(key, JSON.stringify(ids));
+}
+function toggleFavWord(id) { _toggleFav('word', id); renderDashboard(); renderLibrary(); }
+function toggleFavSent(id) { _toggleFav('sent', id); renderDashboard(); renderSentMgmt(); }
 const _RECENT_MAX = 20;
 
 function _trackRecentOpen(type, id) {
@@ -4379,49 +4445,76 @@ async function renderDashboard() {
   const avgScore = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
   const today = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
 
-  // ── 컬렉션 (단어장 + 문장집 통합) ──
-  const wordCols = DB.collections || [];
-  const sentCols = DB_sentColls || [];
-  const colEl = document.getElementById('dash-collections');
+  // ── 즐겨찾기 (단어장 / 문장집 분리) ──
+  const favWordIds = _getFavIds('word');
+  const favSentIds = _getFavIds('sent');
+  const wordColEl = document.getElementById('dash-word-collections');
+  const sentColEl = document.getElementById('dash-sent-collections');
 
-  const wordColCards = wordCols.filter(c => !q || c.name.toLowerCase().includes(q)).map(c => {
-    const bookCount = DB.books.filter(b => b.collectionId === c.id).length;
-    const wordCount = DB.books.filter(b => b.collectionId === c.id).reduce((s,b)=>s+(b.wordCount ?? b.words.length),0);
-    const metaParts = [];
-    if (bookCount) metaParts.push(`단어장 ${bookCount}개`);
-    if (wordCount) metaParts.push(`단어 ${wordCount}개`);
-    return `<div onclick="goToCollection('${c.id}')"
-      style="cursor:pointer;background:white;border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;transition:all 0.18s;min-width:180px;box-shadow:0 1px 4px rgba(15,23,42,0.05)"
-      onmouseover="this.style.borderColor='var(--blue)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(59,130,246,0.12)'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05)'">
-      <div style="width:40px;height:40px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px">${c.icon||'📁'}</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;letter-spacing:-0.2px">${c.name}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">${metaParts.length ? metaParts.join(' · ') : '항목 없음'}</div>
-      </div>
-    </div>`;
-  });
+  const favWordBooks = DB.books.filter(b => favWordIds.includes(b.id) && (!q || b.name.toLowerCase().includes(q)));
+  const favSentBooks = (DB_sentBooks||[]).filter(b => favSentIds.includes(b.id) && (!q || b.name.toLowerCase().includes(q)));
 
-  const sentColCards = sentCols.filter(c => !q || c.name.toLowerCase().includes(q)).map(c => {
-    const cnt = (DB_sentBooks||[]).filter(b => b.collection_id === c.id).length;
-    return `<div onclick="dashGoToSentColl('${c.id}')"
-      style="cursor:pointer;background:white;border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;transition:all 0.18s;min-width:180px;box-shadow:0 1px 4px rgba(15,23,42,0.05)"
-      onmouseover="this.style.borderColor='var(--blue)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(59,130,246,0.12)'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05)'">
-      <div style="width:40px;height:40px;border-radius:12px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:20px">📂</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;letter-spacing:-0.2px">${c.name}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">문장집 ${cnt}개</div>
-      </div>
-    </div>`;
-  });
-
-  const allCards = [...wordColCards, ...sentColCards];
-  if (allCards.length === 0) {
-    colEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:8px 0 4px">컬렉션이 없습니다. 새 컬렉션으로 묶어보세요.</div>`;
-  } else {
-    colEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;padding:4px 0 8px">${allCards.join('')}</div>`;
+  // 즐겨찾기 단어장 카드 렌더
+  if (wordColEl) {
+    if (!favWordBooks.length) {
+      wordColEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:6px 0 2px">즐겨찾기한 단어장이 없습니다. 단어장 목록에서 북마크 버튼을 눌러 추가하세요.</div>`;
+    } else {
+      wordColEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;padding:4px 0 8px">${favWordBooks.map(b => {
+        const wc = b.wordCount ?? b.words?.length ?? 0;
+        const coll = (DB.collections||[]).find(c => c.id === b.collectionId);
+        return `<div onclick="openTeacherWordView('${b.id}')"
+          style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;
+            border:1.5px solid var(--border);border-radius:14px;cursor:pointer;
+            transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
+            box-shadow:0 1px 6px rgba(15,23,42,0.05);min-width:180px;max-width:260px;position:relative"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)';this.style.borderColor='var(--blue)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)';this.style.borderColor='var(--border)'">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">📖</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:2px">${wc}개 단어${coll ? ' · 📁' + coll.name : ''}</div>
+          </div>
+          <button onclick="event.stopPropagation();toggleFavWord('${b.id}')"
+            style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
+              color:var(--blue2);border-radius:8px;transition:color 0.15s"
+            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'"
+            title="즐겨찾기 해제"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--blue2)" stroke="var(--blue2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></button>
+        </div>`;
+      }).join('')}</div>`;
+    }
   }
+
+  // 즐겨찾기 문장집 카드 렌더
+  if (sentColEl) {
+    if (!favSentBooks.length) {
+      sentColEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:6px 0 2px">즐겨찾기한 문장집이 없습니다. 문장집 목록에서 북마크 버튼을 눌러 추가하세요.</div>`;
+    } else {
+      sentColEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;padding:4px 0 8px">${favSentBooks.map(b => {
+        const cnt = b.item_count ?? (DB_sentItems?.[b.id]||[]).length;
+        const coll = (DB_sentColls||[]).find(c => c.id === b.collection_id);
+        return `<div onclick="openTeacherSentView('${b.id}')"
+          style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;
+            border:1.5px solid var(--border);border-radius:14px;cursor:pointer;
+            transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
+            box-shadow:0 1px 6px rgba(15,23,42,0.05);min-width:180px;max-width:260px;position:relative"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)';this.style.borderColor='var(--blue)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)';this.style.borderColor='var(--border)'">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--lavender-dim,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">💬</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:2px">${cnt}개 문장${coll ? ' · 📂' + coll.name : ''}</div>
+          </div>
+          <button onclick="event.stopPropagation();toggleFavSent('${b.id}')"
+            style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
+              color:var(--blue2);border-radius:8px;transition:color 0.15s"
+            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'"
+            title="즐겨찾기 해제"><svg width="15" height="15" viewBox="0 0 24 24" fill="var(--blue2)" stroke="var(--blue2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></button>
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+
+
 
   // ── 최근 열람 순서로 단어장 / 문장집 정렬 ──
   const recentWordIds = _getRecentIds('word');
@@ -5372,6 +5465,19 @@ function sentBookListHTML(b, draggable) {
     <!-- 버튼들 -->
     ${_sentEditMode ? `` : `
     <div style="flex-shrink:0;display:flex;align-items:center;gap:8px">
+      <button onclick="event.stopPropagation();toggleFavSent('${b.id}')"
+        title="${_isFav('sent',b.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}"
+        style="background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;flex-shrink:0;
+          color:${_isFav('sent',b.id)?'var(--blue2)':'#cbd5e1'};
+          transition:color 0.15s;border-radius:8px"
+        onmouseover="this.style.color='var(--blue2)';this.style.background='var(--blue-dim)'"
+        onmouseout="this.style.color='${_isFav('sent',b.id)?'var(--blue2)':'#cbd5e1'}';this.style.background='none'"
+        ><svg width="15" height="15" viewBox="0 0 24 24"
+          fill="${_isFav('sent',b.id)?'var(--blue2)':'none'}"
+          stroke="${_isFav('sent',b.id)?'var(--blue2)':'currentColor'}"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg></button>
       <select onchange="event.stopPropagation();sentMoveBookColl('${b.id}',this.value||null);this.blur()"
         style="font-size:11px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;background:var(--surface2);color:var(--t2);cursor:pointer;outline:none;max-width:120px"
         onclick="event.stopPropagation()">
@@ -7437,7 +7543,7 @@ function renderSentStudyCard() {
   }
 
   body.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:stretch">
+    <div class="slime-two-col" style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:stretch">
 
       <!-- ── 좌: 문장 카드 ── -->
       <div style="display:flex;flex-direction:column;gap:16px">
@@ -9020,6 +9126,19 @@ function bookListHTML(b, draggable) {
     <!-- 버튼들 -->
     ${_libEditMode ? `` : `
     <div style="flex-shrink:0;display:flex;align-items:center;gap:8px">
+      <button onclick="event.stopPropagation();toggleFavWord('${b.id}')"
+        title="${_isFav('word',b.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}"
+        style="background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;flex-shrink:0;
+          color:${_isFav('word',b.id)?'var(--blue2)':'#cbd5e1'};
+          transition:color 0.15s;border-radius:8px"
+        onmouseover="this.style.color='var(--blue2)';this.style.background='var(--blue-dim)'"
+        onmouseout="this.style.color='${_isFav('word',b.id)?'var(--blue2)':'#cbd5e1'}';this.style.background='none'"
+        ><svg width="15" height="15" viewBox="0 0 24 24"
+          fill="${_isFav('word',b.id)?'var(--blue2)':'none'}"
+          stroke="${_isFav('word',b.id)?'var(--blue2)':'currentColor'}"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg></button>
       ${collSelect}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;min-width:240px">
         <button onclick="bookMakeTest('${b.id}')"
@@ -11870,7 +11989,7 @@ function renderFC() {
   const streak = slime.streak || 1;
 
   body.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;max-width:900px;margin:0 auto;align-items:stretch">
+    <div class="slime-two-col" style="display:grid;grid-template-columns:1fr 280px;gap:20px;max-width:900px;margin:0 auto;align-items:stretch">
 
       <!-- ── 좌: 단어 카드 ── -->
       <div style="display:flex;flex-direction:column;gap:14px">
@@ -12416,7 +12535,7 @@ function renderQuiz(){
     ${nextBtn}
   `;
 
-  body.innerHTML=`<div class="quiz-container" style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:stretch">
+  body.innerHTML=`<div class="quiz-container slime-two-col" style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:stretch">
     <div style="display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:10px;
       background:${colorDefQ.b}12;border:1.5px solid ${colorDefQ.b}30;border-radius:16px;padding:10px 16px">
