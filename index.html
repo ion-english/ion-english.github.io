@@ -1006,39 +1006,31 @@ body.student-mode { background: #e8f0f8; }
   /* 모바일에서 기존 우측 슬라임 패널 숨김 */
   .mobile-hide-slime-panel{display:none !important}
 
-  /* ── 문장학습 퀴즈 모바일 하단 고정 바 ── */
+  /* ── 문장학습 퀴즈 모바일 최적화 ── */
   #sent-study-body {
-    padding: 16px 16px 170px !important;
+    padding: 12px 12px 24px !important;
   }
-  #sent-study-mobile-bar {
-    display: flex !important;
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 200;
-    background: #e8f0fb;
-    border-top: 2px solid #c5d5f0;
-    padding: 10px 16px 16px;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 -4px 20px rgba(15,40,80,0.10);
-    min-height: 140px;
-    box-sizing: border-box;
-  }
-  /* 모바일에서 퀴즈 2-column → 1-column */
+  /* 1-column 레이아웃 */
   .sent-study-two-col {
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
-  /* 모바일에서 우측 슬라임 패널 숨김 (하단 바로 대체) */
+  /* 우측 슬라임 패널 숨김 */
   .sent-study-right-panel {
     display: none !important;
   }
-  /* 문장 카드 모바일 최적화 */
+  /* 문장 카드 패딩 축소 */
   .sent-study-main-card {
     min-height: unset !important;
-    padding: 18px 16px 16px !important;
+    padding: 16px 14px 14px !important;
   }
+  /* 진행바 → 슬라임 헤더로 교체 */
   .sent-study-progress-bar-wrap {
-    padding: 10px 14px !important;
+    display: none !important;
+  }
+  /* 모바일 슬라임 진행 헤더 */
+  .sent-study-slime-header {
+    display: flex !important;
   }
 }
 
@@ -7736,7 +7728,7 @@ async function startSentStudy(bookId, mode) {
   const ov = _createOverlay('sent-study-overlay');
   ov.innerHTML = _makeOverlayHeader({
     backLabel: '목록',
-    backFn: "document.getElementById('sent-study-overlay').remove();document.getElementById('sent-study-mobile-bar')?.remove();renderSentenceStudy()",
+    backFn: "document.getElementById('sent-study-overlay').remove();renderSentenceStudy()",
     title: modeTitle,
     subtitle: b?.name || '',
     col
@@ -7842,7 +7834,71 @@ function renderSentStudyCard() {
       <!-- ── 좌: 문장 카드 ── -->
       <div style="display:flex;flex-direction:column;gap:16px">
 
-        <!-- 진행바 -->
+        <!-- 모바일 슬라임 진행 헤더 (데스크탑에선 숨김) -->
+        <div class="sent-study-slime-header" style="display:none;background:#fff;border-radius:18px;
+          padding:14px 16px;box-shadow:0 2px 12px rgba(30,58,95,0.07);border:1px solid #dde8f2;
+          align-items:center;gap:14px">
+
+          <!-- 슬라임 캐릭터 (클릭 가능) -->
+          <div style="flex-shrink:0;cursor:pointer;position:relative"
+            onclick="onSlimeClick(event)" data-slime-main="1" title="클릭!">
+            <!-- 감정 말풍선 -->
+            <div id="sst-slime-bubble" style="position:absolute;top:-28px;left:50%;transform:translateX(-50%);
+              background:#1a2d4a;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;
+              border-radius:8px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:10">
+              ${pct===0?'파이팅! 💪':pct<50?'잘하고 있어! ✨':pct<100?'거의 다 왔어! 🔥':'완료! 🎉'}
+              <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+                width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid #1a2d4a"></div>
+            </div>
+            <div style="animation:slimeBob 2.5s ease-in-out infinite;width:64px;height:64px;
+              display:flex;align-items:center;justify-content:center"
+              onmouseenter="document.getElementById('sst-slime-bubble').style.opacity='1'"
+              onmouseleave="document.getElementById('sst-slime-bubble').style.opacity='0'"
+              ontouchstart="document.getElementById('sst-slime-bubble').style.opacity='1'"
+              ontouchend="setTimeout(()=>document.getElementById('sst-slime-bubble').style.opacity='0',1200)">
+              ${buildMiniSlimeSVG(slime.stage, 60)}
+            </div>
+            <!-- LV 뱃지 -->
+            <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+              background:${col.b};color:#fff;font-size:8px;font-weight:800;
+              padding:1px 6px;border-radius:99px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15)">
+              LV.${slime.stage+1}
+            </div>
+          </div>
+
+          <!-- 진행 정보 -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+
+            <!-- 상단: 이름 + 카운트 -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+              <span style="font-size:12px;font-weight:700;color:#1a2d4a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                ${slime.slimeName||'내 슬라임'}
+              </span>
+              <span style="font-size:11px;font-weight:800;color:${col.dark};white-space:nowrap;flex-shrink:0">
+                ${_sentStudyIdx+1}<span style="font-weight:500;color:#7ea8cc"> / ${total}</span>
+              </span>
+            </div>
+
+            <!-- 진행 바 (두꺼운 버전) -->
+            <div style="height:10px;background:#e8f0f8;border-radius:99px;overflow:hidden;position:relative">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col.a},${col.b});
+                border-radius:99px;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1);position:relative">
+                <!-- 빛나는 끝부분 -->
+                ${pct>3?`<div style="position:absolute;right:0;top:0;bottom:0;width:8px;
+                  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5));border-radius:99px"></div>`:''}
+              </div>
+            </div>
+
+            <!-- 하단: EXP 정보 -->
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:#7ea8cc;font-weight:600">${modeLabel}</span>
+              <span style="font-size:10px;font-weight:700;color:${col.dark}">${slime.exp.toLocaleString()} XP</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 데스크탑 진행바 -->
         <div class="sent-study-progress-bar-wrap" style="background:#fff;border-radius:16px;padding:14px 20px;
           box-shadow:0 2px 12px rgba(30,58,95,0.06);border:1px solid #dde8f2;
           display:flex;align-items:center;gap:14px">
@@ -7952,77 +8008,9 @@ function renderSentStudyCard() {
     </div>
   `;
 
-  // ── 모바일 하단 고정 슬라임 바 렌더링 ──
-  _renderSentStudyMobileBar(slime, col, total);
-}
-
-function _renderSentStudyMobileBar(slime, col, total) {
-  // 600px 이상 데스크탑에선 스킵
-  if (window.innerWidth > 600) return;
-
-  const xpThresholds = [100, 500, 2000, 99999];
-  const xpMax = xpThresholds[Math.min(slime.stage, 3)];
-  const xpPct = Math.min(100, Math.round((slime.exp / xpMax) * 100));
-  const streak = slime.streak || 1;
-  const prog = DB.progress || {};
-  const totalRounds = Object.values(prog).reduce((s,p)=>s+(p.rounds||0),0);
-
-  // 기존 바 제거 후 재생성
-  const existing = document.getElementById('sent-study-mobile-bar');
-  if (existing) existing.remove();
-
-  const bar = document.createElement('div');
-  bar.id = 'sent-study-mobile-bar';
-  bar.innerHTML = `
-    <!-- 슬라임 캐릭터 -->
-    <div style="width:100px;height:100px;flex-shrink:0;position:relative;cursor:pointer"
-      onclick="onSlimeClick(event)" data-slime-main="1" title="클릭해봐요!">
-      <div style="animation:slimeBob 2.5s ease-in-out infinite;width:100px;height:100px;
-        display:flex;align-items:center;justify-content:center">
-        ${buildMiniSlimeSVG(slime.stage, 96)}
-      </div>
-    </div>
-
-    <!-- 정보 영역 -->
-    <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0">
-
-      <!-- 이름 + 레벨 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-size:13px;font-weight:700;color:#1a2d4a;truncate">${slime.slimeName||'내 슬라임'}</span>
-        <span style="font-size:10px;font-weight:700;background:#c5d5f0;color:#1a2d4a;
-          border-radius:99px;padding:2px 9px;white-space:nowrap">LV.${slime.stage+1}</span>
-      </div>
-
-      <!-- EXP 바 -->
-      <div style="display:flex;align-items:center;gap:6px">
-        <div style="flex:1;height:7px;background:rgba(26,45,74,0.12);border-radius:99px;overflow:hidden">
-          <div style="height:100%;border-radius:99px;
-            background:linear-gradient(90deg,${col.a},${col.b});
-            width:${xpPct}%;transition:width 0.4s ease"></div>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:#4a6fa5;white-space:nowrap">${slime.exp.toLocaleString()} XP</span>
-      </div>
-
-      <!-- 칩 -->
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:2px">
-        <span style="font-size:10px;font-weight:700;border-radius:6px;padding:3px 8px;
-          background:rgba(251,191,36,.2);color:#92400e">🔥 ${streak}일 연속</span>
-        <span style="font-size:10px;font-weight:700;border-radius:6px;padding:3px 8px;
-          background:rgba(26,45,74,.1);color:#1a2d4a">${_sentStudyIdx+1}/${total} 문장</span>
-        <span style="font-size:10px;font-weight:700;border-radius:6px;padding:3px 8px;
-          background:rgba(5,150,105,.12);color:#047857">회독 ${totalRounds}회</span>
-      </div>
-
-    </div>
-  `;
-
-  // 오버레이에 붙이기 (오버레이 내부에서 fixed)
-  document.body.appendChild(bar);
 }
 
 async function sentFinish() {
-  // 모바일 하단 바 제거
-  document.getElementById('sent-study-mobile-bar')?.remove();
   // 세션 결과 DB 저장
   const results = window._sentSessionResults || [];
   if (results.length > 0 && _sentStudyBook && currentUser) {
@@ -8088,7 +8076,7 @@ async function sentFinish() {
             onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
             낭독 연습
           </button>
-          <button onclick="document.getElementById('sent-study-overlay')?.remove();document.getElementById('sent-study-mobile-bar')?.remove();renderSentenceStudy()"
+          <button onclick="document.getElementById('sent-study-overlay')?.remove();renderSentenceStudy()"
             style="padding:12px 22px;background:transparent;color:#7ea8cc;
             border:1.5px solid #dde8f2;border-radius:12px;
             font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.18s"
@@ -8264,7 +8252,7 @@ async function startSentRecording(bookId) {
   const ov = _createOverlay('sent-study-overlay');
   ov.innerHTML = _makeOverlayHeader({
     backLabel: '목록',
-    backFn: "document.getElementById('sent-study-overlay').remove();document.getElementById('sent-study-mobile-bar')?.remove();renderSentenceStudy()",
+    backFn: "document.getElementById('sent-study-overlay').remove();renderSentenceStudy()",
     title: '낭독 학습',
     subtitle: b?.name || '',
     col
@@ -8277,7 +8265,7 @@ async function startSentRecording(bookId) {
   body.innerHTML = `
     <div style="max-width:680px;margin:0 auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <button onclick="document.getElementById('sent-study-overlay')?.remove();document.getElementById('sent-study-mobile-bar')?.remove();renderSentenceStudy()" class="btn btn-ghost btn-sm">← 목록</button>
+        <button onclick="document.getElementById('sent-study-overlay')?.remove();renderSentenceStudy()" class="btn btn-ghost btn-sm">← 목록</button>
         <span style="font-size:14px;font-weight:700;color:var(--t1)">${b?.name||''} · 낭독 연습</span>
         <span style="font-size:12px;color:var(--t3)">${items.length}개 문장</span>
       </div>
