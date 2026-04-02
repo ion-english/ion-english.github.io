@@ -925,6 +925,11 @@ body.student-mode { background: #e8f0f8; }
   30%{transform:translateY(-12px) scaleX(0.93) scaleY(1.1)}
   60%{transform:translateY(-5px) scaleX(1.03) scaleY(0.97)}
 }
+@keyframes slimeBobFixed {
+  0%,100%{transform:translateY(0)}
+  30%{transform:translateY(-6px)}
+  60%{transform:translateY(-2px)}
+}
 @keyframes slimeWiggle {
   0%,100%{transform:rotate(0deg)}
   20%{transform:rotate(-5deg) scale(1.04)}
@@ -7850,11 +7855,12 @@ function renderSentStudyCard() {
               <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
                 width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid #1a2d4a"></div>
             </div>
-            <div style="animation:slimeBob 2.5s ease-in-out infinite;width:64px;height:64px;
-              display:flex;align-items:center;justify-content:center"
-              onmouseenter="document.getElementById('sst-slime-bubble').style.opacity='1'"
-              onmouseleave="document.getElementById('sst-slime-bubble').style.opacity='0'"
-              ontouchstart="document.getElementById('sst-slime-bubble').style.opacity='1'"
+            <div style="width:64px;height:64px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <div style="animation:slimeBobFixed 2.5s ease-in-out infinite;width:60px;height:60px;
+                display:flex;align-items:center;justify-content:center;flex-shrink:0"
+                onmouseenter="document.getElementById('sst-slime-bubble').style.opacity='1'"
+                onmouseleave="document.getElementById('sst-slime-bubble').style.opacity='0'"
+                ontouchstart="document.getElementById('sst-slime-bubble').style.opacity='1'"
               ontouchend="setTimeout(()=>document.getElementById('sst-slime-bubble').style.opacity='0',1200)">
               ${buildMiniSlimeSVG(slime.stage, 60)}
             </div>
@@ -8194,17 +8200,26 @@ function sentNext() {
 function sentAddWord(word, btn) {
   const area = document.getElementById('sent-answer-area');
   if (!area) return;
-  if (btn.disabled) return;
-  btn.style.opacity = '0.3';
-  btn.disabled = true;
+
+  // 이미 배치된 상태 → 같은 버튼 다시 누르면 취소
+  if (btn.dataset.used === '1') {
+    const chips = area.querySelectorAll('.word-chip');
+    for (const chip of chips) {
+      if (chip._srcBtn === btn) { sentRemoveChip(chip, btn); return; }
+    }
+    return;
+  }
+
+  btn.dataset.used = '1';
+  btn.style.opacity = '0.4';
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
   const chip = document.createElement('button');
   chip.className = 'word-chip';
   chip.textContent = word;
+  chip._srcBtn = btn;
   chip.style.cssText = 'padding:7px 14px;background:' + col.b + ';color:' + col.dark + ';border:none;border-radius:10px;font-family:\'JetBrains Mono\',monospace;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.15s';
   chip.onclick = function() { sentRemoveChip(chip, btn); };
-  // placeholder 제거
   const ph = document.getElementById('sent-placeholder');
   if (ph) ph.style.display = 'none';
   area.appendChild(chip);
@@ -8212,7 +8227,7 @@ function sentAddWord(word, btn) {
 
 function sentRemoveChip(chip, srcBtn) {
   chip.remove();
-  if (srcBtn) { srcBtn.style.opacity = '1'; srcBtn.disabled = false; srcBtn.dataset.used = ''; }
+  if (srcBtn) { srcBtn.style.opacity = '1'; srcBtn.dataset.used = ''; }
 }
 
 function sentRemoveWord(e) {
