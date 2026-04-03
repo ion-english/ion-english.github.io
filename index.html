@@ -1043,21 +1043,9 @@ body.student-mode { background: #e8f0f8; }
   .sent-study-progress-bar-wrap {
     display: none !important;
   }
-  /* 그리드 자체도 stretch 금지 */
-  .sent-study-two-col {
-    align-items: start !important;
-  }
-  /* 좌측 flex 컬럼: 높이를 내용에만 맞춤 */
-  .sent-study-left-col {
-    align-self: flex-start !important;
-  }
-  /* 모바일 슬라임 진행 헤더: 고정 높이, 절대 늘어나지 않음 */
+  /* 모바일 슬라임 진행 헤더 */
   .sent-study-slime-header {
     display: flex !important;
-    flex-shrink: 0 !important;
-    align-self: auto !important;
-    height: auto !important;
-    min-height: unset !important;
   }
 }
 
@@ -7859,15 +7847,10 @@ function renderSentStudyCard() {
   }
 
   body.innerHTML = `
-    <div class="sent-study-two-col slime-two-col" style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:start">
-
-      <!-- ── 좌: 문장 카드 ── -->
-      <div class="sent-study-left-col" style="display:flex;flex-direction:column;gap:16px">
-
-        <!-- 모바일 슬라임 진행 헤더 (데스크탑에선 숨김) -->
-        <div class="sent-study-slime-header" style="background:#fff;border-radius:18px;
-          padding:14px 16px;box-shadow:0 2px 12px rgba(30,58,95,0.07);border:1px solid #dde8f2;
-          align-items:center;gap:14px;flex-shrink:0;height:auto">
+    <!-- 모바일 슬라임 헤더: 그리드 완전 밖 — 카드 높이와 무관하게 고정 크기 유지 -->
+    <div class="sent-study-slime-header" style="background:#fff;border-radius:18px;
+      padding:14px 16px;box-shadow:0 2px 12px rgba(30,58,95,0.07);border:1px solid #dde8f2;
+      align-items:center;gap:14px;margin-bottom:12px">
 
           <!-- 슬라임 캐릭터 (클릭 가능) -->
           <div style="flex-shrink:0;cursor:pointer;position:relative"
@@ -7926,7 +7909,13 @@ function renderSentStudyCard() {
             </div>
 
           </div>
-        </div>
+    </div>
+
+    <!-- 그리드: 슬라임 헤더 밖에서 시작 -->
+    <div class="sent-study-two-col slime-two-col" style="display:grid;grid-template-columns:1fr 280px;gap:24px;max-width:940px;margin:0 auto;align-items:start">
+
+      <!-- ── 좌: 문장 카드 ── -->
+      <div style="display:flex;flex-direction:column;gap:16px">
 
         <!-- 데스크탑 진행바 -->
         <div class="sent-study-progress-bar-wrap" style="background:#fff;border-radius:16px;padding:14px 20px;
