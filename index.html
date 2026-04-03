@@ -1046,17 +1046,14 @@ body.student-mode { background: #e8f0f8; }
   /* 모바일 슬라임 진행 헤더 */
   .sent-study-slime-header {
     display: flex !important;
-    /* 정답/오답 애니메이션 시 헤더 크기 고정 */
-    min-height: 0 !important;
-    overflow: visible !important;
     contain: layout !important;
   }
   /* 헤더 내 슬라임 wrapper 고정 크기 */
   .sent-study-slime-header [data-slime-main] {
     width: 72px !important;
     height: 72px !important;
-    overflow: hidden !important;
     flex-shrink: 0 !important;
+    overflow: visible !important;
   }
 }
 
@@ -7813,8 +7810,8 @@ function renderSentStudyCard() {
           font-size:17px;font-weight:600;cursor:pointer;
           font-family:'Outfit',sans-serif;transition:all 0.18s;
           box-shadow:0 2px 6px rgba(30,58,95,0.06)"
-          onmouseover="this.style.borderColor='${col.b}';this.style.background='${col.a}25';this.style.transform='translateY(-2px)'"
-          onmouseout="this.style.borderColor='#d4e2ef';this.style.background='#fff';this.style.transform=''">${w}</button>`).join('')}
+          onmouseover="if(!this.dataset.used){this.style.borderColor='${col.b}';this.style.background='${col.a}25';this.style.transform='translateY(-2px)'}"
+          onmouseout="if(!this.dataset.used){this.style.borderColor='#d4e2ef';this.style.background='#fff';this.style.transform=''}">${w}</button>`).join('')}
       </div>
       <div style="text-align:center">
         <button onclick="sentCheckUnscramble()"
@@ -7877,13 +7874,13 @@ function renderSentStudyCard() {
                 width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid #1a2d4a"></div>
             </div>
             <div style="animation:slimeBob 2.5s ease-in-out infinite;width:64px;height:64px;
-              display:flex;align-items:center;justify-content:center;overflow:hidden;
+              display:flex;align-items:center;justify-content:center;
               transform-origin:center center"
               onmouseenter="document.getElementById('sst-slime-bubble').style.opacity='1'"
               onmouseleave="document.getElementById('sst-slime-bubble').style.opacity='0'"
               ontouchstart="document.getElementById('sst-slime-bubble').style.opacity='1'"
               ontouchend="setTimeout(()=>document.getElementById('sst-slime-bubble').style.opacity='0',1200)">
-              ${buildMiniSlimeSVG(slime.stage, 60)}
+              ${buildMiniSlimeSVG(slime.stage, 56)}
             </div>
             <!-- LV 뱃지 -->
             <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
@@ -8238,7 +8235,12 @@ function sentAddWord(word, btn) {
   }
 
   btn.dataset.used = '1';
-  btn.style.opacity = '0.4';
+  btn.style.opacity = '0.45';
+  btn.style.background = '#e8f0f8';
+  btn.style.borderColor = '#b8cfe4';
+  btn.style.color = '#8aaac8';
+  btn.style.transform = '';
+  btn.style.boxShadow = 'none';
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
   const chip = document.createElement('button');
@@ -8254,7 +8256,14 @@ function sentAddWord(word, btn) {
 
 function sentRemoveChip(chip, srcBtn) {
   chip.remove();
-  if (srcBtn) { srcBtn.style.opacity = '1'; srcBtn.dataset.used = ''; }
+  if (srcBtn) {
+    srcBtn.style.opacity = '1';
+    srcBtn.style.background = '#fff';
+    srcBtn.style.borderColor = '#d4e2ef';
+    srcBtn.style.color = '#1e3a5f';
+    srcBtn.style.boxShadow = '0 2px 6px rgba(30,58,95,0.06)';
+    srcBtn.dataset.used = '';
+  }
 }
 
 function sentRemoveWord(e) {
