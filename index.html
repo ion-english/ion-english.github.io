@@ -1046,14 +1046,13 @@ body.student-mode { background: #e8f0f8; }
   /* 모바일 슬라임 진행 헤더 */
   .sent-study-slime-header {
     display: flex !important;
-    contain: layout !important;
   }
-  /* 헤더 내 슬라임 wrapper 고정 크기 */
-  .sent-study-slime-header [data-slime-main] {
-    width: 72px !important;
-    height: 72px !important;
+  /* 헤더 슬라임 SVG 교체 대상: 크기 고정 + 절대 넘치지 않도록 */
+  [data-slime-header] {
+    width: 64px !important;
+    height: 64px !important;
+    overflow: hidden !important;
     flex-shrink: 0 !important;
-    overflow: visible !important;
   }
 }
 
@@ -4499,31 +4498,37 @@ function setSlimeMood(mood, duration = 2000) {
   const slimeEls = document.querySelectorAll('[data-slime-main]');
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
-  const newSVG = slimeSVG({
-    size: 150, core: [col.a, col.b],
-    eyeStyle: slime.eyeStyle || 'round',
-    stageIdx: slime.stage,
-    accessory: slime.accessory || 'none',
-    mood
-  });
+
   slimeEls.forEach((el, idx) => {
+    // 헤더 슬라임(작은 컨테이너)은 size:60, 일반은 size:150
+    const isHeader = el.hasAttribute('data-slime-header');
+    const svgSize = isHeader ? 60 : 150;
+
+    const newSVG = slimeSVG({
+      size: svgSize, core: [col.a, col.b],
+      eyeStyle: slime.eyeStyle || 'round',
+      stageIdx: slime.stage,
+      accessory: slime.accessory || 'none',
+      mood
+    });
     el.innerHTML = _safeSVG(newSVG, 'md' + Date.now() + idx);
-    // bounce 애니메이션 — SVG 자식에만 적용해 레이아웃(헤더 크기) 변화 방지
+
+    // bounce 애니메이션 — el 자체가 아닌 내부 SVG에만 적용 (레이아웃 변화 방지)
     const svgEl = el.querySelector('svg') || el;
     svgEl.style.transformOrigin = 'center center';
     svgEl.style.transition = 'transform 0.08s';
-    svgEl.style.transform = 'scale(1.22, 0.82)';
-    setTimeout(() => { svgEl.style.transform = 'scale(0.88, 1.18)'; }, 80);
-    setTimeout(() => { svgEl.style.transform = 'scale(1.08, 0.94)'; }, 160);
-    setTimeout(() => { svgEl.style.transform = 'scale(0.97, 1.03)'; }, 240);
+    svgEl.style.transform = 'scale(1.18, 0.84)';
+    setTimeout(() => { svgEl.style.transform = 'scale(0.90, 1.14)'; }, 80);
+    setTimeout(() => { svgEl.style.transform = 'scale(1.06, 0.95)'; }, 160);
+    setTimeout(() => { svgEl.style.transform = 'scale(0.98, 1.02)'; }, 240);
     setTimeout(() => { svgEl.style.transform = 'scale(1, 1)'; svgEl.style.transition = ''; }, 320);
-    // sparkle일 때 파티클 — 슬라임 몸통 근처에서 터짐
+
+    // sparkle일 때 파티클
     if (mood === 'sparkle') {
       const box = el.parentElement;
       if (!box) return;
       box.style.position = 'relative';
       const colors = ['#fbbf24', '#a78bfa', '#34d399', '#fbbf24', '#a78bfa'];
-      // 슬라임 중심(40~60%) 근처에서 조금만 퍼지도록
       const offsets = [
         { l: '36%', t: '32%', tx: '-18px', ty: '-20px' },
         { l: '56%', t: '30%', tx:  '16px', ty: '-22px' },
@@ -4545,17 +4550,20 @@ function setSlimeMood(mood, duration = 2000) {
       });
     }
   });
-  // 일정 시간 후 원래 표정으로 복원 (id 충돌 방지 동일하게 적용)
+
+  // 일정 시간 후 원래 표정으로 복원
   if (duration > 0) {
     setTimeout(() => {
-      const normalSVG = slimeSVG({
-        size: 150, core: [col.a, col.b],
-        eyeStyle: slime.eyeStyle || 'round',
-        stageIdx: slime.stage,
-        accessory: slime.accessory || 'none',
-        mood: 'normal'
-      });
       slimeEls.forEach((el, idx) => {
+        const isHeader = el.hasAttribute('data-slime-header');
+        const svgSize = isHeader ? 60 : 150;
+        const normalSVG = slimeSVG({
+          size: svgSize, core: [col.a, col.b],
+          eyeStyle: slime.eyeStyle || 'round',
+          stageIdx: slime.stage,
+          accessory: slime.accessory || 'none',
+          mood: 'normal'
+        });
         el.innerHTML = _safeSVG(normalSVG, 'nr' + Date.now() + idx);
       });
     }, duration);
@@ -7863,8 +7871,8 @@ function renderSentStudyCard() {
       align-items:center;gap:14px;margin-bottom:12px">
 
           <!-- 슬라임 캐릭터 (클릭 가능) -->
-          <div style="flex-shrink:0;cursor:pointer;position:relative;width:72px;height:72px"
-            onclick="onSlimeClick(event)" data-slime-main="1" title="클릭!">
+          <div style="flex-shrink:0;cursor:pointer;position:relative;width:64px;height:64px"
+            onclick="onSlimeClick(event)" title="클릭!">
             <!-- 감정 말풍선 -->
             <div id="sst-slime-bubble" style="position:absolute;top:-28px;left:50%;transform:translateX(-50%);
               background:#1a2d4a;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;
@@ -7873,14 +7881,16 @@ function renderSentStudyCard() {
               <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
                 width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid #1a2d4a"></div>
             </div>
-            <div style="animation:slimeBob 2.5s ease-in-out infinite;width:64px;height:64px;
+            <!-- 슬라임 SVG 교체 대상: data-slime-header (size=60 고정) -->
+            <div data-slime-header="1" data-slime-main="1"
+              style="animation:slimeBob 2.5s ease-in-out infinite;width:64px;height:64px;
               display:flex;align-items:center;justify-content:center;
-              transform-origin:center center"
+              transform-origin:center center;overflow:hidden"
               onmouseenter="document.getElementById('sst-slime-bubble').style.opacity='1'"
               onmouseleave="document.getElementById('sst-slime-bubble').style.opacity='0'"
               ontouchstart="document.getElementById('sst-slime-bubble').style.opacity='1'"
               ontouchend="setTimeout(()=>document.getElementById('sst-slime-bubble').style.opacity='0',1200)">
-              ${buildMiniSlimeSVG(slime.stage, 56)}
+              ${buildMiniSlimeSVG(slime.stage, 60)}
             </div>
             <!-- LV 뱃지 -->
             <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
