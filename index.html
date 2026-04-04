@@ -1324,37 +1324,189 @@ body.student-mode { background: #f8f9fa; }
   pointer-events:none;z-index:10;
 }
 
-@media(max-width:768px){.sidebar{width:220px}.main{margin-left:220px}.content{padding:18px}.topbar{padding:0 18px}.flashcard{height:240px}.fc-en{font-size:44px}.quiz-word{font-size:44px}.quiz-opts{grid-template-columns:1fr}}
-@media(max-width:600px){
-  .sidebar{position:fixed;left:-260px;width:260px;transition:left 0.28s cubic-bezier(0.4,0,0.2,1);z-index:200;box-shadow:none;background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%)}
-  .sidebar.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,0.25)}
-  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:199}
-  .sidebar-overlay.open{display:block}
-  .main{margin-left:0}.topbar{padding:0 16px}
-  .hamburger-btn{display:flex !important}.content{padding:14px 16px}
-  .cards-grid,.fv-grid{grid-template-columns:1fr}
-  .stats-row{grid-template-columns:repeat(2,1fr)}.ai-config{grid-template-columns:1fr}
-  .flashcard{width:100%;height:220px}.fc-en{font-size:36px}
-  .fc-controls{flex-wrap:wrap;justify-content:center}
-  .quiz-q-card{padding:12px 16px;margin-bottom:8px;border-radius:16px}
-  .quiz-qnum{margin-bottom:4px;font-size:10px}
-  .quiz-word{font-size:28px}
-  .quiz-opts{grid-template-columns:1fr;gap:7px}
-  .quiz-opt{padding:9px 14px;font-size:20px;border-radius:14px}
-  .quiz-container{max-width:100%;padding-bottom:160px}
-  .modal{padding:20px 16px;max-height:85vh}.modal-title{font-size:18px}
-  .form-row{grid-template-columns:1fr}.section-head{flex-direction:column;align-items:flex-start;gap:8px}
-  .table-wrap{font-size:12px}.ex-text{max-width:120px}
-  .toast{bottom:16px;right:16px;left:16px;max-width:none}
-  #groq-quota-badge{left:16px;bottom:70px}.login-box{max-width:100vw;padding:0 16px}
-  /* quiz/fc/sent 2-col → 1-col */
-  .slime-two-col{grid-template-columns:1fr !important;max-width:100% !important}
-  /* quiz setup bar selects */
-  #quiz-setup-bar,#fc-setup-bar{flex-direction:column;align-items:stretch}
-  #quiz-setup-bar select,#fc-setup-bar select,
-  #quiz-setup-bar .toggle-wrap,#quiz-setup-bar button{width:100% !important;min-width:unset !important;box-sizing:border-box}
+/* ════ 태블릿 (768px 이하) ════ */
+@media(max-width:768px){
+  .sidebar{width:220px}
+  .main{margin-left:220px}
+  .content{padding:18px}
+  .topbar{padding:0 18px}
+  .flashcard{height:240px}
+  .fc-en{font-size:44px}
+  .quiz-word{font-size:44px}
+  .quiz-opts{grid-template-columns:1fr}
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  #mybooks-grid.cards-grid,#sent-books-grid-student.cards-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 }
-@media print{.sidebar,.topbar,#modal-bg,.toast{display:none !important}.main{margin-left:0 !important}.content{padding:0 !important}}
+
+/* ════ 모바일 (600px 이하) ════ */
+@media(max-width:600px){
+  /* ── 사이드바 슬라이드 아웃 ── */
+  .sidebar{
+    position:fixed;left:-280px;width:280px;
+    transition:left 0.28s cubic-bezier(0.4,0,0.2,1);
+    z-index:200;box-shadow:none;
+    background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%);
+    /* 하단 네비바 공간 확보 */
+    padding-bottom:72px;
+  }
+  .sidebar.open{left:0;box-shadow:6px 0 32px rgba(0,0,0,0.3)}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:199;backdrop-filter:blur(2px)}
+  .sidebar-overlay.open{display:block}
+
+  /* ── 메인 레이아웃 ── */
+  .main{margin-left:0;padding-bottom:72px}
+  .topbar{
+    padding:0 14px;height:54px;
+    position:sticky;top:0;z-index:50;
+  }
+  .topbar-title{font-size:17px;font-weight:800}
+  .topbar-search{display:none} /* 모바일에서 topbar 검색창 숨김 */
+  .hamburger-btn{display:flex !important}
+  .content{padding:12px 14px 20px}
+
+  /* ── 로그인 ── */
+  .login-box{max-width:100vw;padding:0 16px}
+  .login-card{padding:28px 20px;border-radius:18px}
+  .login-logo-mark{width:62px;height:62px;font-size:36px;border-radius:18px}
+  .login-brand{font-size:30px}
+
+  /* ── 카드 그리드 ── */
+  .cards-grid,.fv-grid{grid-template-columns:1fr}
+  #mybooks-grid.cards-grid,#sent-books-grid-student.cards-grid{grid-template-columns:1fr;gap:12px}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat-card{padding:16px}
+  .stat-value{font-size:30px}
+  .ai-config{grid-template-columns:1fr}
+
+  /* ── 섹션 헤더 ── */
+  .section-head{flex-direction:column;align-items:flex-start;gap:8px}
+  .section-title{font-size:15px}
+
+  /* ── 플래시카드 ── */
+  .flashcard{width:100%;max-width:100%;height:210px}
+  .fc-en{font-size:34px}
+  .fc-ko{font-size:30px}
+  .fc-face{padding:24px 20px;border-radius:20px}
+  .fc-controls{flex-wrap:wrap;justify-content:center;gap:8px}
+  .fc-progress-row{width:100%}
+  .fc-btn-prev,.fc-btn-next{padding:9px 18px;font-size:12px}
+  .fc-memorized-label{font-size:12px;padding:8px 16px}
+
+  /* ── 퀴즈 ── */
+  .quiz-q-card{padding:16px;margin-bottom:10px;border-radius:18px}
+  .quiz-qnum{margin-bottom:6px;font-size:10px}
+  .quiz-word{font-size:30px;letter-spacing:-0.5px}
+  .quiz-ex{font-size:12px;padding:6px 10px}
+  .quiz-opts{grid-template-columns:1fr;gap:8px}
+  .quiz-opt{padding:13px 14px;font-size:15px;border-radius:14px}
+  .quiz-container{max-width:100%;padding-bottom:160px}
+  .quiz-feedback{font-size:14px}
+
+  /* ── 모달 ── */
+  .modal{
+    padding:20px 16px;
+    max-height:88vh;
+    border-radius:20px 20px 0 0;
+    position:fixed;bottom:0;left:0;right:0;
+    top:auto;transform:none;
+    width:100%;max-width:100%;
+  }
+  .modal-title{font-size:17px}
+  .form-row{grid-template-columns:1fr}
+
+  /* ── 테이블 ── */
+  .table-wrap{font-size:12px;-webkit-overflow-scrolling:touch}
+  .ex-text{max-width:110px}
+  thead th{font-size:9.5px;padding:8px 10px}
+  tbody td{padding:10px 10px}
+
+  /* ── 토스트 ── */
+  .toast{bottom:80px;right:12px;left:12px;max-width:none}
+  #groq-quota-badge{left:12px;bottom:80px}
+
+  /* ── 2열 → 1열 ── */
+  .slime-two-col{grid-template-columns:1fr !important;max-width:100% !important}
+
+  /* ── 퀴즈/플래시카드 셋업바 ── */
+  #quiz-setup-bar,#fc-setup-bar{flex-direction:column;align-items:stretch;gap:8px}
+  #quiz-setup-bar select,#fc-setup-bar select,
+  #quiz-setup-bar .toggle-wrap,#quiz-setup-bar button{
+    width:100% !important;min-width:unset !important;box-sizing:border-box
+  }
+
+  /* ── 관리 탭 ── */
+  .mgmt-tab-btn{padding:8px 10px;font-size:12px;gap:5px}
+  .mgmt-tab-btn span.tab-label{display:none}
+
+  /* ── 버튼 그룹 ── */
+  .book-footer{gap:4px}
+  .book-footer .btn{font-size:10.5px;padding:5px 5px}
+
+  /* ── 단어장 카드 ── */
+  .book-card{padding:14px}
+  .book-emoji{font-size:24px;margin-bottom:8px}
+  .book-name{font-size:14px}
+
+  /* ── 업로드존 ── */
+  .upload-zone{padding:24px 16px}
+  .upload-emoji{font-size:32px}
+}
+
+/* ════ 소형 폰 (380px 이하) ════ */
+@media(max-width:380px){
+  .stats-row{grid-template-columns:1fr}
+  .fc-en{font-size:28px}
+  .quiz-word{font-size:26px}
+  .content{padding:10px 12px 16px}
+}
+
+/* ════ 모바일 하단 네비게이션 바 ════ */
+#mobile-bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:64px;z-index:150;
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid rgba(0,0,0,0.08);
+  box-shadow:0 -2px 16px rgba(0,0,0,0.08);
+  padding:0 8px;
+  justify-content:space-around;
+  align-items:center;
+}
+@media(max-width:600px){
+  #mobile-bottom-nav{display:flex}
+}
+.mob-nav-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;flex:1;padding:8px 4px;border:none;background:none;
+  cursor:pointer;border-radius:12px;transition:all 0.15s;
+  color:#94a3b8;min-width:0;
+}
+.mob-nav-btn.active{color:#1e4db7}
+.mob-nav-btn:active{background:rgba(30,77,183,0.08)}
+.mob-nav-icon{
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;transition:all 0.15s;
+}
+.mob-nav-btn.active .mob-nav-icon{
+  background:rgba(30,77,183,0.1);
+  color:#1e4db7;
+}
+.mob-nav-label{
+  font-size:9.5px;font-weight:600;font-family:'Outfit',sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  letter-spacing:0.1px;
+}
+
+/* ─ 모바일에서 .main 하단 여백 (바텀 네비바 가림 방지) ─ */
+@media(max-width:600px){
+  .main{padding-bottom:80px}
+  #fc-body,#quiz-body{padding-bottom:170px !important}
+  .quiz-container{padding-bottom:170px}
+}
+
+@media print{.sidebar,.topbar,#modal-bg,.toast,#mobile-bottom-nav{display:none !important}.main{margin-left:0 !important;padding-bottom:0 !important}.content{padding:0 !important}}
+
 .fav-toggle{display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;padding:4px 2px;border-radius:8px;background:none;border:none;transition:opacity 0.15s}
 .fav-toggle:hover{opacity:0.8}
 .fav-track{width:28px;height:16px;border-radius:20px;position:relative;transition:background 0.2s;flex-shrink:0}
@@ -1366,18 +1518,6 @@ body.student-mode { background: #f8f9fa; }
 .fav-label{font-size:11px;font-weight:600;white-space:nowrap}
 .fav-track.on+.fav-label{color:#1e4db7}
 .fav-track.off+.fav-label{color:#94a3b8}
-
-
-  .modal{padding:20px 16px;max-height:85vh}
-  .modal-title{font-size:18px}
-  .form-row{grid-template-columns:1fr}
-  .section-head{flex-direction:column;align-items:flex-start;gap:8px}
-  .table-wrap{font-size:12px}
-  .ex-text{max-width:120px}
-  .toast{bottom:16px;right:16px;left:16px;max-width:none}
-  #groq-quota-badge{left:16px;bottom:70px}
-  .login-box{max-width:100vw;padding:0 16px}
-}
 
 @media print{
   .sidebar,.topbar,#modal-bg,.toast{display:none !important}
@@ -1441,12 +1581,18 @@ body.student-mode { background: #f8f9fa; }
     <!-- 모바일 사이드바 오버레이 -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
+    <!-- ====== 모바일 바텀 네비게이션 ====== -->
+    <nav id="mobile-bottom-nav" aria-label="하단 네비게이션"></nav>
+
     <div class="topbar">
       <div class="topbar-left">
         <!-- 햄버거 버튼 (모바일에서만 표시) -->
         <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()"
-          style="display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;color:var(--text);font-size:20px;line-height:1;margin-right:8px">
-          ☰
+          style="display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px;color:var(--text);line-height:1;margin-right:4px;transition:background 0.15s"
+          onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
         </button>
         <div class="topbar-title" id="topbar-title">Dashboard</div>
       </div>
@@ -4422,6 +4568,10 @@ function showPage(id, addHistory = true) {
   document.getElementById('topbar-title').textContent = pageTitles[id] || '';
   // 모바일에서 페이지 이동 시 사이드바 자동 닫기
   if (window.innerWidth <= 600) closeSidebar();
+  // 모바일 바텀 네비 활성 상태 업데이트
+  document.querySelectorAll('.mob-nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === id);
+  });
 
   // 브라우저 히스토리에 추가
   if (addHistory) {
@@ -16740,6 +16890,41 @@ function closeSidebar() {
   overlay.classList.remove('open');
 }
 
+// ── 모바일 바텀 네비 렌더 ──
+function renderMobileBottomNav() {
+  const nav = document.getElementById('mobile-bottom-nav');
+  if (!nav || !currentUser) return;
+  const isTeacher = currentUser.role === 'teacher';
+  const curPage = document.querySelector('.page.active')?.id || '';
+
+  const teacherItems = [
+    { page:'pg-dashboard', label:'대시보드', icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+    { page:'pg-library',   label:'단어장',   icon:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
+    { page:'pg-sentences', label:'문장집',   icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+    { page:'pg-students',  label:'학생관리', icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+    { page:'pg-editor',    label:'에디터',   icon:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' },
+  ];
+  const studentItems = [
+    { page:'pg-slime-home',     label:'홈',     icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+    { page:'pg-mybooks',        label:'단어장', icon:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
+    { page:'pg-flashcard',      label:'플래시', icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+    { page:'pg-quiz',           label:'퀴즈',   icon:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
+    { page:'pg-sentence-study', label:'문장',   icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+  ];
+  const items = isTeacher ? teacherItems : studentItems;
+
+  nav.innerHTML = items.map(it => `
+    <button class="mob-nav-btn${curPage===it.page?' active':''}" data-page="${it.page}"
+      onclick="showPage('${it.page}')">
+      <div class="mob-nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg>
+      </div>
+      <span class="mob-nav-label">${it.label}</span>
+    </button>
+  `).join('');
+}
+
 // 모바일 여부에 따라 햄버거 버튼 표시
 function updateMobileUI() {
   const isMobile = window.innerWidth <= 600;
@@ -16752,6 +16937,8 @@ function updateMobileUI() {
     sidebar.classList.remove('open');
     overlay.classList.remove('open');
   }
+  // 바텀 네비 렌더 (currentUser 있을 때만)
+  if (currentUser) renderMobileBottomNav();
 }
 
 window.addEventListener('resize', updateMobileUI);
