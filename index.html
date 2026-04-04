@@ -17,13 +17,11 @@
 }
 
 /* ── 대시보드 최근 항목 스크롤 영역 ── */
-/* 행 높이 ≈ 64px × 3 = 192px + 상하 패딩 16px = 208px */
+/* 행 높이 ≈ 62px × 3 = 186px */
 .dash-recent-scroll{
-  max-height:208px;
+  max-height:186px;
   overflow-y:auto;
   overflow-x:hidden;
-  padding: 8px 0;
-  /* 스크롤바 공간 항상 예약 → 레이아웃 밀림 없음 */
   scrollbar-gutter: stable;
   scrollbar-width:thin;
   scrollbar-color: transparent transparent;
@@ -57,7 +55,7 @@
 }
 .mgmt-tab-btn:hover{background:var(--blue-dim);color:var(--blue2)}
 .mgmt-tab-btn.active{
-  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+  background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);
   color:#fff;font-weight:600;
   box-shadow:0 3px 14px rgba(37,99,235,0.32);
 }
@@ -80,11 +78,11 @@
   --border:    #e3e8f4;
   --border2:   #cdd5ec;
 
-  --blue:      #3b82f6;
-  --blue2:     #2563eb;
-  --blue3:     #1d4ed8;
-  --blue-dim:  rgba(59,130,246,0.07);
-  --blue-glow: rgba(59,130,246,0.2);
+  --blue:      #1e4db7;
+  --blue2:     #1a3fa0;
+  --blue3:     #163490;
+  --blue-dim:  rgba(30,77,183,0.07);
+  --blue-glow: rgba(30,77,183,0.2);
 
   --green:     #059669;
   --green-dim: #ecfdf5;
@@ -97,7 +95,7 @@
 
   --sh:   0 1px 3px rgba(15,23,42,0.04),0 4px 16px rgba(15,23,42,0.05);
   --sh-lg:0 8px 24px rgba(15,23,42,0.07),0 32px 64px rgba(15,23,42,0.09);
-  --sh-b: 0 4px 20px rgba(59,130,246,0.22);
+  --sh-b: 0 4px 20px rgba(30,77,183,0.22);
 
   --r:12px; --r2:18px; --r3:24px;
 
@@ -136,24 +134,24 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 .login-logo-mark{display:inline-flex;align-items:center;justify-content:center;width:76px;height:76px;
   background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);border-radius:22px;
   font-family:'Fraunces',serif;font-size:44px;font-weight:900;color:#fff;margin-bottom:16px;
-  box-shadow:0 10px 36px rgba(37,99,235,0.48),0 2px 8px rgba(37,99,235,0.2)}
+  box-shadow:0 10px 36px rgba(59,130,246,0.48),0 2px 8px rgba(59,130,246,0.2)}
 .login-brand{font-family:'Fraunces',serif;font-size:38px;font-weight:900;letter-spacing:-1.5px;color:#2d3a56}
 .role-tab{padding:10px 13px;border-radius:10px;border:none;background:none;font-family:'Outfit',sans-serif;
   font-size:15px;font-weight:500;color:#64748b;cursor:pointer;transition:all 0.2s;
   display:flex;align-items:center;justify-content:center;gap:8px}
-.role-tab.active{background:#fff;color:var(--blue2);font-weight:700;box-shadow:0 2px 12px rgba(37,99,235,0.14)}
+.role-tab.active{background:#fff;color:#2563eb;font-weight:700;box-shadow:0 2px 12px rgba(59,130,246,0.14)}
 .login-card{background:rgba(255,255,255,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border:1.5px solid rgba(255,255,255,0.98);border-radius:24px;padding:40px;
   box-shadow:0 6px 20px rgba(40,50,80,0.08),0 24px 60px rgba(40,50,80,0.07)}
 .login-label{display:block;font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
 .login-input{width:100%;padding:14px 18px;background:#fff;border:1.5px solid #dde3f0;border-radius:13px;
   font-family:'Outfit',sans-serif;font-size:16px;color:var(--t1);outline:none;transition:all 0.15s}
-.login-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.12)}
+.login-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,77,183,0.12)}
 .login-input::placeholder{color:#c0cce0}
 .login-btn{width:100%;padding:16px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
   border:none;border-radius:13px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#fff;
-  cursor:pointer;transition:all 0.2s;margin-top:10px;box-shadow:0 4px 20px rgba(37,99,235,0.38);letter-spacing:-0.2px}
-.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(37,99,235,0.5)}
+  cursor:pointer;transition:all 0.2s;margin-top:10px;box-shadow:0 4px 20px rgba(59,130,246,0.38);letter-spacing:-0.2px}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(59,130,246,0.5)}
 .login-btn:active{transform:translateY(0)}
 .login-btn:disabled{opacity:0.65;cursor:not-allowed;transform:none}
 .login-hint{display:none}
@@ -191,7 +189,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
   border-radius:13px;
   display:flex;align-items:center;justify-content:center;
   font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:#fff;
-  box-shadow:0 6px 22px rgba(37,99,235,0.52),0 2px 6px rgba(37,99,235,0.2);
+  box-shadow:0 6px 22px rgba(59,130,246,0.52),0 2px 6px rgba(59,130,246,0.2);
 }
 
 .sidebar-title{
@@ -258,7 +256,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 .nav-item:hover .nav-icon{opacity:0.8}
 .nav-item.active .nav-icon{opacity:1;color:#93c5fd}
 
-.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(59,130,246,0.25);color:#93c5fd}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(30,77,183,0.25);color:#93c5fd}
 
 .sidebar-bottom{padding:14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px}
 
@@ -301,7 +299,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 18px;border-radius:10px;
   font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;
   transition:all 0.14s;white-space:nowrap;letter-spacing:-0.1px}
-.btn-primary{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff}
+.btn-primary{background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:var(--sh-b)}
 .btn-secondary{background:#fff;color:var(--t1);border:1.5px solid var(--border);box-shadow:var(--sh)}
 .btn-secondary:hover{border-color:var(--blue);background:var(--blue-dim)}
@@ -347,7 +345,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 .book-name{font-size:15px;font-weight:700;margin-bottom:4px;letter-spacing:-0.2px}
 .book-meta{font-size:12px;color:var(--t2)}
 .book-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-.tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(59,130,246,0.15)}
+.tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(30,77,183,0.15)}
 .tag-gold{background:var(--amber-dim);color:var(--amber);border-color:rgba(180,83,9,0.2)}
 .tag-green{background:var(--green-dim);color:var(--green);border-color:rgba(5,150,105,0.2)}
 .book-footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap}
@@ -358,7 +356,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 .search-icon-el{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:16px}
 .search-input{width:100%;padding:11px 16px 11px 42px;background:#fff;border:1.5px solid var(--border);border-radius:12px;
   font-family:'Outfit',sans-serif;font-size:14px;color:var(--t1);outline:none;transition:all 0.15s;box-shadow:var(--sh)}
-.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,77,183,0.1)}
 .search-input::placeholder{color:var(--t3)}
 
 /* ════ UPLOAD ════ */
@@ -406,7 +404,7 @@ tbody tr:last-child td{border-bottom:none}
   padding:2px 10px;border-radius:20px;border:none;cursor:pointer;
   font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:-0.1px;
   background:var(--blue);color:#fff;
-  box-shadow:0 2px 10px rgba(59,130,246,0.4);
+  box-shadow:0 2px 10px rgba(30,77,183,0.4);
   transition:all 0.12s;
 }
 .row-insert-btn:hover{background:var(--blue2);transform:scale(1.08);}
@@ -724,7 +722,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 
 /* ════ AI ════ */
 .ai-config{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
-.ai-panel{background:linear-gradient(135deg,#eff6ff 0%,#f0f4ff 100%);border:1px solid rgba(59,130,246,0.14);border-radius:var(--r);padding:18px;margin-bottom:20px}
+.ai-panel{background:linear-gradient(135deg,#eff6ff 0%,#f0f4ff 100%);border:1px solid rgba(30,77,183,0.14);border-radius:var(--r);padding:18px;margin-bottom:20px}
 .ai-panel-head{font-size:12px;font-weight:700;color:var(--blue2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .ai-output{font-size:14px;color:var(--t2);line-height:1.7;min-height:40px}
 .ai-loader{display:flex;gap:5px;align-items:center}
@@ -750,7 +748,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 .form-label{display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
 .form-input{width:100%;padding:10px 14px;background:#fff;border:1.5px solid var(--border);border-radius:10px;
   font-family:'Outfit',sans-serif;font-size:14px;color:var(--t1);outline:none;transition:all 0.15s}
-.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,77,183,0.1)}
 textarea.form-input{resize:vertical;min-height:72px}
 select.form-input{cursor:pointer}
 
@@ -837,7 +835,7 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
 /* 브랜드 마크 */
 .student-mode .sidebar-mark {
   background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%) !important;
-  box-shadow: 0 6px 22px rgba(37,99,235,0.52),0 2px 6px rgba(37,99,235,0.2) !important;
+  box-shadow: 0 6px 22px rgba(59,130,246,0.52),0 2px 6px rgba(59,130,246,0.2) !important;
   border-radius: 13px !important;
 }
 /* 브랜드 타이틀 */
@@ -1360,13 +1358,13 @@ body.student-mode { background: #f8f9fa; }
 .fav-toggle{display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;padding:4px 2px;border-radius:8px;background:none;border:none;transition:opacity 0.15s}
 .fav-toggle:hover{opacity:0.8}
 .fav-track{width:28px;height:16px;border-radius:20px;position:relative;transition:background 0.2s;flex-shrink:0}
-.fav-track.on{background:#3b82f6}
+.fav-track.on{background:#1e4db7}
 .fav-track.off{background:#cbd5e1}
 .fav-thumb{width:12px;height:12px;background:#fff;border-radius:50%;position:absolute;top:2px;transition:left 0.2s}
 .fav-track.on .fav-thumb{left:14px}
 .fav-track.off .fav-thumb{left:2px}
 .fav-label{font-size:11px;font-weight:600;white-space:nowrap}
-.fav-track.on+.fav-label{color:#3b82f6}
+.fav-track.on+.fav-label{color:#1e4db7}
 .fav-track.off+.fav-label{color:#94a3b8}
 
 
@@ -1489,7 +1487,7 @@ body.student-mode { background: #f8f9fa; }
                  <button id="sched-view-month-btn" onclick="schedSetView('month')"
                    style="padding:5px 10px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;background:none;color:var(--t2);transition:all 0.15s">월간</button>
                </div>
-               <button onclick="schedOpenAdd()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
+               <button onclick="schedOpenAdd()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(30,77,183,0.2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                  추가
                </button>
@@ -1514,7 +1512,7 @@ body.student-mode { background: #f8f9fa; }
 
         <!-- 즐겨찾기 -->
         <div class="section-head" style="margin-top:4px">
-          <div><div class="section-title">즐겨찾기</div><div class="section-sub">북마크한 단어장 컬렉션 · 문장집 컬렉션 · 클릭하면 이동</div></div>
+          <div><div class="section-title" style="display:flex;align-items:center;gap:8px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>즐겨찾기</div><div class="section-sub">북마크한 단어장 컬렉션 · 문장집 컬렉션 · 클릭하면 이동</div></div>
         </div>
         <div style="margin-bottom:8px">
           <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:0.04em;margin:6px 0 4px">단어장 컬렉션</div>
@@ -1525,7 +1523,7 @@ body.student-mode { background: #f8f9fa; }
 
         <hr class="divider">
         <div class="section-head">
-          <div><div class="section-title">최근 단어장 / 문장집</div><div class="section-sub" id="dash-book-sub">최근 항목</div></div>
+          <div><div class="section-sub" id="dash-book-sub" style="display:none"></div></div>
         </div>
         <div id="recent-books"></div>
 
@@ -2010,7 +2008,7 @@ body.student-mode { background: #f8f9fa; }
               align-items: center;
               gap: 8px;
               padding: 10px 16px;
-              background: linear-gradient(90deg, rgba(59,130,246,0.04) 0%, transparent 100%);
+              background: linear-gradient(90deg, rgba(30,77,183,0.04) 0%, transparent 100%);
               border-bottom: 1px solid var(--border);
               font-size: 12px;
               color: var(--t2);
@@ -2124,7 +2122,7 @@ body.student-mode { background: #f8f9fa; }
             .fvp-ai-cell.ko-cell { color: var(--t1); }
             .fvp-ai-cell:focus {
               border-color: var(--blue);
-              background: rgba(59,130,246,0.05);
+              background: rgba(30,77,183,0.05);
             }
             .fvp-ai-cell.ko-cell:focus { border-color: #10b981; background: rgba(16,185,129,0.05); }
             .fvp-ai-arrow { color: var(--t3); font-size: 11px; flex-shrink: 0; }
@@ -2189,7 +2187,7 @@ body.student-mode { background: #f8f9fa; }
               background: var(--blue-dim);
               color: var(--blue2);
               font-weight: 700;
-              box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+              box-shadow: 0 0 0 3px rgba(30,77,183,0.1);
             }
 
             /* 미리보기 아이템 */
@@ -2210,7 +2208,7 @@ body.student-mode { background: #f8f9fa; }
             .fvp-create-btn {
               width: 100%;
               padding: 14px;
-              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+              background: linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);
               border: none;
               border-radius: 14px;
               font-family: 'Outfit', sans-serif;
@@ -2355,7 +2353,7 @@ body.student-mode { background: #f8f9fa; }
 
               <!-- ── AI 해석 ── -->
               <div id="fvp-ai-area" style="display:none">
-                <div class="fvp-hint-bar" style="background:linear-gradient(90deg,rgba(59,130,246,0.05) 0%,transparent 100%)">
+                <div class="fvp-hint-bar" style="background:linear-gradient(90deg,rgba(30,77,183,0.05) 0%,transparent 100%)">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue2)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
                   <span id="fvp-ai-hint" style="color:var(--t2)">어떤 형식이든 OK — AI가 단어·문장을 알아서 추출하고 해석합니다</span>
                 </div>
@@ -2802,7 +2800,7 @@ async function sbSaveBook(book) {
     name: bookData.name,
     tag: bookData.tag || '',
     grade: bookData.grade || '',
-    color: bookData.color || '#3b82f6',
+    color: bookData.color || '#1e4db7',
     collection_id: bookData.collectionId || null
   };
   const { error } = await sb.from('books').upsert(payload, { onConflict: 'id' });
@@ -2851,7 +2849,7 @@ async function sbSaveCollection(coll) {
     owner_id: currentUser.id,
     name: coll.name,
     icon: coll.icon || '📁',
-    color: coll.color || '#3b82f6'
+    color: coll.color || '#1e4db7'
   }, { onConflict: 'id' });
   if (error) throw error;
 }
@@ -4724,16 +4722,15 @@ async function renderDashboard() {
         const bookCount = (DB.books||[]).filter(b => b.collectionId === c.id).length;
         const icon = c.icon || '📁';
         return `<div onclick="libActiveCollId='${c.id}';window._skipLibCollReset=true;showPage('pg-library')"
-          style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;
-            border:1.5px solid var(--border);border-radius:14px;cursor:pointer;
+          style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;
+            border:1.5px solid var(--border);border-radius:16px;cursor:pointer;
             transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
-            box-shadow:0 1px 6px rgba(15,23,42,0.05);min-width:180px;max-width:260px;position:relative"
-          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)';this.style.borderColor='var(--blue)'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)';this.style.borderColor='var(--border)'">
-          <div style="width:34px;height:34px;border-radius:10px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:2px">단어장 ${bookCount}개</div>
+            box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);min-width:160px;max-width:260px;position:relative"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'">
+          <div style="flex:1;min-width:0;margin-right:8px">
+            <div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:500">${bookCount} Collection${bookCount!==1?'s':''}</div>
           </div>
           <button onclick="event.stopPropagation();toggleFavWordColl('${c.id}')"
             style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
@@ -4754,16 +4751,15 @@ async function renderDashboard() {
         const bookCount = (DB_sentBooks||[]).filter(b => b.collection_id === c.id).length;
         const icon = c.icon || '📂';
         return `<div onclick="_sentActiveColl='${c.id}';window._skipSentCollReset=true;showPage('pg-sentences')"
-          style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;
-            border:1.5px solid var(--border);border-radius:14px;cursor:pointer;
+          style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;
+            border:1.5px solid var(--border);border-radius:16px;cursor:pointer;
             transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
-            box-shadow:0 1px 6px rgba(15,23,42,0.05);min-width:180px;max-width:260px;position:relative"
-          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)';this.style.borderColor='var(--blue)'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)';this.style.borderColor='var(--border)'">
-          <div style="width:34px;height:34px;border-radius:10px;background:var(--lavender-dim,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:2px">문장집 ${bookCount}개</div>
+            box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);min-width:160px;max-width:260px;position:relative"
+          onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'">
+          <div style="flex:1;min-width:0;margin-right:8px">
+            <div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:500">${bookCount} Collection${bookCount!==1?'s':''}</div>
           </div>
           <button onclick="event.stopPropagation();toggleFavSentColl('${c.id}')"
             style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
@@ -4821,41 +4817,39 @@ async function renderDashboard() {
     const wc  = b.wordCount ?? b.words?.length ?? 0;
     const coll = (DB.collections||[]).find(c => c.id === b.collectionId);
     const isRecent = recentWordIds[0] === b.id;
-    return `<tr style="border-bottom:1px solid var(--border);transition:background 0.12s"
-      onmouseenter="this.style.background='var(--blue-dim)'" onmouseleave="this.style.background=''">
-      <td style="padding:13px 8px 13px 20px;overflow:hidden" onclick="openTeacherWordView('${b.id}');event.stopPropagation()">
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;overflow:hidden">
-          <span style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer">${b.name}</span>
-          ${isRecent ? '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;white-space:nowrap">최근</span>' : ''}
+    return `<div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #f1f5f9;transition:background 0.13s;cursor:pointer"
+      onmouseenter="this.style.background='#f8fafd'" onmouseleave="this.style.background=''">
+      <div style="flex:1;min-width:0;margin-right:12px" onclick="openTeacherWordView('${b.id}')">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</span>
+          ${isRecent ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;letter-spacing:0.02em">RECENT</span>' : ''}
         </div>
-        <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-          <span>${wc}개 단어</span>
-          ${coll ? `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0 5px;white-space:nowrap">📁 ${coll.name}</span>` : ''}
+        <div style="font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px">
+          <span>${wc} Words</span>
+          ${coll ? `<span style="display:inline-flex;align-items:center;gap:3px;color:#94a3b8"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>${coll.name}</span>` : ''}
         </div>
-      </td>
-      <td style="padding:13px 16px 13px 0;white-space:nowrap;width:1%;vertical-align:middle">
-        <div style="display:flex;gap:4px;align-items:center">
-          <button onclick="openTeacherWordView('${b.id}')"
-            style="padding:5px 10px;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(59,130,246,0.2);
-            border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px"
-            onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='var(--blue-dim)'">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            보기</button>
-          <button onclick="bookMakeTest('${b.id}')"
-            style="padding:5px 10px;background:var(--surface2);color:var(--t2);border:1px solid var(--border);
-            border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-            onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">시험지</button>
-          <button onclick="bookQuickPrint('${b.id}')"
-            style="padding:5px 8px;background:var(--surface2);color:var(--t2);border:1px solid var(--border);
-            border-radius:6px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:3px;white-space:nowrap"
-            title="바로 인쇄"
-            onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            인쇄
-          </button>
-        </div>
-      </td>
-    </tr>`;
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button onclick="openTeacherWordView('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="단어 보기"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </button>
+        <button onclick="bookMakeTest('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="시험지 만들기"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </button>
+        <button onclick="bookQuickPrint('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="인쇄"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+    </div>`;
   }
 
   // ── 문장집 행 ──
@@ -4863,78 +4857,100 @@ async function renderDashboard() {
     const itemCount = b.item_count ?? (DB_sentItems?.[b.id]||[]).length;
     const coll = (DB_sentColls||[]).find(c => c.id === b.collection_id);
     const isRecent = recentSentIds[0] === b.id;
-    return `<tr style="border-bottom:1px solid var(--border);transition:background 0.12s"
-      onmouseenter="this.style.background='var(--blue-dim)'" onmouseleave="this.style.background=''">
-      <td style="padding:13px 8px 13px 20px;overflow:hidden" onclick="openTeacherSentView('${b.id}');event.stopPropagation()">
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;overflow:hidden">
-          <span style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer">${b.name}</span>
-          ${isRecent ? '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;white-space:nowrap">최근</span>' : ''}
+    return `<div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #f1f5f9;transition:background 0.13s;cursor:pointer"
+      onmouseenter="this.style.background='#f8fafd'" onmouseleave="this.style.background=''">
+      <div style="flex:1;min-width:0;margin-right:12px" onclick="openTeacherSentView('${b.id}')">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</span>
+          ${isRecent ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;letter-spacing:0.02em">RECENT</span>' : ''}
         </div>
-        <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-          <span>${itemCount}개 문장</span>
-          ${coll ? `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0 5px;white-space:nowrap">📂 ${coll.name}</span>` : ''}
+        <div style="font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px">
+          <span>${itemCount} Sentences</span>
+          ${coll ? `<span style="display:inline-flex;align-items:center;gap:3px;color:#94a3b8"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>${coll.name}</span>` : ''}
         </div>
-      </td>
-      <td style="padding:13px 16px 13px 0;white-space:nowrap;width:1%;vertical-align:middle">
-        <div style="display:flex;gap:4px;align-items:center">
-          <button onclick="openTeacherSentView('${b.id}')"
-            style="padding:5px 10px;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(59,130,246,0.2);
-            border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px"
-            onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='var(--blue-dim)'">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            보기</button>
-          <button onclick="sentMakeTest('${b.id}')"
-            style="padding:5px 10px;background:var(--surface2);color:var(--t2);border:1px solid var(--border);
-            border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-            onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">시험지</button>
-          <button onclick="sentMakeTest('${b.id}')"
-            style="padding:5px 8px;background:var(--surface2);color:var(--t2);border:1px solid var(--border);
-            border-radius:6px;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:3px;white-space:nowrap"
-            title="바로 인쇄"
-            onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            인쇄
-          </button>
-        </div>
-      </td>
-    </tr>`;
-  }
-
-  // ── 테이블 패널 ──
-  function tablePanel(label, rows, emptyMsg, navTarget, accentColor) {
-    const tableBody = rows.length
-      ? rows.join('')
-      : `<tr><td colspan="3" style="padding:28px 16px;text-align:center;color:var(--t3);font-size:13px">${emptyMsg}</td></tr>`;
-    return `
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--sh);display:flex;flex-direction:column;min-width:0">
-      <!-- 패널 헤더 -->
-      <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface2)">
-        <span style="font-size:13px;font-weight:700;color:var(--t1)">${label}</span>
-        <span style="font-size:11px;color:var(--t3);background:#fff;border:1px solid var(--border);border-radius:8px;padding:1px 7px">${rows.length}개</span>
-        <button onclick="showPage('${navTarget}')"
-          style="margin-left:auto;font-size:11px;color:${accentColor};font-weight:600;background:none;border:none;cursor:pointer;
-          padding:3px 8px;border-radius:6px;transition:background 0.12s;white-space:nowrap"
-          onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'">전체 보기 →</button>
       </div>
-      <!-- 테이블 -->
-      <div class="dash-recent-scroll">
-        <table style="width:100%;border-collapse:collapse;table-layout:auto">
-          <tbody>${tableBody}</tbody>
-        </table>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button onclick="openTeacherSentView('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="문장 보기"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button onclick="sentMakeTest('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="시험지 만들기"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </button>
+        <button onclick="sentQuickPrint('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="인쇄"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
       </div>
     </div>`;
+  }
+
+  // ── 패널 (카드 바디만, 타이틀은 외부) ──
+  function panelBody(rows, emptyMsg) {
+    return rows.length
+      ? rows.join('')
+      : `<div style="padding:28px 16px;text-align:center;color:#94a3b8;font-size:13px">${emptyMsg}</div>`;
   }
 
   const allEmpty = !filteredW.length && !filteredS.length;
   if (allEmpty) {
     recentEl.innerHTML = `<div class="empty"><div class="empty-icon">📚</div><div class="empty-title">${q ? '검색 결과가 없습니다' : '단어장을 추가해보세요'}</div></div>`;
   } else {
-    const wordPanel = tablePanel('📖 단어장', filteredW.map(wordRowHTML), '단어장이 없습니다', 'pg-library', 'var(--blue)');
-    const sentPanel = tablePanel('💬 문장집', filteredS.map(sentRowHTML), '문장집이 없습니다', 'pg-sentences', 'var(--blue)');
+    const wordIconSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+    const sentIconSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 7H7c-.6 0-1 .4-1 1v4c0 .6.4 1 1 1h3l-1 3h3l1-3V8c0-.6-.4-1-1-1z"/><path d="M20 7h-4c-.6 0-1 .4-1 1v4c0 .6.4 1 1 1h3l-1 3h3l1-3V8c0-.6-.4-1-1-1z"/></svg>`;
+
     recentEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
-        ${wordPanel}
-        ${sentPanel}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+        <!-- ── 최근 단어장 컬럼 ── -->
+        <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+          <!-- 외부 타이틀 행 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="display:flex;align-items:center;color:#94a3b8">${wordIconSVG}</span>
+            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">최근 단어장</span>
+            <span style="font-size:13px;font-weight:600;color:#94a3b8;letter-spacing:0.02em">${filteredW.length} Items</span>
+            <button onclick="showPage('pg-library')"
+              style="margin-left:auto;font-size:11px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
+              display:flex;align-items:center;gap:2px;padding:3px 6px;border-radius:6px;transition:all 0.13s;white-space:nowrap"
+              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'">
+              View all
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <!-- 카드 박스 -->
+          <div style="background:#fff;border:1.5px solid #e8eef6;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,0.06),0 1px 3px rgba(15,23,42,0.04)">
+            <div class="dash-recent-scroll">${panelBody(filteredW.map(wordRowHTML), '단어장이 없습니다')}</div>
+          </div>
+        </div>
+
+        <!-- ── 최근 문장집 컬럼 ── -->
+        <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+          <!-- 외부 타이틀 행 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="display:flex;align-items:center;color:#94a3b8">${sentIconSVG}</span>
+            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">최근 문장집</span>
+            <span style="font-size:13px;font-weight:600;color:#94a3b8;letter-spacing:0.02em">${filteredS.length} Items</span>
+            <button onclick="showPage('pg-sentences')"
+              style="margin-left:auto;font-size:11px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
+              display:flex;align-items:center;gap:2px;padding:3px 6px;border-radius:6px;transition:all 0.13s;white-space:nowrap"
+              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'">
+              View all
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <!-- 카드 박스 -->
+          <div style="background:#fff;border:1.5px solid #e8eef6;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,0.06),0 1px 3px rgba(15,23,42,0.04)">
+            <div class="dash-recent-scroll">${panelBody(filteredS.map(sentRowHTML), '문장집이 없습니다')}</div>
+          </div>
+        </div>
+
       </div>`;
   }
 
@@ -4963,7 +4979,7 @@ async function renderDashboard() {
     return `
     <div onclick="openStudentDetailModal('${s.id}')"
       style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:all 0.18s;box-shadow:var(--sh);position:relative"
-      onmouseover="this.style.boxShadow='0 4px 20px rgba(59,130,246,0.15)';this.style.borderColor='var(--blue)'"
+      onmouseover="this.style.boxShadow='0 4px 20px rgba(30,77,183,0.15)';this.style.borderColor='var(--blue)'"
       onmouseout="this.style.boxShadow='var(--sh)';this.style.borderColor='var(--border)'">
       <!-- 상태 점 -->
       <div style="position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:${statusDot}"></div>
@@ -5094,7 +5110,7 @@ function schedRenderList() {
   }
   list.innerHTML = items.map((item, idx) => `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;
-      background:${item.done?'var(--surface2)':'var(--bg)'};border:1px solid ${item.done?'var(--border)':'rgba(59,130,246,0.15)'};margin-bottom:5px">
+      background:${item.done?'var(--surface2)':'var(--bg)'};border:1px solid ${item.done?'var(--border)':'rgba(30,77,183,0.15)'};margin-bottom:5px">
       <input type="checkbox" ${item.done?'checked':''} onchange="schedToggle('${_schedDate}',${idx})"
         style="width:16px;height:16px;accent-color:var(--blue);cursor:pointer;flex-shrink:0">
       ${item.time?`<span style="font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-dim);padding:2px 7px;border-radius:6px;flex-shrink:0">${item.time}</span>`:''}
@@ -5163,10 +5179,10 @@ function schedRenderCalendar() {
     const numColor = dow===0 ? '#ef4444' : dow===6 ? 'var(--blue)' : 'var(--t1)';
 
     html += `<div onclick="schedCalDayClick('${d}')" style="min-height:52px;border-radius:8px;padding:4px 5px;cursor:pointer;
-      border:1.5px solid ${isSel?'var(--blue)':isToday?'rgba(59,130,246,0.3)':'transparent'};
-      background:${isSel?'rgba(59,130,246,0.07)':isToday?'rgba(59,130,246,0.04)':'var(--bg)'};
+      border:1.5px solid ${isSel?'var(--blue)':isToday?'rgba(30,77,183,0.3)':'transparent'};
+      background:${isSel?'rgba(30,77,183,0.07)':isToday?'rgba(30,77,183,0.04)':'var(--bg)'};
       transition:all 0.12s"
-      onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='${isSel?'rgba(59,130,246,0.07)':isToday?'rgba(59,130,246,0.04)':'var(--bg)'}'">
+      onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='${isSel?'rgba(30,77,183,0.07)':isToday?'rgba(30,77,183,0.04)':'var(--bg)'}'">
       <div style="font-size:12px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--blue)':numColor};margin-bottom:2px">${date}</div>
       ${items.slice(0,2).map(it => `<div style="font-size:10px;background:${it.done?'var(--border)':'var(--blue)'};color:white;border-radius:3px;padding:1px 4px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-decoration:${it.done?'line-through':''}">${it.time?it.time+' ':''} ${it.text}</div>`).join('')}
       ${items.length > 2 ? `<div style="font-size:10px;color:var(--t3)">+${items.length-2}개</div>` : ''}
@@ -5198,7 +5214,7 @@ function schedRenderDayPanel(date) {
     <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px">${label}</div>
     ${items.length ? items.map((item,idx) => `
       <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
-        background:${item.done?'var(--surface2)':'var(--bg)'};border:1px solid ${item.done?'var(--border)':'rgba(59,130,246,0.15)'};margin-bottom:4px">
+        background:${item.done?'var(--surface2)':'var(--bg)'};border:1px solid ${item.done?'var(--border)':'rgba(30,77,183,0.15)'};margin-bottom:4px">
         <input type="checkbox" ${item.done?'checked':''} onchange="schedToggle('${date}',${idx})"
           style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;flex-shrink:0">
         ${item.time?`<span style="font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-dim);padding:1px 6px;border-radius:5px;flex-shrink:0">${item.time}</span>`:''}
@@ -5599,20 +5615,20 @@ function renderSentMgmt() {
           <button onclick="sentCollSetEdit(false);renderSentMgmt()" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 12px">✓ 완료</button>
         </div>` : `<span style="font-size:11px;color:var(--t3)">꾹 눌러서 수정</span>`}
       </div>
-      <div id="sent-coll-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+      <div id="sent-coll-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
         ${sortedColls.map(c=>{
           const cnt = DB_sentBooks.filter(b=>b.collection_id===c.id).length;
           const editBorder = _sentCollEditMode ? '1.5px solid var(--blue)' : '1.5px solid var(--border)';
           return `<div data-collid="${c.id}"
             onclick="${_sentCollEditMode ? '' : `sentFilterColl('${c.id}')`}"
-            style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#fff;
-              border:${editBorder};border-radius:14px;
+            style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#fff;
+              border:${editBorder};border-radius:16px;
               cursor:${_sentCollEditMode ? 'grab' : 'pointer'};
               transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
-              box-shadow:0 1px 6px rgba(15,23,42,0.05);position:relative;
+              box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_sentCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
-            onmouseover="if(!${_sentCollEditMode})this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)'">
+            onmouseover="if(!${_sentCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
+            onmouseout="if(!${_sentCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='';}">
             ${_sentCollEditMode ? `
               <button onclick="event.stopPropagation();sentCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
@@ -5621,21 +5637,18 @@ function renderSentMgmt() {
                   line-height:1;padding:0;box-shadow:0 2px 6px rgba(239,68,68,0.4);transition:transform 0.12s"
                 onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''">×</button>
             ` : ''}
-            <div style="display:flex;align-items:center;gap:8px">
-              <div style="width:32px;height:32px;border-radius:9px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">📂</div>
-              <div style="flex:1;min-width:0">
-                ${_sentCollEditMode
-                  ? `<input value="${c.name.replace(/"/g,'&quot;')}"
-                      style="font-size:13px;font-weight:700;color:var(--t1);border:1.5px solid #6366f1;border-radius:7px;padding:3px 7px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#f5f3ff;cursor:text"
-                      onclick="event.stopPropagation()"
-                      onmousedown="event.stopPropagation()"
-                      onblur="sentCollRename('${c.id}',this.value)">`
-                  : `<div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>`
-                }
-                <div style="font-size:11px;color:var(--t3);margin-top:2px">${cnt}개 문장집</div>
-              </div>
-              ${!_sentCollEditMode ? `${_favToggleHTML('sent',c.id,'toggleFavSentColl')}` : ''}
+            <div style="flex:1;min-width:0;margin-right:10px">
+              ${_sentCollEditMode
+                ? `<input value="${c.name.replace(/"/g,'&quot;')}"
+                    style="font-size:14px;font-weight:700;color:var(--t1);border:1.5px solid #6366f1;border-radius:7px;padding:3px 7px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#f5f3ff;cursor:text"
+                    onclick="event.stopPropagation()"
+                    onmousedown="event.stopPropagation()"
+                    onblur="sentCollRename('${c.id}',this.value)">`
+                : `<div style="font-size:14px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>`
+              }
+              <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:500">${cnt} Collection${cnt!==1?'s':''}</div>
             </div>
+            ${!_sentCollEditMode ? `${_favToggleHTML('sent',c.id,'toggleFavSentColl')}` : ''}
           </div>`;
         }).join('')}
       </div>
@@ -6043,7 +6056,7 @@ function openNewSentCollModal() {
 async function createSentColl() {
   const name  = document.getElementById('scoll-name')?.value.trim();
   if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
-  const color = '#3b82f6';
+  const color = '#1e4db7';
   try {
     const { data, error } = await sb.from('sentence_collections').insert({ owner_id: currentUser.id, name, color }).select().single();
     if (error) throw error;
@@ -7750,7 +7763,7 @@ async function renderSentenceStudy() {
           <div style="text-align:center">
             <div style="font-size:9px;font-weight:700;color:#3b82f6;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
             <div style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-1px;line-height:1">Lv.${_sbNextLv}</div>
-            <div style="margin-top:7px;height:4px;background:rgba(59,130,246,0.2);border-radius:99px;overflow:hidden;width:64px">
+            <div style="margin-top:7px;height:4px;background:rgba(30,77,183,0.2);border-radius:99px;overflow:hidden;width:64px">
               <div style="height:100%;width:${_sbExpPct}%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
             </div>
           </div>
@@ -8742,7 +8755,7 @@ async function sentMakeTest(bookId) {
       <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px">📝 문장 시험지 — ${b.name}</div>
       <div style="display:flex;gap:8px">
         <button onclick="sentTestPrint()"
-          style="padding:8px 18px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif">
+          style="padding:8px 18px;background:linear-gradient(135deg,#1e4db7,#1a3fa0);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif">
           🖨 인쇄
         </button>
         <button onclick="document.getElementById('sent-test-overlay').remove()"
@@ -8784,7 +8797,7 @@ async function sentMakeTest(bookId) {
                 <button onclick="sttAdj('${id}',1)" style="width:22px;height:22px;border:1px solid rgba(255,255,255,0.15);border-radius:5px;background:rgba(255,255,255,0.06);color:#fff;cursor:pointer;font-size:14px;line-height:1;font-family:'Outfit',sans-serif">+</button>
               </div>`).join('')}
           </div>
-          <div style="margin-top:8px;padding:7px 10px;background:rgba(59,130,246,0.12);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+          <div style="margin-top:8px;padding:7px 10px;background:rgba(30,77,183,0.12);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:12px;color:rgba(255,255,255,0.5)">총 문제 수</span>
             <span id="stt-total-lbl" style="font-weight:700;font-size:14px;color:#60a5fa">10문제</span>
           </div>
@@ -8814,9 +8827,9 @@ async function sentMakeTest(bookId) {
           <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">단 수</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="stt-col-btns">
             ${[1,2].map(n=>`
-              <label style="display:flex;align-items:center;justify-content:center;padding:8px;border:1.5px solid ${n===1?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===1?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
+              <label style="display:flex;align-items:center;justify-content:center;padding:8px;border:1.5px solid ${n===1?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===1?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
                 <input type="radio" name="stt-cols" value="${n}" ${n===1?'checked':''} style="display:none"
-                  onchange="document.querySelectorAll('#stt-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'});sttPreview()">
+                  onchange="document.querySelectorAll('#stt-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'});sttPreview()">
                 <span style="font-size:13px;color:rgba(255,255,255,0.8)">${n}단</span>
               </label>`).join('')}
           </div>
@@ -9120,8 +9133,8 @@ function sttToggleDetail() {
   if (!panel) return;
   if (_sttDetailOpen) {
     panel.style.display = '';
-    btn.style.background = 'rgba(59,130,246,0.15)';
-    btn.style.borderColor = 'rgba(59,130,246,0.3)';
+    btn.style.background = 'rgba(30,77,183,0.15)';
+    btn.style.borderColor = 'rgba(30,77,183,0.3)';
     sttRenderDetail();
   } else {
     panel.style.display = 'none';
@@ -9147,7 +9160,7 @@ function sttRenderDetail() {
   if (!panel || !items.length) return;
 
   const typeLabels = { none:'없음', writing:'문장 쓰기', trans:'해석 쓰기', order:'어순 배열', blank:'빈칸 채우기' };
-  const typeColors = { none:'rgba(255,255,255,0.08)', writing:'rgba(59,130,246,0.2)', trans:'rgba(5,150,105,0.2)', order:'rgba(124,58,237,0.2)', blank:'rgba(180,130,0,0.2)' };
+  const typeColors = { none:'rgba(255,255,255,0.08)', writing:'rgba(30,77,183,0.2)', trans:'rgba(5,150,105,0.2)', order:'rgba(124,58,237,0.2)', blank:'rgba(180,130,0,0.2)' };
 
   panel.innerHTML = items.map((item, idx) => {
     const cur = window._sttDetailMap[item.id] || 'none';
@@ -9407,21 +9420,21 @@ function renderLibrary() {
           <button onclick="libCollSetEdit(false);renderLibrary()" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 12px">✓ 완료</button>
         </div>` : `<span style="font-size:11px;color:var(--t3)">꾹 눌러서 수정</span>`}
       </div>
-      <div id="lib-coll-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+      <div id="lib-coll-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
         ${sortedColls.map(c=>{
           const cnt = allBooks.filter(b=>b.collectionId===c.id).length;
           const wc  = allBooks.filter(b=>b.collectionId===c.id).reduce((s,b)=>s+(b.wordCount??b.words?.length??0),0);
           const editBorder = _libCollEditMode ? '1.5px solid var(--blue)' : '1.5px solid var(--border)';
           return `<div data-collid="${c.id}"
             onclick="${_libCollEditMode ? '' : `libSetColl('${c.id}')`}"
-            style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#fff;
-              border:${editBorder};border-radius:14px;
+            style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#fff;
+              border:${editBorder};border-radius:16px;
               cursor:${_libCollEditMode ? 'grab' : 'pointer'};
               transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
-              box-shadow:0 1px 6px rgba(15,23,42,0.05);position:relative;
+              box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_libCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
-            onmouseover="if(!${_libCollEditMode})this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(15,23,42,0.09)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 1px 6px rgba(15,23,42,0.05)'">
+            onmouseover="if(!${_libCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
+            onmouseout="if(!${_libCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='';}">
             ${_libCollEditMode ? `
               <button onclick="event.stopPropagation();libCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
@@ -9430,21 +9443,18 @@ function renderLibrary() {
                   line-height:1;padding:0;box-shadow:0 2px 6px rgba(239,68,68,0.4);transition:transform 0.12s"
                 onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''">×</button>
             ` : ''}
-            <div style="display:flex;align-items:center;gap:8px">
-              <div style="width:32px;height:32px;border-radius:9px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${c.icon||'📁'}</div>
-              <div style="flex:1;min-width:0">
-                ${_libCollEditMode
-                  ? `<input value="${c.name.replace(/"/g,'&quot;')}"
-                      style="font-size:13px;font-weight:700;color:var(--t1);border:1.5px solid #6366f1;border-radius:7px;padding:3px 7px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#f5f3ff;cursor:text"
-                      onclick="event.stopPropagation()"
-                      onmousedown="event.stopPropagation()"
-                      onblur="libCollRename('${c.id}',this.value)">`
-                  : `<div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>`
-                }
-                <div style="font-size:11px;color:var(--t3);margin-top:2px">${cnt}개 단어장 · ${wc}단어</div>
-              </div>
-              ${!_libCollEditMode ? `${_favToggleHTML('word',c.id,'toggleFavWordColl')}` : ''}
+            <div style="flex:1;min-width:0;margin-right:10px">
+              ${_libCollEditMode
+                ? `<input value="${c.name.replace(/"/g,'&quot;')}"
+                    style="font-size:14px;font-weight:700;color:var(--t1);border:1.5px solid #6366f1;border-radius:7px;padding:3px 7px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#f5f3ff;cursor:text"
+                    onclick="event.stopPropagation()"
+                    onmousedown="event.stopPropagation()"
+                    onblur="libCollRename('${c.id}',this.value)">`
+                : `<div style="font-size:14px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>`
+              }
+              <div style="font-size:11px;color:#94a3b8;margin-top:3px;font-weight:500">${cnt} Collection${cnt!==1?'s':''}</div>
             </div>
+            ${!_libCollEditMode ? `${_favToggleHTML('word',c.id,'toggleFavWordColl')}` : ''}
           </div>`;
         }).join('')}
       </div>
@@ -9828,7 +9838,7 @@ async function saveNewCollection() {
   const name = document.getElementById('coll-name').value.trim();
   if (!name) { showToast('이름을 입력해주세요','error'); return; }
   const icon = window._collSelIcon || '📁';
-  const color = '#3b82f6';
+  const color = '#1e4db7';
   const c = {id: crypto.randomUUID(), name, icon, color, created:today()};
   if (!DB.collections) DB.collections = [];
   try {
@@ -9877,7 +9887,7 @@ function editCollection(id) {
     ${myBooks.length?`<div class="form-group">
       <label class="form-label">현재 포함된 단어장 (${myBooks.length}개)</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${myBooks.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--blue-dim);border:1px solid rgba(59,130,246,0.25);border-radius:20px;font-size:12px">
+        ${myBooks.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--blue-dim);border:1px solid rgba(30,77,183,0.25);border-radius:20px;font-size:12px">
           ${b.name}
           <span onclick="removeBookFromColl('${b.id}')" style="cursor:pointer;color:var(--red);font-size:11px">✕</span>
         </div>`).join('')}
@@ -10344,7 +10354,7 @@ async function saveEditBook(bookId) {
   const name  = document.getElementById('eb-name').value.trim();
   const tag   = document.getElementById('eb-tag').value.trim();
   const grade = document.getElementById('eb-grade').value.trim();
-  const color = '#3b82f6';
+  const color = '#1e4db7';
   if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
 
   try {
@@ -10527,13 +10537,13 @@ function wordInsertRowAfter(bookId, afterWordId) {
     <td class="word-drag-handle"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></svg></td>
     <td style="text-align:center"><input type="checkbox" class="word-chk" style="accent-color:var(--accent);width:15px;height:15px" onchange="onWordCheckChange()"></td>
     <td class="word-num" style="color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px">${idx+2}</td>
-    <td><input class="editable en-word" placeholder="영어 단어..." style="background:rgba(59,130,246,0.04)"
+    <td><input class="editable en-word" placeholder="영어 단어..." style="background:rgba(30,77,183,0.04)"
       onchange="wordAutoSaveRow('${bookId}','${tempId}',this,'en')"
       onkeydown="if(event.key==='Tab'&&!event.shiftKey){event.preventDefault();this.closest('tr').querySelector('.ko-word')?.focus()}"></td>
-    <td><input class="editable ko-word" placeholder="한국어 뜻..." style="background:rgba(59,130,246,0.04)"
+    <td><input class="editable ko-word" placeholder="한국어 뜻..." style="background:rgba(30,77,183,0.04)"
       onchange="wordAutoSaveRow('${bookId}','${tempId}',this,'ko')"
       onkeydown="if(event.key==='Tab'&&!event.shiftKey){event.preventDefault();this.closest('tr').querySelector('.ex-text')?.focus()}"></td>
-    <td><input class="editable ex-text" placeholder="예문 (선택)..." style="font-style:italic;min-width:200px;background:rgba(59,130,246,0.04)"
+    <td><input class="editable ex-text" placeholder="예문 (선택)..." style="font-style:italic;min-width:200px;background:rgba(30,77,183,0.04)"
       onchange="wordAutoSaveRow('${bookId}','${tempId}',this,'example')"></td>
     <td></td>
     <td><button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('tr').remove();wordRenumber()">✕</button></td>
@@ -10902,7 +10912,7 @@ async function renderTeachersMgmt() {
           </tbody>
         </table>
       </div>
-      <div style="margin-top:12px;padding:12px 14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.6">
+      <div style="margin-top:12px;padding:12px 14px;background:rgba(30,77,183,0.06);border:1px solid rgba(30,77,183,0.15);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.6">
         💡 선생님 계정은 단어장, 문장집, 학생 배포 등 모든 기능을 사용할 수 있습니다.<br>
         비밀번호는 계정 생성 시 설정하며, 이후 각자 Supabase 이메일 재설정으로 변경 가능합니다.
       </div>`;
@@ -10924,7 +10934,7 @@ function openInviteTeacherModal() {
       <label class="form-label">비밀번호 * (6자 이상)</label>
       <input class="form-input" id="iteach-pw" type="password" placeholder="6자 이상">
     </div>
-    <div style="padding:10px 12px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);border-radius:8px;font-size:12px;color:var(--t2);margin-bottom:8px">
+    <div style="padding:10px 12px;background:rgba(30,77,183,0.07);border:1px solid rgba(30,77,183,0.15);border-radius:8px;font-size:12px;color:var(--t2);margin-bottom:8px">
       ⚠️ 생성된 계정은 선생님/관리자 권한으로 모든 기능을 사용할 수 있습니다.
     </div>
     <div class="modal-actions">
@@ -11407,7 +11417,7 @@ async function openStudentDetailModal(studentId) {
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:18px;font-weight:700;color:${c};min-width:44px">${pct}%</span>
             <span style="color:var(--t3);font-size:13px">${l.score}/${l.total}문제</span>
-            <span style="background:rgba(59,130,246,0.1);color:var(--blue2);border-radius:6px;padding:1px 6px;font-size:11px">${modeLabel[l.mode]||l.mode}</span>
+            <span style="background:rgba(30,77,183,0.1);color:var(--blue2);border-radius:6px;padding:1px 6px;font-size:11px">${modeLabel[l.mode]||l.mode}</span>
             <span style="background:rgba(16,185,129,0.1);color:var(--green);border-radius:6px;padding:1px 6px;font-size:11px">${dirLabel[l.direction]||l.direction}</span>
             <span style="margin-left:auto;color:var(--t3);font-size:11px">${date}</span>
           </div>`;
@@ -11961,7 +11971,7 @@ function renderMyBooks() {
       <div style="text-align:center">
         <div style="font-size:9px;font-weight:700;color:#3b82f6;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
         <div style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-1px;line-height:1">Lv.${_wbNextLv}</div>
-        <div style="margin-top:7px;height:4px;background:rgba(59,130,246,0.2);border-radius:99px;overflow:hidden;width:64px">
+        <div style="margin-top:7px;height:4px;background:rgba(30,77,183,0.2);border-radius:99px;overflow:hidden;width:64px">
           <div style="height:100%;width:${_wbExpPct}%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
         </div>
       </div>
@@ -13653,7 +13663,7 @@ async function renderProgress(){
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap">
           <span style="font-size:18px;font-weight:700;color:${c};min-width:44px">${pct}%</span>
           <span style="color:var(--text-muted)">${l.score}/${l.total}문제</span>
-          <span style="background:rgba(59,130,246,0.1);color:var(--accent);border-radius:6px;padding:1px 7px">${modeLabel[l.mode]||l.mode}</span>
+          <span style="background:rgba(30,77,183,0.1);color:var(--accent);border-radius:6px;padding:1px 7px">${modeLabel[l.mode]||l.mode}</span>
           <span style="background:rgba(16,185,129,0.1);color:var(--green);border-radius:6px;padding:1px 7px">${dirLabel[l.direction]||l.direction}</span>
           ${wrongW.length?`<span style="color:var(--red);font-size:11px">❌ ${wrongW.map(w=>w.en).join(', ')}</span>`:'<span style="color:var(--green);font-size:11px">전부 정답</span>'}
           <span style="margin-left:auto;color:var(--text-dim)">${date}</span>
@@ -15260,7 +15270,7 @@ async function openWordPrintStudio(bookId) {
         <div style="margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">인쇄 방식</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="wps-order-btns">
-            <label id="wps-order-lbl-seq" style="display:flex;align-items:center;justify-content:center;padding:10px 4px;border:1.5px solid #3b82f6;border-radius:8px;background:rgba(59,130,246,0.1);cursor:pointer;text-align:center">
+            <label id="wps-order-lbl-seq" style="display:flex;align-items:center;justify-content:center;padding:10px 4px;border:1.5px solid #3b82f6;border-radius:8px;background:rgba(30,77,183,0.1);cursor:pointer;text-align:center">
               <input type="radio" name="wps-order" value="seq" checked style="display:none" onchange="wpsUpdateOrderUI();wpsLivePreview()">
               <span style="font-size:13px;color:rgba(255,255,255,0.9);font-weight:600">📋 순서대로</span>
             </label>
@@ -15276,9 +15286,9 @@ async function openWordPrintStudio(bookId) {
           <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">단 수</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="wps-col-btns">
             ${[1,2,3,4].map(n=>`
-              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
+              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
                 <input type="radio" name="wps-cols" value="${n}" ${n===2?'checked':''} style="display:none"
-                  onchange="document.querySelectorAll('#wps-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'});wpsLivePreview()">
+                  onchange="document.querySelectorAll('#wps-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'});wpsLivePreview()">
                 <span style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${n}단</span>
               </label>`).join('')}
           </div>
@@ -15348,8 +15358,8 @@ async function openWordPrintStudio(bookId) {
     const val = document.querySelector('input[name="wps-order"]:checked')?.value || 'seq';
     const seqLbl = document.getElementById('wps-order-lbl-seq');
     const randLbl = document.getElementById('wps-order-lbl-rand');
-    if (seqLbl) { seqLbl.style.borderColor = val==='seq'?'#3b82f6':'rgba(255,255,255,0.12)'; seqLbl.style.background = val==='seq'?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'; seqLbl.querySelector('span').style.color = val==='seq'?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.5)'; }
-    if (randLbl) { randLbl.style.borderColor = val==='rand'?'#3b82f6':'rgba(255,255,255,0.12)'; randLbl.style.background = val==='rand'?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'; randLbl.querySelector('span').style.color = val==='rand'?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.5)'; }
+    if (seqLbl) { seqLbl.style.borderColor = val==='seq'?'#3b82f6':'rgba(255,255,255,0.12)'; seqLbl.style.background = val==='seq'?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'; seqLbl.querySelector('span').style.color = val==='seq'?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.5)'; }
+    if (randLbl) { randLbl.style.borderColor = val==='rand'?'#3b82f6':'rgba(255,255,255,0.12)'; randLbl.style.background = val==='rand'?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'; randLbl.querySelector('span').style.color = val==='rand'?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.5)'; }
   };
 
   // 미리보기 HTML 생성
@@ -15639,7 +15649,7 @@ function testShowSettings(defaultTitle, words) {
       <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px">시험지 설정 및 미리보기</div>
       <div style="display:flex;gap:8px">
         <button onclick="testStudioGenerate()"
-          style="padding:8px 18px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:-0.1px">
+          style="padding:8px 18px;background:linear-gradient(135deg,#1e4db7,#1a3fa0);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:-0.1px">
           인쇄
         </button>
         <button onclick="document.getElementById('test-studio-overlay').remove()"
@@ -15684,7 +15694,7 @@ function testShowSettings(defaultTitle, words) {
                 <button type="button" onclick="tsAdj('${id}',1)" style="width:24px;height:24px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#fff;cursor:pointer;font-size:14px;line-height:1">＋</button>
               </div>`).join('')}
           </div>
-          <div style="margin-top:8px;padding:7px 10px;background:rgba(59,130,246,0.12);border-radius:7px;display:flex;justify-content:space-between;align-items:center">
+          <div style="margin-top:8px;padding:7px 10px;background:rgba(30,77,183,0.12);border-radius:7px;display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:12px;color:rgba(255,255,255,0.5)">총 문제 수</span>
             <span id="ts-total-lbl" style="font-weight:700;font-size:14px;color:#60a5fa">20문제</span>
           </div>
@@ -15703,9 +15713,9 @@ function testShowSettings(defaultTitle, words) {
           <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">단 수</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="ts-col-btns">
             ${[1,2,3,4].map(n=>`
-              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer;text-align:center">
+              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer;text-align:center">
                 <input type="radio" name="ts-cols" value="${n}" ${n===2?'checked':''} style="display:none"
-                  onchange="document.querySelectorAll('#ts-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'});tsLivePreview()">
+                  onchange="document.querySelectorAll('#ts-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'});tsLivePreview()">
                 <span style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:500">${n}단</span>
               </label>`).join('')}
           </div>
@@ -18038,7 +18048,7 @@ function openSentListPrint(bookId) {
       <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px">문장 인쇄 — ${b.name}</div>
       <div style="display:flex;gap:8px">
         <button onclick="slPrintNow()"
-          style="padding:8px 18px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif">
+          style="padding:8px 18px;background:linear-gradient(135deg,#1e4db7,#1a3fa0);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif">
           🖨 인쇄
         </button>
         <button onclick="document.getElementById('sl-print-overlay').remove()"
@@ -18061,9 +18071,9 @@ function openSentListPrint(bookId) {
           <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px">단 수</div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="slp-col-btns">
             ${[1,2].map(n=>`
-              <label style="display:flex;align-items:center;justify-content:center;padding:8px;border:1.5px solid ${n===1?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===1?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
+              <label style="display:flex;align-items:center;justify-content:center;padding:8px;border:1.5px solid ${n===1?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===1?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
                 <input type="radio" name="slp-cols" value="${n}" ${n===1?'checked':''} style="display:none"
-                  onchange="document.querySelectorAll('#slp-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'});slpPreview()">
+                  onchange="document.querySelectorAll('#slp-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'});slpPreview()">
                 <span style="font-size:13px;color:rgba(255,255,255,0.8)">${n}단</span>
               </label>`).join('')}
           </div>
@@ -18261,7 +18271,7 @@ function openWordListPrint(bookId) {
       <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px">단어장 인쇄 — ${b.name}</div>
       <div style="display:flex;gap:8px">
         <button onclick="wlPrintNow()"
-          style="padding:8px 18px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">
+          style="padding:8px 18px;background:linear-gradient(135deg,#1e4db7,#1a3fa0);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">
           인쇄
         </button>
         <button onclick="document.getElementById('wl-print-overlay').remove()"
@@ -18289,9 +18299,9 @@ function openWordListPrint(bookId) {
           <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;text-transform:uppercase;letter-spacing:1.2px">단 수</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="wlp-col-btns">
             ${[1,2,3,4].map(n=>`
-              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
+              <label style="display:flex;align-items:center;justify-content:center;padding:8px 4px;border:1.5px solid ${n===2?'#3b82f6':'rgba(255,255,255,0.12)'};border-radius:8px;background:${n===2?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'};cursor:pointer">
                 <input type="radio" name="wlp-cols" value="${n}" ${n===2?'checked':''} style="display:none"
-                  onchange="document.querySelectorAll('#wlp-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(59,130,246,0.1)':'rgba(255,255,255,0.04)'});wlpPreview()">
+                  onchange="document.querySelectorAll('#wlp-col-btns label').forEach((l,i)=>{l.style.borderColor=i===${n-1}?'#3b82f6':'rgba(255,255,255,0.12)';l.style.background=i===${n-1}?'rgba(30,77,183,0.1)':'rgba(255,255,255,0.04)'});wlpPreview()">
                 <span style="font-size:13px;color:rgba(255,255,255,0.8)">${n}단</span>
               </label>`).join('')}
           </div>
