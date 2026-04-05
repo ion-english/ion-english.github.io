@@ -273,7 +273,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
   border-bottom:1px solid #eaeff6;
   padding:0 32px;height:64px;
   display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:50;
+  position:sticky;top:0;z-index:1000;
   box-shadow:0 1px 0 #eaeff6,0 2px 8px rgba(15,23,42,0.04);
 }
 .topbar-left{display:flex;align-items:center;gap:12px}
@@ -303,14 +303,15 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
   box-shadow:0 0 0 3px rgba(147,197,253,0.18);
 }
 .slime-chat-bar-avatar{
-  width:42px;height:42px;flex-shrink:0;
+  width:30px;height:30px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
+  margin-right:4px;
 }
 .slime-chat-bar-input{
   flex:1;border:none;background:none;outline:none;
   font-size:13px;color:#334155;font-family:'Outfit',sans-serif;
-  padding:0 4px 0 0;
+  padding:0 4px 0 24px;
 }
 .slime-chat-bar-input::placeholder{color:#94a3b8}
 .slime-chat-bar-send{
@@ -324,10 +325,10 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 
 /* 챗봇 드롭다운 패널 */
 .slime-chat-panel{
-  position:absolute;top:calc(100% + 10px);left:0;right:0;
+  position:fixed;top:58px;right:20px;left:auto;width:340px;
   background:#fff;border:1.5px solid #dde8f2;border-radius:20px;
   box-shadow:0 8px 40px rgba(30,58,95,0.13);
-  z-index:600;overflow:hidden;
+  z-index:9999;overflow:hidden;
   animation:fadeUp 0.18s ease both;
   display:flex;flex-direction:column;
   max-height:420px;min-width:320px;
@@ -4110,14 +4111,14 @@ function buildStudentTopbar() {
     <div style="display:flex;align-items:center;gap:20px;position:relative">
       <!-- 슬라임 챗봇 바 -->
       <div class="slime-chat-bar" id="slime-chat-bar">
-        <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
-          ${buildMiniSlimeSVG(slime.stage, 30, {colorId:slime.colorId,eyeStyle:slime.eyeStyle,accessory:slime.accessory})}
-        </div>
         <input class="slime-chat-bar-input" id="slime-chat-input"
-          placeholder="${slime.slimeName||'슬라임'}에게 물어보세요... 💬"
+          placeholder="${slime.slimeName||'슬라임'}에게 물어보세요"
           onkeydown="if(event.key==='Enter')slimeChatSend()"
           oninput="const s=document.getElementById('slime-chat-send');if(s)s.classList.toggle('visible',this.value.trim().length>0)"
-          onfocus="if(!document.getElementById('slime-chat-panel'))stOpenChat()">
+          onfocus="const p=document.getElementById('slime-chat-panel');if(p&&p.style.display==='none')stOpenChat()">
+        <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="8" ry="7"/><path d="M4 13c0-4 2-8 8-10 6 2 8 6 8 10"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/></svg>
+        </div>
         <button class="slime-chat-bar-send" id="slime-chat-send" onclick="slimeChatSend()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -4233,7 +4234,8 @@ function _slimeChatPersonality() {
 - 배포된 단어장: ${bookNames || '없음'}
 - 배포된 문장집: ${sentBooks || '없음'}
 
-답변은 2~4문장으로 간결하게. 너무 길게 쓰지 마.`;
+답변은 2~4문장으로 간결하게. 너무 길게 쓰지 마.
+반드시 한국어와 영어만 사용해. 한자, 중국어, 일본어, 터키어, 기타 외국어는 절대 사용하지 마. 한국어 설명은 순수 한글로만 써.`;
 }
 
 function _slimeChatRenderPanel() {
@@ -4299,14 +4301,14 @@ function stOpenChat() {
   if (notif) notif.style.display = 'none';
   if (profile) profile.style.display = 'none';
 
-  panel.style.display = '';
+  panel.style.display = 'flex';
   _slimeChatRenderPanel();
 }
 
 function stToggleChat() {
   const panel = document.getElementById('slime-chat-panel');
   if (!panel) return;
-  if (panel.style.display === 'none' || panel.style.display === '') {
+  if (panel.style.display === 'none') {
     stOpenChat();
   } else {
     panel.style.display = 'none';
@@ -4349,31 +4351,39 @@ async function slimeChatSendMsg(text) {
   }
 
   try {
-    const messages = _slimeChatHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }));
+    const GROQ_API_KEY = getGroqKey();
+    if (!GROQ_API_KEY) { showToast('⚙️ Groq API 키를 먼저 입력하세요.', 'error'); openApiKeyModal(); throw new Error('키 없음'); }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: _slimeChatPersonality(),
-        messages,
-      })
-    });
-    const data = await res.json();
-    const reply = data.content?.map(c => c.text||'').join('') || '...';
+    const messages = [
+      { role: 'system', content: _slimeChatPersonality() },
+      ..._slimeChatHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
+    ];
 
-    // 타이핑 제거
+    const models = ['llama-3.3-70b-versatile', 'llama3-70b-8192'];
+    let reply = '';
+    for (let i = 0; i < models.length; i++) {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+        body: JSON.stringify({ model: models[i], max_tokens: 400, temperature: 0.7, messages })
+      });
+      const data = await res.json();
+      if (data.error) {
+        if (i < models.length - 1) continue;
+        throw new Error(data.error.message || 'Groq 오류');
+      }
+      reply = data.choices?.[0]?.message?.content || '...';
+      break;
+    }
+
     const t = document.getElementById('slime-typing');
     if (t) t.remove();
-
     _slimeChatHistory.push({ role: 'assistant', content: reply });
     _slimeChatRenderPanel();
   } catch(e) {
     const t = document.getElementById('slime-typing');
     if (t) t.remove();
-    _slimeChatHistory.push({ role: 'assistant', content: '앗, 연결이 잠깐 끊겼어! 다시 말해줄래? 🫧' });
+    _slimeChatHistory.push({ role: 'assistant', content: `오류: ${e.message} 🫧` });
     _slimeChatRenderPanel();
   }
 }
@@ -4383,7 +4393,8 @@ document.addEventListener('click', function(e) {
   const bar = document.getElementById('slime-chat-bar');
   const panel = document.getElementById('slime-chat-panel');
   if (!bar || !panel) return;
-  if (!bar.contains(e.target) && panel.style.display !== 'none') {
+  if (e.target.closest && (e.target.closest('#slime-chat-send') || e.target.closest('#slime-chat-bar'))) return;
+  if (panel.style.display !== 'none') {
     panel.style.display = 'none';
   }
 });
