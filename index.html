@@ -293,35 +293,44 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);min-he
 
 /* ════ 슬라임 챗봇 바 ════ */
 .slime-chat-bar{
-  display:flex;align-items:center;gap:0;
-  background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:28px;
-  height:42px;min-width:260px;max-width:420px;flex:1;
-  transition:all 0.2s;overflow:hidden;position:relative;
+  display:flex;align-items:center;gap:6px;
+  background:#fff;border:0.5px solid #d1d5db;border-radius:99px;
+  height:40px;min-width:220px;max-width:380px;flex:1;
+  padding:0 6px;
+  transition:border-color 0.15s,box-shadow 0.15s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  position:relative;overflow:visible;
 }
 .slime-chat-bar:focus-within{
-  background:#fff;border-color:#93c5fd;
-  box-shadow:0 0 0 3px rgba(147,197,253,0.18);
+  border-color:#7C6FF7;
+  box-shadow:0 0 0 3px rgba(124,111,247,0.14);
 }
 .slime-chat-bar-avatar{
-  width:30px;height:30px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;
-  margin-right:4px;
+  display:flex;align-items:center;gap:5px;
+  background:#EEF0FE;border:0.5px solid #C8C4F8;border-radius:99px;
+  padding:3px 8px 3px 4px;flex-shrink:0;
+  cursor:pointer;transition:background 0.12s;
+}
+.slime-chat-bar-avatar:hover{background:#E0DCFC}
+.slime-chat-bar-avatar-name{
+  font-size:11px;font-weight:600;color:#534AB7;letter-spacing:0.01em;
+  font-family:'Outfit',sans-serif;
 }
 .slime-chat-bar-input{
   flex:1;border:none;background:none;outline:none;
-  font-size:13px;color:#334155;font-family:'Outfit',sans-serif;
-  padding:0 4px 0 24px;
+  font-size:13px;color:#1e293b;font-family:'Outfit',sans-serif;
+  padding:0;min-width:60px;
 }
-.slime-chat-bar-input::placeholder{color:#94a3b8}
+.slime-chat-bar-input::placeholder{color:#94a3b8;font-size:12.5px}
 .slime-chat-bar-send{
-  width:32px;height:32px;margin-right:5px;flex-shrink:0;
-  border:none;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);
+  width:28px;height:28px;margin-right:1px;flex-shrink:0;
+  border:none;border-radius:50%;background:#7C6FF7;
   color:#fff;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.15s;opacity:0;pointer-events:none;
+  cursor:pointer;transition:background 0.12s,transform 0.1s;
+  opacity:0;pointer-events:none;
 }
 .slime-chat-bar-send.visible{opacity:1;pointer-events:auto}
-.slime-chat-bar-send:hover{transform:scale(1.08);box-shadow:0 2px 8px rgba(59,130,246,0.4)}
+.slime-chat-bar-send:hover{background:#5E52D4;transform:scale(1.08)}
 
 /* 챗봇 드롭다운 패널 */
 .slime-chat-panel{
@@ -1450,7 +1459,7 @@ body.student-mode {
   }
   .topbar-title{font-size:17px;font-weight:800}
   .topbar-search{display:none} /* 모바일에서 topbar 검색창 숨김 */
-  .slime-chat-bar{min-width:160px;max-width:200px}
+  .slime-chat-bar{min-width:140px;max-width:220px}
   .slime-chat-panel{min-width:240px;left:-60px;right:-60px}
   .hamburger-btn{display:flex !important}
   .content{padding:12px 14px 20px}
@@ -4111,16 +4120,17 @@ function buildStudentTopbar() {
     <div style="display:flex;align-items:center;gap:20px;position:relative">
       <!-- 슬라임 챗봇 바 -->
       <div class="slime-chat-bar" id="slime-chat-bar">
+        <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
+          ${buildMiniSlimeSVG(slime.stage,22,{colorId:slime.colorId})}
+          <span class="slime-chat-bar-avatar-name">${slime.slimeName||'슬라임'}</span>
+        </div>
         <input class="slime-chat-bar-input" id="slime-chat-input"
-          placeholder="${slime.slimeName||'슬라임'}에게 물어보세요"
+          placeholder="물어보세요"
           onkeydown="if(event.key==='Enter')slimeChatSend()"
           oninput="const s=document.getElementById('slime-chat-send');if(s)s.classList.toggle('visible',this.value.trim().length>0)"
           onfocus="const p=document.getElementById('slime-chat-panel');if(p&&p.style.display==='none')stOpenChat()">
-        <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="8" ry="7"/><path d="M4 13c0-4 2-8 8-10 6 2 8 6 8 10"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/></svg>
-        </div>
         <button class="slime-chat-bar-send" id="slime-chat-send" onclick="slimeChatSend()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
         <!-- 채팅 드롭다운 -->
         <div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
@@ -12500,7 +12510,7 @@ function _createOverlay(id, bg) {
   if (prev) prev.remove();
   const ov = document.createElement('div');
   ov.id = id;
-  ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:150;display:flex;flex-direction:column;overflow:hidden;background:' + (bg || '#f6f7f8');
+  ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:1100;display:flex;flex-direction:column;overflow:hidden;background:' + (bg || '#f6f7f8');
   return ov;
 }
 
@@ -18239,8 +18249,12 @@ function shuffle(arr){
 function showModal(html){
   document.getElementById('modal-box').innerHTML=html;
   document.getElementById('modal-bg').classList.add('open');
+  const tb=document.querySelector('.topbar');if(tb)tb.style.zIndex='200';
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  const tb=document.querySelector('.topbar');if(tb)tb.style.zIndex='';
+}
 
 let toastTimer;
 function showToast(msg, type='', duration=3000){
