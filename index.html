@@ -117,7 +117,7 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -217,8 +217,8 @@ body{font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;background:v
 .sidebar-nav{padding:12px 12px;flex:1}
 
 .nav-group-label{
-  padding:28px 8px 7px;font-size:11px;font-weight:700;
-  color:rgba(255,255,255,0.18);letter-spacing:2.5px;text-transform:uppercase;
+  padding:28px 8px 7px;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,0.32);letter-spacing:2px;text-transform:uppercase;
 }
 .nav-group-label:first-child{padding-top:8px}
 
@@ -452,8 +452,8 @@ body{font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;background:v
 .stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)}
 .stat-card-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:0.07}
 .stat-value{font-family:'Fraunces',serif;font-size:38px;font-weight:900;line-height:1;margin-bottom:4px}
-.stat-label{font-size:13px;color:var(--t2);font-weight:500}
-.stat-sub{font-size:13px;color:var(--t3);margin-top:4px}
+.stat-label{font-size:14px;color:var(--t2);font-weight:500}
+.stat-sub{font-size:14px;color:var(--t3);margin-top:4px}
 
 /* ════ SECTION ════ */
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
@@ -471,7 +471,7 @@ body{font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;background:v
 .book-card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
 .book-emoji{font-size:28px;margin-bottom:10px}
 .book-name{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-0.2px}
-.book-meta{font-size:13px;color:var(--t2)}
+.book-meta{font-size:14px;color:var(--t2)}
 .book-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:13px;font-weight:600;background:var(--blue-dim);color:var(--blue2);border:1px solid rgba(59,130,246,0.15)}
 .tag-gold{background:var(--amber-dim);color:var(--amber);border-color:rgba(180,83,9,0.2)}
@@ -509,14 +509,14 @@ body{font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;background:v
 tr:hover .row-hover-actions { display: inline-flex !important; }
 .row-hover-td { width: 1px; padding: 0 8px 0 4px !important; white-space: nowrap; }
 table{width:100%;border-collapse:collapse;font-size:13.5px}
-thead th{padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;
+thead th{padding:10px 14px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;
   letter-spacing:1.2px;color:var(--t3);border-bottom:2px solid var(--border);background:var(--surface2);position:sticky;top:0}
 tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:hover td{background:var(--blue-dim)}
 tbody tr:last-child td{border-bottom:none}
 .en-word{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--t1)}
 .ko-word{color:var(--t2)}
-.ex-text{font-style:italic;font-size:13px;color:var(--blue2);opacity:0.7;max-width:260px}
+.ex-text{font-style:italic;font-size:14px;color:var(--blue2);opacity:0.7;max-width:260px}
 .editable{background:none;border:none;font-family:inherit;font-size:inherit;color:inherit;width:100%;padding:4px 8px;border-radius:6px;outline:none;transition:background 0.15s}
 .editable:focus{background:var(--blue-dim);box-shadow:0 0 0 2px var(--blue)}
 
@@ -579,7 +579,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 .fc-progress-row{width:520px;max-width:100%;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .fc-prog-bar{flex:1;height:8px;background:var(--border);border-radius:99px;overflow:hidden}
 .fc-prog-fill{height:100%;background:linear-gradient(90deg,var(--slime-accent,#6ee7b7),var(--slime-light,#d1fae5));border-radius:99px;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1)}
-.fc-counter{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t3);font-weight:600}
+.fc-counter{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--t3);font-weight:600}
 
 /* 카드 래퍼 */
 .flashcard{
@@ -754,7 +754,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
   animation:slimeBob 6s ease-in-out infinite reverse;
 }
 .quiz-qnum{
-  font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
   color:var(--slime-accent,#6ee7b7);
   margin-bottom:12px;
 }
@@ -873,7 +873,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:500px){.form-row{grid-template-columns:1fr}}
 .form-group{margin-bottom:14px}
-.form-label{display:block;font-size:13px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
+.form-label{display:block;font-size:13px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px}
 .form-input{width:100%;padding:10px 14px;background:#fff;border:1.5px solid var(--border);border-radius:10px;
   font-family:'Outfit',sans-serif;font-size:15px;color:var(--t1);outline:none;transition:all 0.15s}
 .form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
@@ -1205,7 +1205,7 @@ body.student-mode {
     margin-bottom: 12px !important;
   }
   .sent-study-badge-row span {
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
   /* 한국어 힌트 텍스트 크기 축소 */
   .sent-study-hint {
@@ -1311,7 +1311,7 @@ body.student-mode {
 .slime-stats-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px; }
 .slime-stat-box { background:#f8fafc;border:1px solid #e8eef8;border-radius:11px;padding:9px 4px;text-align:center; }
 .slime-stat-val { font-family:'Fraunces',serif;font-size:17px;font-weight:900;line-height:1;margin-bottom:2px; }
-.slime-stat-lbl { font-size:11px;color:#94a3b8;font-weight:500; }
+.slime-stat-lbl { font-size:12px;color:#94a3b8;font-weight:500; }
 
 /* 미션 */
 .slime-mission-head { display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:#0f172a; }
@@ -1324,10 +1324,10 @@ body.student-mode {
 }
 .slime-mpill.done { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
 .slime-mpill.todo { background:#f8fafc;border-color:#e2e8f0;color:#475569; }
-.slime-mpill-check { width:14px;height:14px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800; }
+.slime-mpill-check { width:14px;height:14px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800; }
 .slime-mpill-check.done { background:#22c55e;color:#fff; }
 .slime-mpill-check.todo { background:#e2e8f0; }
-.slime-mpill-xp { margin-left:auto;font-size:11px;color:#94a3b8;font-weight:600; }
+.slime-mpill-xp { margin-left:auto;font-size:12px;color:#94a3b8;font-weight:600; }
 
 /* 구분선 */
 .slime-divider { height:1px;background:#f0f4fb;margin:2px 0; }
@@ -1342,7 +1342,7 @@ body.student-mode {
 }
 .slime-popup-btn:hover { background:#eef2ff;border-color:#818cf8; }
 .slime-popup-btn-icon { font-size:16px; }
-.slime-popup-btn-sub { font-size:11px;color:#94a3b8;font-weight:400; }
+.slime-popup-btn-sub { font-size:12px;color:#94a3b8;font-weight:400; }
 
 /* 꾸미기 버튼 */
 .slime-deco-btn {
@@ -1447,7 +1447,7 @@ body.student-mode {
 .slime-evo-stage.current { border-color:var(--slime-accent,#6ee7b7);background:linear-gradient(145deg,var(--slime-a,#a7f3d0)20,white);box-shadow:0 3px 12px var(--slime-accent,#6ee7b7)30; }
 .slime-evo-stage.locked { opacity:0.4 }
 .slime-evo-name { font-size:12px;font-weight:700;color:#1e3a5f;margin-bottom:2px; }
-.slime-evo-cond { font-size:11px;color:#7ea8cc;line-height:1.3; }
+.slime-evo-cond { font-size:12px;color:#7ea8cc;line-height:1.3; }
 .slime-evo-crown { position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:14px; }
 /* 팝업 내 업적 */
 .slime-achievement-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px; }
@@ -1455,7 +1455,7 @@ body.student-mode {
 .slime-badge-item.earned { border-color:rgba(251,191,36,0.4);background:linear-gradient(145deg,#fffbeb,#fef9c3);box-shadow:0 2px 8px rgba(251,191,36,0.2); }
 .slime-badge-item.earned:hover { transform:translateY(-3px);box-shadow:0 5px 14px rgba(251,191,36,0.3); }
 .slime-badge-icon { font-size:22px;margin-bottom:4px }
-.slime-badge-name { font-size:11px;font-weight:700;color:#7ea8cc }
+.slime-badge-name { font-size:12px;font-weight:700;color:#7ea8cc }
 /* 하트 이펙트 */
 .slime-heart { position:absolute;font-size:16px;animation:heartFloat 1.2s ease-out forwards;pointer-events:none;z-index:10; }
 
@@ -1554,7 +1554,7 @@ body.student-mode {
   /* ── 테이블 ── */
   .table-wrap{font-size:13px;-webkit-overflow-scrolling:touch}
   .ex-text{max-width:110px}
-  thead th{font-size:11px;padding:8px 10px}
+  thead th{font-size:12px;padding:8px 10px}
   tbody td{padding:10px 10px}
 
   /* ── 토스트 ── */
@@ -1577,7 +1577,7 @@ body.student-mode {
 
   /* ── 버튼 그룹 ── */
   .book-footer{gap:4px}
-  .book-footer .btn{font-size:10.5px;padding:5px 5px}
+  .book-footer .btn{font-size:12px;padding:5px 5px}
 
   /* ── 단어장 카드 ── */
   .book-card{padding:14px}
@@ -1775,7 +1775,7 @@ body.student-mode {
 @media(max-width:380px){
   .slime-chat-bar { max-width: 130px !important; min-width: 100px !important; }
   .slime-chat-bar-avatar-name { display: none; }
-  .book-footer .btn { font-size: 10px !important; padding: 4px 5px !important; }
+  .book-footer .btn { font-size: 12px !important; padding: 4px 5px !important; }
   .section-head > div:last-child .btn { font-size: 12px; padding: 7px 10px; }
 }
 
@@ -2452,7 +2452,7 @@ body.student-mode {
               padding: 2px 7px;
               border-radius: 5px;
               font-family: 'JetBrains Mono', monospace;
-              font-size: 11px;
+              font-size: 12px;
               font-weight: 600;
             }
 
@@ -2489,9 +2489,9 @@ body.student-mode {
               display: flex;
               align-items: center;
               gap: 6px;
-              font-size: 11px;
+              font-size: 12px;
               font-weight: 700;
-              color: var(--t3);
+              color: var(--t2);
               text-transform: uppercase;
               letter-spacing: 1px;
               margin-bottom: 8px;
@@ -2517,7 +2517,7 @@ body.student-mode {
             .fvp-ai-result-row:hover { background: var(--surface2); }
             .fvp-ai-num {
               min-width: 20px;
-              font-size: 10px;
+              font-size: 12px;
               font-weight: 600;
               color: var(--t3);
               text-align: right;
@@ -2558,7 +2558,7 @@ body.student-mode {
               background: rgba(59,130,246,0.05);
             }
             .fvp-ai-cell.ko-cell:focus { border-color: #10b981; background: rgba(16,185,129,0.05); }
-            .fvp-ai-arrow { color: var(--t3); font-size: 11px; flex-shrink: 0; }
+            .fvp-ai-arrow { color: var(--t3); font-size: 12px; flex-shrink: 0; }
 
             /* 컬렉션 셀렉트 */
             .fvp-coll-select {
@@ -2633,7 +2633,7 @@ body.student-mode {
               background: var(--surface2);
               font-size: 12.5px;
             }
-            .fvp-prev-num { font-size: 10px; color: var(--t3); min-width: 16px; text-align: right; }
+            .fvp-prev-num { font-size: 12px; color: var(--t3); min-width: 16px; text-align: right; }
             .fvp-prev-en { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--t1); flex: 1; }
             .fvp-prev-ko { color: var(--t2); flex: 1; font-size: 12px; }
 
@@ -2676,9 +2676,9 @@ body.student-mode {
 
             /* 섹션 헤더 */
             .fvp-section-title {
-              font-size: 11px;
+              font-size: 12px;
               font-weight: 700;
-              color: var(--t3);
+              color: var(--t2);
               text-transform: uppercase;
               letter-spacing: 1.2px;
               margin-bottom: 10px;
@@ -3800,6 +3800,8 @@ function addJelly(amount, reason) {
 }
 
 function useJelly(amount) {
+  // 선생님은 젤리 무제한
+  if (currentUser?.role === 'teacher') return true;
   const slime = getSlimeData();
   if (typeof slime.jelly !== 'number') slime.jelly = 0;
   if (slime.jelly < amount) return false;
@@ -3810,8 +3812,7 @@ function useJelly(amount) {
 }
 
 function _updateJellyBadge() {
-  const count = getJelly();
-  const text = '🍬 ' + count;
+  const text = currentUser?.role === 'teacher' ? '🍬 ∞' : '🍬 ' + getJelly();
   const main = document.getElementById('jelly-badge');
   if (main) main.textContent = text;
   const ov = document.getElementById('ov-jelly-badge');
@@ -9235,7 +9236,7 @@ async function renderSentenceStudy() {
           padding:0 24px 0 70px;align-self:stretch;
           clip-path:polygon(60px 0%,100% 0%,100% 100%,0% 100%)">
           <div style="text-align:center">
-            <div style="font-size:11px;font-weight:700;color:#1e4db7;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
+            <div style="font-size:12px;font-weight:700;color:#1e4db7;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
             <div style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-1px;line-height:1">Lv.${_sbNextLv}</div>
             <div style="margin-top:7px;height:4px;background:rgba(30,77,183,0.2);border-radius:99px;overflow:hidden;width:64px">
               <div style="height:100%;width:${_sbExpPct}%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
@@ -9480,7 +9481,7 @@ function renderSentStudyCard() {
             onclick="onSlimeClick(event)" title="클릭!">
             <!-- 감정 말풍선 -->
             <div id="sst-slime-bubble" style="position:absolute;top:-28px;left:50%;transform:translateX(-50%);
-              background:#1a2d4a;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;
+              background:#1a2d4a;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;
               border-radius:8px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:10">
               ${pct===0?'파이팅! 💪':pct<50?'잘하고 있어! ✨':pct<100?'거의 다 왔어! 🔥':'완료! 🎉'}
               <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
@@ -9499,7 +9500,7 @@ function renderSentStudyCard() {
             </div>
             <!-- LV 뱃지 -->
             <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
-              background:${col.b};color:#fff;font-size:10px;font-weight:800;
+              background:${col.b};color:#fff;font-size:12px;font-weight:800;
               padding:1px 6px;border-radius:99px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15)">
               LV.${slime.stage+1}
             </div>
@@ -12883,7 +12884,7 @@ async function openStudentDetailModal(studentId) {
                 const h = Math.max(6, Math.round((sc/100)*46));
                 const c = sc>=80?'#10b981':sc>=60?'#f59e0b':'#ef4444';
                 return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0">
-                  <div style="font-size:11px;color:var(--t3)">${sc}%</div>
+                  <div style="font-size:12px;color:var(--t3)">${sc}%</div>
                   <div style="width:100%;height:${h}px;background:${c};border-radius:3px 3px 0 0" title="${sc}%"></div>
                 </div>`;
               }).join('')}
@@ -13462,7 +13463,7 @@ function renderMyBooks() {
       padding:0 24px 0 70px;align-self:stretch;
       clip-path:polygon(60px 0%,100% 0%,100% 100%,0% 100%)">
       <div style="text-align:center">
-        <div style="font-size:11px;font-weight:700;color:#1e4db7;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
+        <div style="font-size:12px;font-weight:700;color:#1e4db7;letter-spacing:0.12em;margin-bottom:3px">NEXT STAGE</div>
         <div style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-1px;line-height:1">Lv.${_wbNextLv}</div>
         <div style="margin-top:7px;height:4px;background:rgba(30,77,183,0.2);border-radius:99px;overflow:hidden;width:64px">
           <div style="height:100%;width:${_wbExpPct}%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
@@ -15040,7 +15041,7 @@ async function renderSentProgress() {
               <div style="font-size:12px;color:#94a3b8;font-weight:600">${label}</div>
             </div>
             <div class="slime-stat-val" style="color:${c};font-size:20px">${bst!==null?bst+'%':'-'}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px">평균 ${av!==null?av+'%':'-'} · ${typeSubs.length}회</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px">평균 ${av!==null?av+'%':'-'} · ${typeSubs.length}회</div>
           </div>`;
       }
 
@@ -15051,12 +15052,12 @@ async function renderSentProgress() {
             const h=Math.max(4,Math.round((sc/100)*32));
             const c=sc>=80?'#10b981':sc>=60?'#f59e0b':'#ef4444';
             return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px">
-              <div style="font-size:10px;color:#94a3b8;line-height:1">${sc}</div>
+              <div style="font-size:12px;color:#94a3b8;line-height:1">${sc}</div>
               <div style="width:100%;height:${h}px;background:${c};border-radius:2px 2px 0 0"></div>
             </div>`;
           }).join('')}
         </div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:4px">최근 ${recentPcts.length}회 · 평균 ${avg!==null?avg+'%':'-'}</div>` : '';
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">최근 ${recentPcts.length}회 · 평균 ${avg!==null?avg+'%':'-'}</div>` : '';
 
       // 학습유형별 통합 세부 테이블
       const sentTypeRows = [
@@ -15086,9 +15087,9 @@ async function renderSentProgress() {
       const sentBreakdown = (sentTypeRows || recTypeRow) ? `
         <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden;margin-bottom:20px">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-            <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
-            <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
-            <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
+            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
+            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
+            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
           </div>
           ${sentTypeRows}${recTypeRow}
         </div>` : '';
@@ -15477,7 +15478,7 @@ async function renderSentProgress() {
               <div style="font-size:12px;color:#94a3b8;font-weight:600">${label}</div>
             </div>
             <div class="slime-stat-val" style="color:${c};font-size:20px">${bst!==null?bst+'%':'-'}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px">평균 ${av!==null?av+'%':'-'} · ${typeSubs.length}회</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px">평균 ${av!==null?av+'%':'-'} · ${typeSubs.length}회</div>
           </div>`;
       }
 
@@ -15488,12 +15489,12 @@ async function renderSentProgress() {
             const h=Math.max(4,Math.round((sc/100)*32));
             const c=sc>=80?'#10b981':sc>=60?'#f59e0b':'#ef4444';
             return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px">
-              <div style="font-size:10px;color:#94a3b8;line-height:1">${sc}</div>
+              <div style="font-size:12px;color:#94a3b8;line-height:1">${sc}</div>
               <div style="width:100%;height:${h}px;background:${c};border-radius:2px 2px 0 0"></div>
             </div>`;
           }).join('')}
         </div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:4px">최근 ${recentPcts.length}회 · 평균 ${avg!==null?avg+'%':'-'}</div>` : '';
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px">최근 ${recentPcts.length}회 · 평균 ${avg!==null?avg+'%':'-'}</div>` : '';
 
       // 학습유형별 통합 세부 테이블
       const sentTypeRows = [
@@ -15702,10 +15703,10 @@ async function renderProgress(){
         return `
           <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-              <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
-              <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">방향</span>
-              <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
-              <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
+              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
+              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">방향</span>
+              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
+              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
             </div>
             ${rows}
           </div>`;
@@ -21571,7 +21572,7 @@ function renderSlimeHome() {
             </div>
             <div class="slime-evo-name" style="color:${current?col.dark:''}">${st.name}</div>
             <div class="slime-evo-cond">${st.condition}</div>
-            ${current?`<div style="font-size:10px;font-weight:700;color:${col.dark};margin-top:3px;text-transform:uppercase;letter-spacing:0.5px">현재</div>`:''}
+            ${current?`<div style="font-size:12px;font-weight:700;color:${col.dark};margin-top:3px;text-transform:uppercase;letter-spacing:0.5px">현재</div>`:''}
             ${!unlocked?'<div style="font-size:13px;margin-top:2px">🔒</div>':''}
           </div>`;
         }).join('')}
