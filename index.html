@@ -1618,11 +1618,15 @@ body.student-mode {
     right: 0 !important;
     width: 100% !important;
     min-width: unset !important;
-    max-height: 70vh !important;
+    max-height: 75vh !important;
     border-radius: 20px 20px 0 0 !important;
     box-shadow: 0 -4px 30px rgba(15,23,42,0.18) !important;
+    /* 키보드 올라올 때 자동으로 밀리도록 */
+    bottom: env(keyboard-inset-height, 0px) !important;
   }
-  .slime-chat-msgs { max-height: calc(70vh - 140px) !important; }
+  .slime-chat-msgs { max-height: calc(75vh - 180px) !important; }
+  /* 패널 내부 입력창 폰트 iOS zoom 방지 */
+  #slime-panel-input { font-size: 16px !important; }
 
   /* ── 슬라임 챗바: 모바일 간소화 ── */
   .slime-chat-ai-select { display: none; }
@@ -3672,6 +3676,7 @@ async function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
+    await loadJellyFromDB();   // 젤리 DB → localStorage 동기화
     await loadDB();
     initApp();
   } catch(e) {
@@ -3730,6 +3735,45 @@ function getSlimeData() {
 function saveSlimeData(data) {
   const key = 'ion_slime_' + (currentUser?.id || 'anon');
   localStorage.setItem(key, JSON.stringify(data));
+  // 젤리만 Supabase에 debounce 저장 (브라우저 간 공유)
+  if (currentUser?.id && typeof data.jelly === 'number') {
+    _saveJellyToDB(data.jelly);
+  }
+}
+
+// ── 젤리 DB 동기화 ──
+let _jellyDBTimer = null;
+function _saveJellyToDB(amount) {
+  clearTimeout(_jellyDBTimer);
+  _jellyDBTimer = setTimeout(async () => {
+    try {
+      await sb.from('profiles').update({ jelly: amount }).eq('id', currentUser.id);
+    } catch(e) {}
+  }, 800); // 800ms debounce
+}
+
+async function loadJellyFromDB() {
+  if (!currentUser?.id) return;
+  try {
+    const { data } = await sb.from('profiles')
+      .select('jelly')
+      .eq('id', currentUser.id)
+      .single();
+    if (data && typeof data.jelly === 'number') {
+      // DB 값을 localStorage 슬라임 데이터에 반영
+      const key = 'ion_slime_' + currentUser.id;
+      const raw = localStorage.getItem(key);
+      const slime = raw ? JSON.parse(raw) : {};
+      // DB 값이 더 크거나 같을 때만 덮어씀 (선생님 지급분 보호)
+      if (typeof slime.jelly !== 'number' || data.jelly >= slime.jelly) {
+        slime.jelly = data.jelly;
+        localStorage.setItem(key, JSON.stringify(slime));
+      } else {
+        // localStorage가 더 크면 DB를 localStorage 기준으로 업데이트
+        await sb.from('profiles').update({ jelly: slime.jelly }).eq('id', currentUser.id);
+      }
+    }
+  } catch(e) { /* jelly 컬럼 없으면 무시 */ }
 }
 
 /* ══════════════════════════════════════════════════
@@ -5120,16 +5164,33 @@ function _slimeChatRenderPanel() {
           <button onclick="slimeChatClearImage()" style="width:22px;height:22px;flex-shrink:0;border:none;background:#e8e5ff;border-radius:50%;color:#7C6FF7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
         </div>
       ` : ''}
-      <div style="display:flex;align-items:center;gap:6px;width:100%">
-        <button class="slime-chat-img-btn" id="slime-chat-img-btn" title="문제집 사진 보내기"
-          onclick="document.getElementById('slime-img-input').click()" style="flex-shrink:0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      <!-- 퀵버튼 -->
+      <div style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;width:100%;margin-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+        ${quickBtns.map(q=>`<button class="slime-chat-quick" style="white-space:nowrap;flex-shrink:0" onclick="slimeChatSendMsg('${q.msg}')">${q.label}</button>`).join('')}
+      </div>
+      <!-- 패널 내부 입력창 -->
+      <div style="display:flex;align-items:center;gap:6px;width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:24px;padding:4px 6px;box-sizing:border-box"
+        onfocusin="this.style.borderColor='#7C6FF7';this.style.boxShadow='0 0 0 3px rgba(124,111,247,0.12)'"
+        onfocusout="this.style.borderColor='#e2e8f0';this.style.boxShadow=''">
+        <button title="사진 첨부"
+          onclick="document.getElementById('slime-img-input').click()"
+          style="flex-shrink:0;border:none;background:none;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
           </svg>
         </button>
-        <div style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1;scrollbar-width:none">
-          ${quickBtns.map(q=>`<button class="slime-chat-quick" style="white-space:nowrap;flex-shrink:0" onclick="slimeChatSendMsg('${q.msg}')">${q.label}</button>`).join('')}
-        </div>
+        <input id="slime-panel-input" type="text"
+          placeholder="슬라임에게 물어보세요..."
+          style="flex:1;border:none;background:none;outline:none;font-size:14px;font-family:'Outfit',sans-serif;color:#1e293b;min-width:0;padding:4px 0"
+          oninput="_slimePanelInputChange(this)"
+          onkeydown="if(event.key==='Enter'&&!event.isComposing)_slimePanelSend()">
+        <button id="slime-panel-send"
+          onclick="_slimePanelSend()"
+          style="width:32px;height:32px;flex-shrink:0;border:none;border-radius:50%;background:#7C6FF7;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.12s;opacity:0;pointer-events:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
       </div>
     </div>
   `;
@@ -5152,7 +5213,46 @@ function stOpenChat() {
 
   panel.style.display = 'flex';
   _slimeChatRenderPanel();
+  // 패널 열릴 때 입력창 포커스 (모바일 키보드 자동 올라옴)
+  setTimeout(() => {
+    const pi = document.getElementById('slime-panel-input');
+    if (pi) pi.focus();
+  }, 120);
 }
+
+// ── 패널 내부 입력창 헬퍼 ──
+function _slimePanelInputChange(inp) {
+  const btn = document.getElementById('slime-panel-send');
+  if (!btn) return;
+  const hasVal = inp.value.trim().length > 0 || !!_slimePendingImage;
+  btn.style.opacity = hasVal ? '1' : '0';
+  btn.style.pointerEvents = hasVal ? 'auto' : 'none';
+  // topbar 입력창과 동기화
+  const topInp = document.getElementById('slime-chat-input');
+  if (topInp) topInp.value = inp.value;
+}
+
+async function _slimePanelSend() {
+  const inp = document.getElementById('slime-panel-input');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text && !_slimePendingImage) return;
+  inp.value = '';
+  // topbar 입력창도 비우기
+  const topInp = document.getElementById('slime-chat-input');
+  if (topInp) topInp.value = '';
+  // send 버튼 숨기기
+  const btn = document.getElementById('slime-panel-send');
+  if (btn) { btn.style.opacity = '0'; btn.style.pointerEvents = 'none'; }
+
+  if (_slimePendingImage) {
+    await slimeChatSendWithImageMsg(text, _slimePendingImage);
+    _slimePendingImage = null;
+  } else {
+    await slimeChatSendMsg(text);
+  }
+}
+
 
 function stToggleChat() {
   const panel = document.getElementById('slime-chat-panel');
@@ -5587,6 +5687,7 @@ async function checkSession() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
     await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
+    await loadJellyFromDB();   // 젤리 DB → localStorage 동기화
     await loadDB();
     initApp();
     // 학생만 자발적 말 걸기 시작 (비활성화)
