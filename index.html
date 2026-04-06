@@ -3671,6 +3671,7 @@ async function doLogin() {
     }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
+    await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
     await loadDB();
     initApp();
   } catch(e) {
@@ -5585,6 +5586,7 @@ async function checkSession() {
     currentUser = { ...profile, email: session.user.email };
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
+    await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
     await loadDB();
     initApp();
     // 학생만 자발적 말 걸기 시작 (비활성화)
@@ -19587,13 +19589,32 @@ const AI_KEY_MAP = {
   cerebras: { ls: 'ion_cerebras_key', label: 'Cerebras', prefix: null,     url: 'https://cloud.cerebras.ai/platform/apikeys',   placeholder: 'csk-...' },
 };
 
+// ── AI 키: Supabase profiles.ai_keys (JSON) ↔ localStorage 동기 ──
+async function loadAIKeysFromDB() {
+  if (!currentUser?.id) return;
+  try {
+    const { data } = await sb.from('profiles')
+      .select('ai_keys')
+      .eq('id', currentUser.id)
+      .single();
+    if (data?.ai_keys && typeof data.ai_keys === 'object') {
+      Object.entries(AI_KEY_MAP).forEach(([aiId, cfg]) => {
+        const val = data.ai_keys[aiId];
+        if (val) {
+          localStorage.setItem(cfg.ls, val);
+          if (aiId === 'groq') _cachedGroqKey = val;
+        }
+      });
+    }
+  } catch(e) { /* ai_keys 컬럼 없으면 무시 */ }
+}
+
 function getAIKey(aiId) {
   const cfg = AI_KEY_MAP[aiId];
   if (!cfg) return '';
   if (aiId === 'groq') return _cachedGroqKey || localStorage.getItem(cfg.ls) || '';
   return localStorage.getItem(cfg.ls) || '';
 }
-
 function slimeChatGetAI() {
   const sel = document.getElementById('slime-chat-ai-select');
   return sel ? sel.value : (localStorage.getItem('ion_chat_ai') || 'gemini');
@@ -19658,18 +19679,36 @@ async function saveAIKey(aiId) {
   if (cfg.prefix && !key.startsWith(cfg.prefix)) {
     showToast(`올바른 ${cfg.label} API 키 형식이 아닙니다. (${cfg.prefix}... 로 시작)`, 'error'); return;
   }
+
+  // 1) localStorage 저장 (즉시 사용)
+  localStorage.setItem(cfg.ls, key);
+  if (aiId === 'groq') _cachedGroqKey = key;
+
+  // 2) Supabase profiles.ai_keys 에 저장 (브라우저 공유)
+  try {
+    // 기존 ai_keys 읽기 (merge를 위해)
+    const { data: row } = await sb.from('profiles')
+      .select('ai_keys')
+      .eq('id', currentUser.id)
+      .single();
+    const existing = (row?.ai_keys && typeof row.ai_keys === 'object') ? row.ai_keys : {};
+    const merged = { ...existing, [aiId]: key };
+    await sb.from('profiles')
+      .update({ ai_keys: merged })
+      .eq('id', currentUser.id);
+    showToast(`✅ ${cfg.label} API 키 저장 완료! (모든 기기에서 사용 가능)`, 'success');
+  } catch(e) {
+    // DB 저장 실패해도 localStorage는 유지
+    showToast(`✅ ${cfg.label} API 키 저장 완료! (이 브라우저에만 저장됨)`, 'success');
+  }
+
+  // 3) Groq는 app_settings에도 저장 (학생 공유용 — 기존 로직 유지)
   if (aiId === 'groq') {
-    _cachedGroqKey = key;
     try {
       await sb.from('app_settings').upsert({ key: 'groq_api_key', value: key }, { onConflict: 'key' });
-      showToast(`✅ ${cfg.label} API 키가 저장되었습니다! (모든 학생 공유)`, 'success');
-    } catch(e) {
-      showToast(`✅ ${cfg.label} API 키가 저장되었습니다!`, 'success');
-    }
-  } else {
-    showToast(`✅ ${cfg.label} API 키가 저장되었습니다!`, 'success');
+    } catch(e) {}
   }
-  localStorage.setItem(cfg.ls, key);
+
   closeModal();
 }
 
@@ -19682,6 +19721,18 @@ async function clearAIKey(aiId) {
     _cachedGroqKey = null;
     try { await sb.from('app_settings').delete().eq('key', 'groq_api_key'); } catch(e) {}
   }
+  // profiles.ai_keys 에서도 해당 키 제거
+  try {
+    const { data: row } = await sb.from('profiles')
+      .select('ai_keys')
+      .eq('id', currentUser.id)
+      .single();
+    if (row?.ai_keys) {
+      const updated = { ...row.ai_keys };
+      delete updated[aiId];
+      await sb.from('profiles').update({ ai_keys: updated }).eq('id', currentUser.id);
+    }
+  } catch(e) {}
   closeModal();
   showToast(`${cfg.label} 키가 삭제되었습니다.`, 'success');
 }
