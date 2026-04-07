@@ -7111,7 +7111,7 @@ function renderSentMgmt() {
               box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_sentCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
             onmouseover="if(!${_sentCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
-            onmouseout="if(!${_sentCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='';}">
+            onmouseout="if(!${_sentCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}">
             ${_sentCollEditMode ? `
               <button onclick="event.stopPropagation();sentCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
@@ -10931,7 +10931,7 @@ function renderLibrary() {
               box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_libCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
             onmouseover="if(!${_libCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
-            onmouseout="if(!${_libCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='';}">
+            onmouseout="if(!${_libCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}">
             ${_libCollEditMode ? `
               <button onclick="event.stopPropagation();libCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
@@ -18750,7 +18750,6 @@ async function fvDoSendToLibrary() {
       try {
         await sbSaveBook(book); refreshSelects(); closeModal();
         showToast('"' + book.name + '" 단어장에 ' + cleanWords.length + '개 단어 추가됨', 'success');
-        setTimeout(function() { showPage('pg-library'); openBook(book.id); }, 400);
       } catch(e){ showToast('저장 실패: '+e.message,'error'); }
     }
   } else {
@@ -18758,7 +18757,6 @@ async function fvDoSendToLibrary() {
     try {
       await sbSaveBook(b); DB.books.unshift(b); refreshSelects(); closeModal();
       showToast('"' + b.name + '" 단어장 생성 완료 (' + cleanWords.length + '개 단어)', 'success');
-      setTimeout(function() { showPage('pg-library'); openBook(b.id); }, 400);
     } catch(e){ showToast('저장 실패: '+e.message,'error'); }
   }
 }
