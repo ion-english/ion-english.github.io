@@ -6079,7 +6079,7 @@ function setSlimeMood(mood, duration = 2000) {
 }
 window.addEventListener('popstate', function(e) {
   // 열려있는 오버레이가 있으면 먼저 닫기
-  const overlays = ['word-view-overlay','study-overlay','sent-book-overlay','sent-study-overlay','quiz-type-popup','teacher-word-overlay','test-studio-overlay'];
+  const overlays = ['word-view-overlay','study-overlay','sent-book-overlay','sent-study-overlay','quiz-type-popup','teacher-word-overlay','test-studio-overlay','word-test-overlay'];
   let closedOverlay = false;
   // 단어장 편집기 패널이 열려있으면 먼저 닫기
   const libEditorPanel = document.getElementById('lib-editor-panel');
@@ -12766,7 +12766,7 @@ function getStudentSlimeSVG(studentId, size=44) {
   return buildMiniSlimeSVG(stage, size, {colorId, eyeStyle:'round', accessory:'none'});
 }
 
-async function renderStudentsMgmt() {
+function renderStudentsMgmt() {
   const body = document.getElementById('students-mgmt-body');
   const students = DB.users.filter(u => u.role === 'student');
 
@@ -12774,28 +12774,6 @@ async function renderStudentsMgmt() {
     body.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">등록된 학생이 없습니다</div><div class="empty-sub">+ 새 학생 초대 또는 기존 학생 연결을 눌러보세요</div><div class="empty-sub">+ 학생 초대 버튼으로 학생을 추가하세요</div></div>`;
     return;
   }
-
-  // 최근 7일 이탈 기록 로드
-  const studentIds = students.map(u => u.id);
-  let focusLogMap = {}; // student_id → { totalCount, autoSubmitCount, lastAt }
-  try {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: flogs } = await sb.from('quiz_focus_logs')
-      .select('student_id, warning_count, occurred_at')
-      .in('student_id', studentIds)
-      .gte('occurred_at', since)
-      .order('occurred_at', { ascending: false });
-    if (flogs) {
-      flogs.forEach(log => {
-        if (!focusLogMap[log.student_id]) {
-          focusLogMap[log.student_id] = { count: 0, autoSubmit: false, lastAt: null };
-        }
-        focusLogMap[log.student_id].count++;
-        if (log.warning_count >= 3) focusLogMap[log.student_id].autoSubmit = true;
-        if (!focusLogMap[log.student_id].lastAt) focusLogMap[log.student_id].lastAt = log.occurred_at;
-      });
-    }
-  } catch(e) { console.warn('focus_logs 로드 실패', e); }
 
   const rows = students.map(s => {
     const assigned = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
@@ -12820,16 +12798,8 @@ async function renderStudentsMgmt() {
           </div>
           <!-- 이름/학년 -->
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <div style="font-weight:700;font-size:16px">${s.name}</div>
-              ${(() => {
-                const fl = focusLogMap[s.id];
-                if (!fl) return '';
-                if (fl.autoSubmit) return `<span style="display:inline-flex;align-items:center;gap:4px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;color:#dc2626">🚨 강제제출 이탈</span>`;
-                return `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;border:1.5px solid #fdba74;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;color:#c2410c">⚠️ 이탈 ${fl.count}회</span>`;
-              })()}
-            </div>
-            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개${focusLogMap[s.id] ? ` · <span style="color:${focusLogMap[s.id].autoSubmit?'#dc2626':'#c2410c'}">최근 7일 이탈 감지</span>` : ''}</div>
+            <div style="font-weight:700;font-size:16px">${s.name}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개</div>
           </div>
           <!-- 요약 통계 -->
           <div style="display:flex;gap:20px;align-items:center;flex-shrink:0;flex-wrap:wrap">
@@ -12898,16 +12868,6 @@ async function openStudentDetailModal(studentId) {
       .order('taken_at', { ascending: false });
     quizLogs = logs || [];
   } catch(e) { console.warn('quiz_logs 로드 실패:', e); }
-
-  // quiz_focus_logs 로드
-  let focusLogs = [];
-  try {
-    const { data: flogs } = await sb.from('quiz_focus_logs')
-      .select('*').eq('student_id', studentId)
-      .order('occurred_at', { ascending: false })
-      .limit(50);
-    focusLogs = flogs || [];
-  } catch(e) { console.warn('quiz_focus_logs 로드 실패:', e); }
 
   // 문장 제출 기록 로드
   let sentSubmissions = [];
@@ -13078,63 +13038,6 @@ async function openStudentDetailModal(studentId) {
     }).join('');
   }
 
-  // ── 이탈 기록 섹션 ──
-  const autoSubmitCount = focusLogs.filter(l => l.warning_count >= 3).length;
-  const totalFocusEvents = focusLogs.length;
-  let focusSectionHTML = '';
-  if (focusLogs.length === 0) {
-    focusSectionHTML = `<div style="text-align:center;padding:32px;color:var(--t3)">
-      <div style="font-size:32px;margin-bottom:8px">✅</div>
-      <div style="font-size:15px;font-weight:700;color:var(--green)">이탈 기록 없음</div>
-      <div style="font-size:13px;margin-top:4px">시험 중 이탈이 감지된 기록이 없습니다.</div>
-    </div>`;
-  } else {
-    const byBook = {};
-    focusLogs.forEach(l => {
-      const k = l.book_id || '__unknown__';
-      if (!byBook[k]) byBook[k] = [];
-      byBook[k].push(l);
-    });
-    const bookGroups = Object.entries(byBook).map(([bid, logs]) => {
-      const bookName = DB.books.find(b => b.id === bid)?.name || (bid === '__unknown__' ? '알 수 없음' : '삭제된 단어장');
-      const autoCount = logs.filter(l => l.warning_count >= 3).length;
-      const rows = logs.map(l => {
-        const isForce = l.warning_count >= 3;
-        const dt = new Date(l.occurred_at);
-        const dateStr = dt.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
-        const timeStr = dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:4px;background:${isForce ? 'rgba(239,68,68,0.08)' : 'rgba(251,146,60,0.07)'};border:1px solid ${isForce ? 'rgba(239,68,68,0.25)' : 'rgba(251,146,60,0.2)'}">
-          <span style="font-size:15px">${isForce ? '🚨' : '⚠️'}</span>
-          <span style="font-size:13px;font-weight:700;color:${isForce ? '#dc2626' : '#c2410c'};min-width:80px">${isForce ? '강제 제출' : `경고 ${l.warning_count}회`}</span>
-          <span style="font-size:13px;color:var(--t3);flex:1">${l.reason || '-'}</span>
-          <span style="font-size:12px;color:var(--t3)">${dateStr} ${timeStr}</span>
-        </div>`;
-      }).join('');
-      return `<div style="border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface2)">
-          <div style="font-size:15px;font-weight:700">📘 ${bookName}</div>
-          <div style="display:flex;gap:8px;font-size:13px">
-            <span style="background:rgba(251,146,60,0.12);color:#c2410c;border-radius:20px;padding:2px 10px;font-weight:700">이탈 ${logs.length}회</span>
-            ${autoCount ? `<span style="background:rgba(239,68,68,0.12);color:#dc2626;border-radius:20px;padding:2px 10px;font-weight:700">강제제출 ${autoCount}회</span>` : ''}
-          </div>
-        </div>
-        <div style="padding:10px 12px">${rows}</div>
-      </div>`;
-    }).join('');
-    focusSectionHTML = `
-      <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-        <div style="flex:1;background:rgba(251,146,60,0.08);border:1.5px solid rgba(251,146,60,0.3);border-radius:12px;padding:12px 16px;text-align:center">
-          <div style="font-size:12px;color:var(--t3);margin-bottom:4px">총 이탈 횟수</div>
-          <div style="font-size:24px;font-weight:800;color:#c2410c">${totalFocusEvents}</div>
-        </div>
-        <div style="flex:1;background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.3);border-radius:12px;padding:12px 16px;text-align:center">
-          <div style="font-size:12px;color:var(--t3);margin-bottom:4px">강제 제출</div>
-          <div style="font-size:24px;font-weight:800;color:#dc2626">${autoSubmitCount}</div>
-        </div>
-      </div>
-      ${bookGroups}`;
-  }
-
   const allScores = assigned.flatMap(b => DB.progress[s.id+'_'+b.id]?.quizScores || []);
   const totalRounds = assigned.reduce((sum, b) => sum + (DB.progress[s.id+'_'+b.id]?.rounds || 0), 0);
   const overallAvg  = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : null;
@@ -13144,10 +13047,7 @@ async function openStudentDetailModal(studentId) {
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🐥</div>
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700">${s.name}</div>
-          ${totalFocusEvents > 0 ? `<span style="display:inline-flex;align-items:center;gap:4px;background:${autoSubmitCount > 0 ? '#fef2f2' : '#fff7ed'};border:1.5px solid ${autoSubmitCount > 0 ? '#fca5a5' : '#fdba74'};border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;color:${autoSubmitCount > 0 ? '#dc2626' : '#c2410c'}">${autoSubmitCount > 0 ? '🚨 강제제출 포함' : '⚠️ 이탈 감지'}</span>` : ''}
-        </div>
+        <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700">${s.name}</div>
         <div style="font-size:13px;color:var(--t3);margin-top:2px">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개 배포 · 퀴즈 ${quizLogs.length}회</div>
       </div>
       <div style="display:flex;gap:16px;text-align:center;flex-wrap:wrap">
@@ -13166,19 +13066,12 @@ async function openStudentDetailModal(studentId) {
         style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
         📄 문장 학습
       </button>
-      <button id="sdm-tab-focus" onclick="sdmSetTab('focus')"
-        style="padding:5px 14px;border-radius:20px;border:1.5px solid ${totalFocusEvents > 0 ? (autoSubmitCount > 0 ? '#fca5a5' : '#fdba74') : 'var(--border)'};background:${totalFocusEvents > 0 ? (autoSubmitCount > 0 ? '#fef2f2' : '#fff7ed') : 'white'};color:${totalFocusEvents > 0 ? (autoSubmitCount > 0 ? '#dc2626' : '#c2410c') : 'var(--t2)'};font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
-        ${totalFocusEvents > 0 ? (autoSubmitCount > 0 ? '🚨' : '⚠️') : '🛡️'} 이탈 기록${totalFocusEvents > 0 ? ` (${totalFocusEvents})` : ''}
-      </button>
     </div>
     <div id="sdm-word-body" style="max-height:52vh;overflow-y:auto;padding-right:4px">
       ${bookSections}
     </div>
     <div id="sdm-sent-body" style="display:none;max-height:52vh;overflow-y:auto;padding-right:4px">
       ${sentSectionsHTML}
-    </div>
-    <div id="sdm-focus-body" style="display:none;max-height:52vh;overflow-y:auto;padding-right:4px">
-      ${focusSectionHTML}
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
@@ -13207,22 +13100,14 @@ async function adminDeleteSentRecOne(subId) {
 
 function sdmSetTab(tab) {
   const isWord = tab === 'word';
-  const isSent = tab === 'sent';
-  const isFocus = tab === 'focus';
   const wb = document.getElementById('sdm-word-body');
   const sb_ = document.getElementById('sdm-sent-body');
-  const fb = document.getElementById('sdm-focus-body');
   const wBtn = document.getElementById('sdm-tab-word');
   const sBtn = document.getElementById('sdm-tab-sent');
-  const fBtn = document.getElementById('sdm-tab-focus');
   if (wb)  wb.style.display  = isWord ? '' : 'none';
-  if (sb_) sb_.style.display = isSent ? '' : 'none';
-  if (fb)  fb.style.display  = isFocus ? '' : 'none';
+  if (sb_) sb_.style.display = isWord ? 'none' : '';
   if (wBtn) { wBtn.style.background = isWord?'var(--blue)':'white'; wBtn.style.color = isWord?'white':'var(--t2)'; wBtn.style.borderColor = isWord?'var(--blue)':'var(--border)'; }
-  if (sBtn) { sBtn.style.background = isSent?'var(--blue)':'white'; sBtn.style.color = isSent?'white':'var(--t2)'; sBtn.style.borderColor = isSent?'var(--blue)':'var(--border)'; }
-  // focus 탭은 이탈 기록 유무에 따라 색상 유지
-  if (fBtn && !isFocus) { fBtn.style.opacity = '0.85'; }
-  if (fBtn && isFocus)  { fBtn.style.opacity = '1'; }
+  if (sBtn) { sBtn.style.background = isWord?'white':'var(--blue)'; sBtn.style.color = isWord?'var(--t2)':'white'; sBtn.style.borderColor = isWord?'var(--border)':'var(--blue)'; }
 }
 
 
@@ -13663,20 +13548,27 @@ function renderMyBooks() {
               단어보기
             </button>
           </div>
-          <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <button onclick="openStudentStudy('${b.id}')"
-              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:5px"
+              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
               onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
               onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               암기
             </button>
             <button onclick="openStudentQuizPopup('${b.id}')"
-              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:5px"
+              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
               onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
               onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
               퀴즈
+            </button>
+            <button onclick="openWordTest('${b.id}')"
+              style="padding:11px 0;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:2px solid #fbbf24;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
+              onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(251,191,36,0.4)'"
+              onmouseout="this.style.transform='';this.style.boxShadow=''">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              테스트
             </button>
           </div>
         </div>
@@ -13965,6 +13857,7 @@ async function openStudentWordView(bookId) {
         <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
         <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">암기</button>
         <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">퀴즈</button>
+        <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#92400e;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">📝 테스트</button>
         <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           프린트
@@ -15159,6 +15052,8 @@ function _showFocusAlert(title, msg, sub, autoClose) {
   document.body.appendChild(el);
   if (!autoClose) {
     el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+  } else {
+    setTimeout(() => el.remove(), 2200);
   }
 }
 
@@ -19135,6 +19030,286 @@ let _wlHideKo = false;
 let _wlWords = [];
 let _wlIdx = 0;
 
+
+// ═══════════════════════════════════════════════════════
+// 단어 실전 테스트 오버레이
+// 주관식 전용 · 영→한 절반 + 한→영 절반 · 스크롤 방식
+// 5분 타이머 · 포커스 이탈 감지
+// ═══════════════════════════════════════════════════════
+async function openWordTest(bookId) {
+  const b = DB.books.find(b => b.id === bookId);
+  if (!b) return;
+  await loadBookWords(bookId);
+  const words = (b.words || []).filter(w => w.en && w.ko);
+  if (words.length < 2) { showToast('단어가 부족합니다 (최소 2개 필요).', 'error'); return; }
+
+  const slime = getSlimeData();
+  const col = getSlimeColor(slime.colorId);
+
+  // ── 문제 생성 ──────────────────────────────────────
+  function makeQuestions(wList) {
+    const shuffled = shuffle([...wList]);
+    const total = shuffled.length;
+    const half = Math.floor(total / 2);
+    // 절반은 en→ko, 나머지는 ko→en, 홀수 나머지 1개는 랜덤
+    const qs = shuffled.map((w, i) => {
+      let dir;
+      if (i < half) dir = 'en2ko';
+      else if (i < total - (total % 2 === 1 ? 1 : 0)) dir = 'ko2en';
+      else dir = Math.random() < 0.5 ? 'en2ko' : 'ko2en';
+      return { w, dir, answer: '', correct: null };
+    });
+    return shuffle(qs); // 문제 순서도 랜덤
+  }
+
+  let questions = makeQuestions(words);
+  let timerSec = 5 * 60; // 5분
+  let timerInterval = null;
+  let submitted = false;
+
+  // ── 포커스 가드 (테스트 전용) ──────────────────────
+  let _wtFgActive = false;
+  let _wtFgWarnings = 0;
+  const WT_MAX_WARN = 3;
+
+  function wtStartFG() {
+    _wtFgActive = true; _wtFgWarnings = 0;
+    document.addEventListener('visibilitychange', _wtOnVisibility);
+    window.addEventListener('blur', _wtOnBlur);
+  }
+  function wtStopFG() {
+    _wtFgActive = false;
+    document.removeEventListener('visibilitychange', _wtOnVisibility);
+    window.removeEventListener('blur', _wtOnBlur);
+  }
+  function _wtOnVisibility() {
+    if (!_wtFgActive) return;
+    if (document.visibilityState === 'hidden') _wtFocusLost('앱/탭 전환');
+  }
+  function _wtOnBlur() {
+    if (!_wtFgActive) return;
+    if (document.visibilityState !== 'hidden') _wtFocusLost('창 이탈');
+  }
+  function _wtFocusLost(reason) {
+    if (!_wtFgActive || submitted) return;
+    _wtFgWarnings++;
+    const remaining = WT_MAX_WARN - _wtFgWarnings;
+    // Supabase 이탈 기록
+    try {
+      if (bookId && currentUser?.id) {
+        sb.from('quiz_focus_logs').insert({
+          student_id: currentUser.id, book_id: bookId, reason,
+          warning_count: _wtFgWarnings, occurred_at: new Date().toISOString()
+        }).then(()=>{}).catch(()=>{});
+      }
+    } catch(e) {}
+    if (_wtFgWarnings > WT_MAX_WARN) return;
+    if (_wtFgWarnings >= WT_MAX_WARN) {
+      wtStopFG();
+      _showFocusAlert('⚠️ 테스트가 자동 제출되었습니다', `화면을 ${WT_MAX_WARN}회 이탈하여 테스트가 자동 제출되었습니다.`, null, true);
+      setTimeout(() => wtSubmit(true), 2000);
+    } else {
+      _showFocusAlert(`🚨 경고 ${_wtFgWarnings}/${WT_MAX_WARN}`, `테스트 화면을 벗어났습니다! (${reason})\n경고 ${WT_MAX_WARN}회 초과 시 테스트가 자동 제출됩니다.`, remaining > 0 ? `남은 기회: ${remaining}회` : null, false);
+    }
+  }
+
+  // ── 타이머 ─────────────────────────────────────────
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      timerSec--;
+      const m = Math.floor(timerSec / 60);
+      const s = timerSec % 60;
+      const el = document.getElementById('wt-timer');
+      if (el) {
+        el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+        if (timerSec <= 60) { el.style.color = '#dc2626'; el.style.fontWeight = '800'; }
+        else if (timerSec <= 120) { el.style.color = '#f59e0b'; }
+      }
+      if (timerSec <= 0) {
+        clearInterval(timerInterval);
+        wtSubmit(true);
+      }
+    }, 1000);
+  }
+  function stopTimer() { clearInterval(timerInterval); }
+
+  // ── 렌더 ───────────────────────────────────────────
+  function render() {
+    const body = document.getElementById('wt-body');
+    if (!body) return;
+    body.innerHTML = questions.map((q, i) => {
+      const prompt = q.dir === 'en2ko'
+        ? `<span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:#1e3a5f">${q.w.en}</span>`
+        : `<span style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:#1e3a5f">${q.w.ko}</span>`;
+      const placeholder = q.dir === 'en2ko' ? '한국어 뜻 입력...' : '영어 단어 입력...';
+      const dirBadge = q.dir === 'en2ko'
+        ? `<span style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:2px 8px;white-space:nowrap">영→한</span>`
+        : `<span style="font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:10px;padding:2px 8px;white-space:nowrap">한→영</span>`;
+      const borderColor = q.correct === null ? '#e2e8f0' : q.correct ? '#86efac' : '#fca5a5';
+      const bg = q.correct === null ? '#fff' : q.correct ? '#f0fdf4' : '#fef2f2';
+      return `<div id="wt-q-${i}" style="background:${bg};border:2px solid ${borderColor};border-radius:16px;padding:16px 20px;margin-bottom:12px;transition:border-color 0.2s,background 0.2s">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:800;color:${col.b};background:${col.b}18;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+          ${dirBadge}
+          <div style="flex:1">${prompt}</div>
+          ${q.correct === true ? `<span style="font-size:18px">✅</span>` : q.correct === false ? `<span style="font-size:18px">❌</span>` : ''}
+        </div>
+        <input id="wt-inp-${i}" type="text" value="${esc(q.answer||'')}"
+          placeholder="${placeholder}"
+          oninput="wtSaveInput(${i},this.value)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();const nx=document.getElementById('wt-inp-${i+1}');if(nx)nx.focus();}"
+          style="width:100%;padding:10px 14px;border:1.5px solid ${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'};border-radius:10px;font-size:15px;font-family:'Outfit',sans-serif;outline:none;background:${q.correct!==null?'transparent':'#fff'};box-sizing:border-box;transition:border-color 0.2s"
+          onfocus="this.style.borderColor='${col.b}'" onblur="this.style.borderColor='${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'}'"
+          ${submitted ? 'readonly' : ''}>
+        ${q.correct === false ? `<div style="margin-top:8px;font-size:13px;color:#dc2626">정답: <strong>${q.dir==='en2ko'?q.w.ko:q.w.en}</strong></div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── 채점 ───────────────────────────────────────────
+  function grade() {
+    questions.forEach((q, i) => {
+      const inp = document.getElementById(`wt-inp-${i}`);
+      if (inp) q.answer = inp.value.trim();
+      const userAns = (q.answer || '').trim().toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
+      const correct = (q.dir === 'en2ko' ? q.w.ko : q.w.en).toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
+      q.correct = userAns === correct;
+    });
+  }
+
+  // ── 제출 ───────────────────────────────────────────
+  async function wtSubmit(force = false) {
+    if (submitted) return;
+    document.getElementById('_fgAlert')?.remove();
+    // 답 수집
+    questions.forEach((q, i) => {
+      const inp = document.getElementById(`wt-inp-${i}`);
+      if (inp) q.answer = inp.value.trim();
+    });
+    const blank = questions.filter(q => !(q.answer||'').trim()).length;
+    if (!force && blank > 0) {
+      const ok = await new Promise(resolve => {
+        showModal(`<div class="modal-title">📝 테스트 제출</div>
+          <p style="color:var(--text-muted);font-size:15px;margin-bottom:16px"><strong>${blank}개</strong> 문제가 미입력 상태입니다.<br>그대로 제출하시겠어요?</p>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal();window._wtSubmitResolve(false)">취소</button>
+            <button class="btn btn-primary" onclick="closeModal();window._wtSubmitResolve(true)">제출</button>
+          </div>`);
+        window._wtSubmitResolve = resolve;
+      });
+      if (!ok) return;
+    }
+    submitted = true;
+    stopTimer();
+    wtStopFG();
+    grade();
+    render();
+    const correct = questions.filter(q => q.correct).length;
+    const total = questions.length;
+    const pct = Math.round(correct / total * 100);
+    // 결과 헤더 업데이트
+    const hdr = document.getElementById('wt-result-hdr');
+    if (hdr) {
+      hdr.style.display = 'block';
+      const c = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+      hdr.innerHTML = `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:36px;font-weight:800;color:${c}">${pct}점</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#1e3a5f">테스트 완료</div>
+          <div style="font-size:13px;color:#64748b">${correct}/${total} 정답 · ${questions.filter(q=>!q.correct).length}개 오답</div>
+        </div>
+        <button onclick="wtRestart()" style="margin-left:auto;padding:8px 20px;background:${col.b};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">다시 풀기</button>
+      </div>`;
+    }
+    // 점수 저장
+    try {
+      const key = currentUser.id + '_' + bookId;
+      if (!DB.progress[key]) DB.progress[key] = { studied: 0, quizScores: [], rounds: 0, wrongWords: [] };
+      if (!DB.progress[key].quizScores) DB.progress[key].quizScores = [];
+      DB.progress[key].quizScores.push(pct);
+      const wrongList = questions.filter(q => !q.correct).map(q => ({ en: q.w.en, ko: q.w.ko }));
+      wrongList.forEach(w => {
+        const ei = DB.progress[key].wrongWords?.findIndex(x => x.en === w.en) ?? -1;
+        if (ei >= 0) DB.progress[key].wrongWords[ei].count = (DB.progress[key].wrongWords[ei].count || 1) + 1;
+        else { if (!DB.progress[key].wrongWords) DB.progress[key].wrongWords = []; DB.progress[key].wrongWords.push({ ...w, count: 1 }); }
+      });
+      await sbSaveProgress(currentUser.id, bookId, DB.progress[key]);
+      await sb.from('quiz_logs').insert({
+        student_id: currentUser.id, book_id: bookId,
+        score: correct, total,
+        mode: 'essay', direction: 'mixed',
+        wrong_words_json: JSON.stringify(wrongList)
+      });
+      addJelly(2, '테스트 완료');
+    } catch(e) { console.error('테스트 점수 저장 실패', e); }
+    // 제출 버튼 → 닫기 버튼으로
+    const submitBtn = document.getElementById('wt-submit-btn');
+    if (submitBtn) {
+      submitBtn.textContent = '닫기';
+      submitBtn.onclick = () => { document.getElementById('word-test-overlay')?.remove(); };
+      submitBtn.style.background = '#64748b';
+    }
+    document.getElementById('wt-timer-wrap')?.remove();
+  }
+
+  // 전역 등록 (인라인 onclick에서 접근)
+  window.wtRestart = function() {
+    document.getElementById('word-test-overlay')?.remove();
+    openWordTest(bookId);
+  };
+  window.wtSaveInput = function(i, val) { if (questions[i]) questions[i].answer = val; };
+  window.wtSubmitGlobal = function(force) { wtSubmit(force); };
+  window.wtCloseOverlay = function() { stopTimer(); wtStopFG(); document.getElementById('word-test-overlay')?.remove(); };
+
+  // ── 오버레이 생성 ──────────────────────────────────
+  const ov = _createOverlay('word-test-overlay', '#f8fafc');
+  const timeStr = Math.floor(timerSec/60) + ':' + String(timerSec%60).padStart(2,'0');
+  ov.innerHTML = `
+    <div style="flex-shrink:0;background:#fff;border-bottom:1.5px solid #e2e8f0;padding:14px 20px">
+      <div style="display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto">
+        <button onclick="wtCloseOverlay()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0" onmouseover="this.style.borderColor='#94a3b8'" onmouseout="this.style.borderColor='#e2e8f0'">
+          ← 목록
+        </button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:800;color:#0f172a">📝 단어 테스트</div>
+          <div style="font-size:13px;color:#64748b">${b.name} · ${questions.length}문제 (주관식)</div>
+        </div>
+        <div id="wt-timer-wrap" style="display:flex;align-items:center;gap:6px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:6px 14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="wt-timer" style="font-size:17px;font-weight:800;color:#dc2626;font-family:'JetBrains Mono',monospace;letter-spacing:1px">${timeStr}</span>
+        </div>
+      </div>
+      <div id="wt-result-hdr" style="max-width:680px;margin:12px auto 0;display:none"></div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:20px">
+      <div style="max-width:680px;margin:0 auto">
+        <div style="background:linear-gradient(135deg,${col.b}15,${col.b}08);border:1.5px solid ${col.b}25;border-radius:14px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#475569;line-height:1.6">
+          <strong style="color:#1e3a5f">📌 테스트 안내</strong><br>
+          영어 단어를 보고 <strong>한국어 뜻</strong>을, 한국어 뜻을 보고 <strong>영어 단어</strong>를 입력하세요.<br>
+          Enter 키로 다음 문제로 이동 · 5분 내에 제출하세요 · 이미 푼 문제로 돌아와 수정 가능
+        </div>
+        <div id="wt-body"></div>
+      </div>
+    </div>
+
+    <div style="flex-shrink:0;background:#fff;border-top:1.5px solid #e2e8f0;padding:14px 20px">
+      <div style="max-width:680px;margin:0 auto;display:flex;justify-content:flex-end">
+        <button id="wt-submit-btn" onclick="wtSubmitGlobal(false)" style="padding:12px 36px;background:${col.b};color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;box-shadow:0 4px 16px ${col.b}40;transition:all 0.15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+          제출하기
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  render();
+  startTimer();
+  wtStartFG();
+  // 제출 후 결과 헤더 initially hidden
+  const rHdr = document.getElementById('wt-result-hdr');
+  if (rHdr) rHdr.style.display = 'none';
+}
+
 // ═══════════════════════════════════════════════════════
 // 선생님 단어보기 오버레이 (보기+편집 통합)
 // ═══════════════════════════════════════════════════════
@@ -19411,6 +19586,7 @@ async function openTeacherWordView(bookId) {
       <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
       <button onclick="document.getElementById('teacher-word-overlay').remove();openBookStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${bColor}cc,${bColor});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${bColor}40;white-space:nowrap">암기</button>
       <button onclick="openStudentQuizPopup('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">퀴즈</button>
+      <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#92400e;cursor:pointer;transition:all 0.15s;white-space:nowrap">📝 테스트</button>
       <div style="width:1px;height:22px;background:var(--border)"></div>
       <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>프린트</button>
       <button onclick="bookMakeTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">시험지</button>
