@@ -118,6 +118,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+/* 초기 로딩 중 FOUC 방지 */
+body.app-initializing{visibility:hidden}
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -1815,7 +1817,7 @@ body.student-mode {
 
 
 </head>
-<body>
+<body class="app-initializing">
 
 <!-- ====== LOGIN ====== -->
 <div id="login-screen">
@@ -3075,38 +3077,16 @@ async function loadDB() {
 
       // words는 lazy load — 단어장 열 때 그때 로드 (word_count만 미리 가져옴)
       const bookIds = rawBooks.map(b => b.id);
-      // word_count 별도 집계 (단어 수 표시용)
-      let wordCounts = {};
-      if (bookIds.length > 0) {
-        try {
-          // count만 가져오기 (head: true는 지원 안 해서 id만)
-          const { data: countData } = await sb.from('words')
-            .select('book_id')
-            .in('book_id', bookIds);
-          (countData || []).forEach(w => {
-            wordCounts[w.book_id] = (wordCounts[w.book_id] || 0) + 1;
-          });
-        } catch(e2) { console.warn('word_count 조회 실패 (무시)'); }
-      }
 
-      DB.books = rawBooks.map(b => ({
-        ...b,
-        collectionId: b.collection_id || undefined,
-        created: b.created_at ? new Date(b.created_at).toLocaleDateString('ko-KR') : '',
-        words: [],          // lazy — 열 때 loadBookWords(b.id) 호출
-        wordCount: wordCounts[b.id] || 0,
-        _wordsLoaded: false
-      }));
-
+      // 중간 처리: collections + users + files 세팅 (wordCount/progress/assigns 쿼리 병렬 실행 전에)
       let rawColls = collectionsRes.data || [];
       if (rawColls.length === 0 && !isAdmin) {
         const { data: myColls } = await sb.from('collections')
-          .eq('owner_id', uid).order('created_at', { ascending: false }).catch(() => ({ data: [] }));
+          .eq('owner_id', uid).order('created_at', { ascending: false });
         rawColls = myColls || [];
       }
       DB.collections = rawColls;
 
-      // 학생 목록만 (선생님 계정 제외, 본인도 제외)
       DB.users = (usersRes.data || [])
         .filter(u => u.role === 'student')
         .map(u => ({
@@ -3123,25 +3103,50 @@ async function loadDB() {
         wordCount: f.word_count || 0
       }));
 
-      // progress: 내 학생들만
       const myStudentIds = DB.users.map(u => u.id);
-      DB.progress = {};
-      if (myStudentIds.length) {
-        const { data: progressData } = await sb.from('progress').select('*').in('student_id', myStudentIds);
-        (progressData || []).forEach(p => {
-          const key = p.student_id + '_' + p.book_id;
-          DB.progress[key] = {
-            rounds: p.rounds || 0,
-            quizScores: p.quiz_scores || [],
-            wrongWords: p.wrong_words_json ? JSON.parse(p.wrong_words_json) : []
-          };
-        });
-      }
 
-      // 학생별 assigned 로드
-      const { data: assigns } = isAdmin
-        ? await sb.from('assignments').select('student_id, book_id')
-        : await sb.from('assignments').select('student_id, book_id').in('student_id', myStudentIds.length ? myStudentIds : ['00000000-0000-0000-0000-000000000000']);
+      // wordCount + progress + assignments 3개 RTT → Promise.all 병렬화
+      const [countRes, progressRes, assignsRes] = await Promise.all([
+        bookIds.length
+          ? sb.from('words').select('book_id').in('book_id', bookIds)
+          : Promise.resolve({ data: [] }),
+        myStudentIds.length
+          ? sb.from('progress').select('*').in('student_id', myStudentIds)
+          : Promise.resolve({ data: [] }),
+        isAdmin
+          ? sb.from('assignments').select('student_id, book_id')
+          : sb.from('assignments').select('student_id, book_id')
+              .in('student_id', myStudentIds.length ? myStudentIds : ['00000000-0000-0000-0000-000000000000'])
+      ]);
+
+      // wordCounts 집계
+      const wordCounts = {};
+      (countRes.data || []).forEach(w => {
+        wordCounts[w.book_id] = (wordCounts[w.book_id] || 0) + 1;
+      });
+
+      DB.books = rawBooks.map(b => ({
+        ...b,
+        collectionId: b.collection_id || undefined,
+        created: b.created_at ? new Date(b.created_at).toLocaleDateString('ko-KR') : '',
+        words: [],          // lazy — 열 때 loadBookWords(b.id) 호출
+        wordCount: wordCounts[b.id] || 0,
+        _wordsLoaded: false
+      }));
+
+      // progress 세팅
+      DB.progress = {};
+      (progressRes.data || []).forEach(p => {
+        const key = p.student_id + '_' + p.book_id;
+        DB.progress[key] = {
+          rounds: p.rounds || 0,
+          quizScores: p.quiz_scores || [],
+          wrongWords: p.wrong_words_json ? JSON.parse(p.wrong_words_json) : []
+        };
+      });
+
+      // assignments 세팅
+      const assigns = assignsRes.data;
       if (assigns) {
         DB.users.forEach(u => {
           u.assigned = assigns.filter(a => a.student_id === u.id).map(a => a.book_id);
@@ -3204,15 +3209,13 @@ async function loadDB() {
     if (dateEl) {
       dateEl.textContent = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
     }
-    // Supabase에서 AI 공유 키 로드
-    loadAIKeysFromDB();
-    // 학생: 선생님 젤리 지급 수령
+    // AI 키(이미 로그인 시 병렬로 완료) + 젤리 지급 수령은 백그라운드
     loadJellyGrantFromDB();
-    // 문장집 로드 (로그인 시 완료 보장)
-    await loadSentenceBooks().catch(()=>{});
-
-    // 즐겨찾기 Supabase에서 로드
-    await _loadFavFromDB();
+    // 문장집 + 즐겨찾기 병렬 로드
+    await Promise.all([
+      loadSentenceBooks().catch(()=>{}),
+      _loadFavFromDB().catch(()=>{})
+    ]);
 
   } catch(e) {
     console.error('loadDB 오류:', e);
@@ -3407,8 +3410,13 @@ function saveDB() {
   // (기존 코드 호환용으로 남겨둠)
 }
 
+// _appReady: checkSession() 완료 전에 onAuthStateChange 이벤트가 오동작하는 것 방지
+let _appReady = false;
+
 // 로딩 오버레이
+// _appReady=false(초기 진입) 중엔 body.app-initializing이 화면을 이미 숨기므로 오버레이 중복 표시 안 함
 function showLoadingOverlay(show) {
+  if (!_appReady && show) return; // 초기 로딩 중엔 스킵 (body visibility:hidden이 처리)
   let el = document.getElementById('db-loading-overlay');
   if (!el) {
     el = document.createElement('div');
@@ -3424,11 +3432,6 @@ function showLoadingOverlay(show) {
 //  AUTH — Supabase Auth 기반
 // =========================================================
 let loginRole = 'teacher';
-
-function setRole(r) {
-  loginRole = r;
-}
-
 
 // ── 보안 유틸 ────────────────────────────────────────────
 // 입력값 sanitize (script 태그 제거)
@@ -3674,11 +3677,14 @@ async function doLogin() {
     } else {
       currentUser = { ...profile, email, isAdmin: profile.is_admin === true };
     }
+    // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
+    await Promise.all([
+      loadAIKeysFromDB(),   // AI 키
+      loadJellyFromDB(),    // 젤리
+      loadDB(),             // 메인 데이터
+    ]);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
-    await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
-    await loadJellyFromDB();   // 젤리 DB → localStorage 동기화
-    await loadDB();
     initApp();
   } catch(e) {
     showToast('로그인 실패: ' + (e.message || '이메일/비밀번호를 확인하세요.'), 'error');
@@ -5695,15 +5701,23 @@ async function checkSession() {
     if (!profile) return; // profiles 없으면 로그인 화면 유지
 
     currentUser = { ...profile, email: session.user.email };
+    // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
+    await Promise.all([
+      loadAIKeysFromDB(),   // AI 키 (app_settings + profiles — 2 RTT → 이미 내부 병렬화됨)
+      loadJellyFromDB(),    // 젤리 (profiles)
+      loadDB(),             // 메인 데이터
+    ]);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').style.display = 'block';
-    await loadAIKeysFromDB();  // AI 키 DB → localStorage 동기화
-    await loadJellyFromDB();   // 젤리 DB → localStorage 동기화
-    await loadDB();
     initApp();
     // 학생만 자발적 말 걸기 시작 (비활성화)
   } catch(e) {
     console.error('세션 복원 실패:', e);
+  } finally {
+    // FOUC 방지 해제: 초기화 완료 후 화면 표시
+    document.body.classList.remove('app-initializing');
+    // onAuthStateChange가 초기화 전 SIGNED_OUT 발화해도 무시하도록 플래그 활성화
+    _appReady = true;
   }
 }
 
@@ -5764,7 +5778,6 @@ function setRole(r) {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     checkSession();
-    initLoginSlimes();
     // 드롭다운 외부 클릭 시 닫기 (DOM 준비 후 안전 등록)
     document.addEventListener('click', function(e) {
       const topbarRight = document.getElementById('topbar-right');
@@ -5775,7 +5788,6 @@ if (document.readyState === 'loading') {
   });
 } else {
   checkSession();
-  initLoginSlimes();
   document.addEventListener('click', function(e) {
     const topbarRight = document.getElementById('topbar-right');
     if (topbarRight && !topbarRight.contains(e.target)) {
@@ -5786,6 +5798,7 @@ if (document.readyState === 'loading') {
 
 // 토큰 자동 갱신 (백그라운드)
 sb.auth.onAuthStateChange((event, session) => {
+  if (!_appReady) return; // 초기화 완료 전 이벤트 무시
   if (event === 'TOKEN_REFRESHED') {
     console.log('토큰 갱신됨');
   }
@@ -6885,37 +6898,33 @@ async function loadSentenceBooks() {
   try {
     let books = [];
     if (currentUser.role === 'teacher') {
-      const { data, error: sbErr } = await sb.from('sentence_books').select('*').order('created_at', {ascending:false});
+      // sentence_books + sentence_items count 동시 조회
+      const [{ data, error: sbErr }, { data: countData }] = await Promise.all([
+        sb.from('sentence_books').select('*').order('created_at', {ascending:false}),
+        sb.from('sentence_items').select('book_id')
+      ]);
       if (sbErr) console.error('🔴 sentence_books 조회 에러:', sbErr.message, sbErr.code);
-      console.log('📚 sentence_books 조회 결과:', data?.length ?? 'null', '건', sbErr ? '(에러있음)' : '(정상)');
       books = data || [];
+      // 카운트 집계
+      const countMap = {};
+      (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
+      DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
     } else {
       const { data: assigns, error: aErr } = await sb.from('sentence_assignments').select('book_id').eq('student_id', currentUser.id);
       if (aErr) console.error('🔴 sentence_assignments 에러:', aErr.message);
       const bookIds = (assigns||[]).map(a => a.book_id);
-      console.log('📋 배정된 문장집 IDs:', bookIds.length, '개');
       if (!bookIds.length) { DB_sentBooks = []; return; }
-      const { data, error: bErr } = await sb.from('sentence_books').select('*').in('id', bookIds);
+      // sentence_books + sentence_items count 동시 조회
+      const [{ data, error: bErr }, { data: countData }] = await Promise.all([
+        sb.from('sentence_books').select('*').in('id', bookIds),
+        sb.from('sentence_items').select('book_id').in('book_id', bookIds)
+      ]);
       if (bErr) console.error('🔴 sentence_books(학생) 에러:', bErr.message);
-      console.log('📚 학생 문장집 결과:', data?.length ?? 'null', '건');
       books = data || [];
       DB_sentAssigns = assigns || [];
-    }
-
-    // 문장 개수 미리 집계 — 실패해도 books는 반드시 저장
-    DB_sentBooks = books; // 먼저 저장
-    if (books.length > 0) {
-      try {
-        const bookIds = books.map(b => b.id);
-        const { data: countData, error: cErr } = await sb.from('sentence_items')
-          .select('book_id')
-          .in('book_id', bookIds);
-        if (!cErr && countData) {
-          const countMap = {};
-          countData.forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
-          DB_sentBooks = DB_sentBooks.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
-        }
-      } catch(e2) { console.warn('문장 개수 집계 실패 (무시):', e2.message); }
+      const countMap = {};
+      (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
+      DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
     }
     // 핵심단어/문법 — Supabase → localStorage 자동 동기화
     DB_sentBooks.forEach(b => {
@@ -7371,13 +7380,13 @@ async function sentSaveColl(collId) {
   if (!name) return;
   const c = DB_sentColls.find(c => c.id === collId);
   if (c) c.name = name;
-  await sb.from('sentence_collections').update({ name }).eq('id', collId).catch(()=>{});
+  await sb.from('sentence_collections').update({ name }).eq('id', collId);
   closeModal(); renderSentMgmt();
 }
 async function sentDeleteColl(collId) {
   if (!confirm('컬렉션을 삭제할까요? 문장집은 미분류로 이동합니다.')) return;
-  await sb.from('sentence_books').update({ collection_id: null }).eq('collection_id', collId).catch(()=>{});
-  await sb.from('sentence_collections').delete().eq('id', collId).catch(()=>{});
+  await sb.from('sentence_books').update({ collection_id: null }).eq('collection_id', collId);
+  await sb.from('sentence_collections').delete().eq('id', collId);
   DB_sentColls = DB_sentColls.filter(c => c.id !== collId);
   DB_sentBooks.forEach(b => { if (b.collection_id === collId) b.collection_id = null; });
   if (_sentActiveColl === collId) _sentActiveColl = null;
@@ -7787,7 +7796,7 @@ async function sentSaveSortOrder(bookId) {
     }
   });
   for (const u of updates) {
-    await sb.from('sentence_items').update({ sort_order: u.sort_order }).eq('id', u.id).catch(()=>{});
+    await sb.from('sentence_items').update({ sort_order: u.sort_order }).eq('id', u.id);
   }
   // DB 캐시 순서 업데이트
   if (DB_sentItems[bookId]) {
@@ -7810,7 +7819,7 @@ async function sentFixSortOrder(bookId) {
     if (id && !id.startsWith('new_')) updates.push({ id, sort_order: i + 1 });
   });
   for (const u of updates) {
-    await sb.from('sentence_items').update({ sort_order: u.sort_order }).eq('id', u.id).catch(()=>{});
+    await sb.from('sentence_items').update({ sort_order: u.sort_order }).eq('id', u.id);
   }
   // 캐시 동기화
   if (DB_sentItems[bookId]) {
@@ -14551,6 +14560,7 @@ async function startQuiz(){
   if(pool.length<(mode==='choice'?4:1)){showToast(mode==='choice'?`4지선다는 최소 4개 필요 (현재 ${pool.length}개)`:'단어가 없습니다.','error');return;}
   quizWords=shuffle(pool);
   quizIdx=0; quizScore=0; quizAnswered=false; quizWrong=[];
+  startFocusGuard(); // 🔒 시험 시작 시 포커스 감시 ON
   renderQuiz();
 }
 
@@ -14558,6 +14568,7 @@ function renderQuiz(){
   const body=document.getElementById('quiz-body');
   if(quizIdx>=quizWords.length){
     // ── 결과 화면 ──
+    stopFocusGuard(); // 🔒 시험 완료 시 포커스 감시 OFF
     const pct=Math.round((quizScore/quizWords.length)*100);
     recordQuizScore(pct);
     const slimeR = getSlimeData();
@@ -14919,6 +14930,144 @@ JSON으로만 응답: {"score":0~100,"pass":true/false,"feedback":"짧은 한국
   }
   document.getElementById('qnext').style.display = 'inline-flex';
   if(btn) btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════
+// 🔒 시험 포커스 감시 (Focus Guard)
+// ═══════════════════════════════════════════
+let _fgActive = false;
+let _fgWarnings = 0;
+const _FG_MAX_WARNINGS = 3; // 경고 3회 초과 시 자동 제출
+
+function startFocusGuard() {
+  _fgActive = true;
+  _fgWarnings = 0;
+  document.addEventListener('visibilitychange', _onVisibilityChange);
+  window.addEventListener('blur', _onWindowBlur);
+}
+
+function stopFocusGuard() {
+  _fgActive = false;
+  document.removeEventListener('visibilitychange', _onVisibilityChange);
+  window.removeEventListener('blur', _onWindowBlur);
+}
+
+function _onVisibilityChange() {
+  if (!_fgActive) return;
+  if (document.visibilityState === 'hidden') _onFocusLost('앱/탭 전환');
+}
+
+function _onWindowBlur() {
+  if (!_fgActive) return;
+  // 모바일에서 visibilitychange와 중복될 수 있으므로 hidden 상태가 아닐 때만 처리
+  if (document.visibilityState !== 'hidden') _onFocusLost('창 이탈');
+}
+
+function _onFocusLost(reason) {
+  if (!_fgActive) return;
+  _fgWarnings++;
+  const remaining = _FG_MAX_WARNINGS - _fgWarnings;
+
+  // Supabase에 이탈 기록 (비동기, 실패해도 무관)
+  try {
+    const bookId = document.getElementById('quiz-sel')?.value;
+    if (bookId && currentUser?.id) {
+      sb.from('quiz_focus_logs').insert({
+        student_id: currentUser.id,
+        book_id: bookId,
+        reason: reason,
+        warning_count: _fgWarnings,
+        occurred_at: new Date().toISOString()
+      }).then(() => {}).catch(() => {});
+    }
+  } catch(e) {}
+
+  if (_fgWarnings > _FG_MAX_WARNINGS) {
+    // 이미 처리 중
+    return;
+  }
+
+  if (_fgWarnings >= _FG_MAX_WARNINGS) {
+    // 경고 횟수 초과 → 강제 제출
+    stopFocusGuard();
+    _showFocusAlert(
+      '⚠️ 시험이 자동 제출되었습니다',
+      `화면을 ${_FG_MAX_WARNINGS}회 이탈하여 시험이 자동 제출되었습니다.`,
+      null,
+      true
+    );
+    setTimeout(() => _forceSubmitQuiz(), 2000);
+  } else {
+    // 경고 알림
+    _showFocusAlert(
+      `🚨 경고 ${_fgWarnings}/${_FG_MAX_WARNINGS}`,
+      `시험 화면을 벗어났습니다! (${reason})\n경고 ${_FG_MAX_WARNINGS}회 초과 시 시험이 자동 제출됩니다.`,
+      remaining > 0 ? `남은 기회: ${remaining}회` : null,
+      false
+    );
+  }
+}
+
+function _showFocusAlert(title, msg, sub, autoClose) {
+  // 기존 알림 제거
+  document.getElementById('_fgAlert')?.remove();
+
+  const el = document.createElement('div');
+  el.id = '_fgAlert';
+  el.style.cssText = `
+    position:fixed;inset:0;z-index:99999;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);
+    animation:_fgFadeIn 0.2s ease;
+  `;
+  el.innerHTML = `
+    <style>
+      @keyframes _fgFadeIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+      @keyframes _fgShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+    </style>
+    <div style="
+      background:#1a1a2e;border:2px solid #ef4444;border-radius:20px;
+      padding:28px 32px;max-width:320px;width:88%;text-align:center;
+      box-shadow:0 0 40px rgba(239,68,68,0.4);
+      animation:_fgShake 0.4s ease;
+    ">
+      <div style="font-size:36px;margin-bottom:12px">🚫</div>
+      <div style="font-size:17px;font-weight:800;color:#ef4444;margin-bottom:10px;line-height:1.4">${title}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;white-space:pre-line">${msg}</div>
+      ${sub ? `<div style="margin-top:10px;font-size:13px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border-radius:10px;padding:6px 14px;display:inline-block">${sub}</div>` : ''}
+      ${!autoClose ? `<button onclick="document.getElementById('_fgAlert').remove()" style="
+        margin-top:18px;padding:10px 28px;background:#ef4444;border:none;border-radius:12px;
+        color:white;font-weight:700;font-size:14px;cursor:pointer;width:100%
+      ">확인 (시험으로 돌아가기)</button>` : ''}
+    </div>
+  `;
+  document.body.appendChild(el);
+  if (!autoClose) {
+    el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+  }
+}
+
+function _forceSubmitQuiz() {
+  document.getElementById('_fgAlert')?.remove();
+  // 현재까지의 점수로 강제 결산
+  const total = quizWords.length || 1;
+  const pct = Math.round((quizScore / total) * 100);
+  recordQuizScore(pct);
+
+  const body = document.getElementById('quiz-body');
+  if (body) {
+    body.innerHTML = `
+      <div class="quiz-result" style="text-align:center;padding:40px 20px">
+        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+        <div style="font-size:20px;font-weight:800;color:#ef4444;margin-bottom:10px">시험 자동 제출</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:20px;line-height:1.6">
+          화면 이탈이 감지되어 시험이 자동 제출되었습니다.<br>
+          현재까지 점수: <strong style="color:#fbbf24">${pct}점</strong> (${quizScore}/${total}문제)
+        </div>
+        <button class="fc-btn-next" onclick="startQuiz()">다시 풀기</button>
+      </div>
+    `;
+  }
 }
 
 async function recordQuizScore(pct){
@@ -19399,7 +19548,7 @@ async function openTeacherSentView(bookId) {
   window.tseInitDrag = function(bid) { document.querySelectorAll('#tse-tbody tr').forEach(tr=>tseBindDrag(tr,bid)); };
   window.tseSaveSortOrder = async function(bid) {
     for(const[i,tr]of[...document.querySelectorAll('#tse-tbody tr')].entries()){
-      const id=tr.dataset.id; if(id&&!id.startsWith('new_')) await sb.from('sentence_items').update({sort_order:i+1}).eq('id',id).catch(()=>{});
+      const id=tr.dataset.id; if(id&&!id.startsWith('new_')) await sb.from('sentence_items').update({sort_order:i+1}).eq('id',id);
     }
     if(DB_sentItems[bid]){const order=[...document.querySelectorAll('#tse-tbody tr')].map(tr=>tr.dataset.id);DB_sentItems[bid].sort((a,b)=>order.indexOf(String(a.id))-order.indexOf(String(b.id)));}
   };
@@ -19736,11 +19885,13 @@ const AI_KEY_MAP = {
 async function loadAIKeysFromDB() {
   if (!currentUser?.id) return;
   try {
-    // 1) app_settings에서 관리자 공유 키 우선 로드
+    // app_settings + profiles.ai_keys 동시 조회 (병렬화)
     const sharedKeyNames = ['shared_groq_key','shared_gemini_key','shared_cerebras_key'];
-    const { data: rows } = await sb.from('app_settings')
-      .select('key,value')
-      .in('key', sharedKeyNames);
+    const [{ data: rows }, { data }] = await Promise.all([
+      sb.from('app_settings').select('key,value').in('key', sharedKeyNames),
+      sb.from('profiles').select('ai_keys').eq('id', currentUser.id).single()
+    ]);
+    // 1) 공유 키 적용
     const sharedAiMap = { shared_groq_key:'groq', shared_gemini_key:'gemini', shared_cerebras_key:'cerebras' };
     if (rows?.length) {
       rows.forEach(row => {
@@ -19752,11 +19903,7 @@ async function loadAIKeysFromDB() {
         }
       });
     }
-    // 2) 공유 키 없는 항목만 개인 profiles.ai_keys 로 보완
-    const { data } = await sb.from('profiles')
-      .select('ai_keys')
-      .eq('id', currentUser.id)
-      .single();
+    // 2) 공유 키 없는 항목만 개인 키로 보완
     if (data?.ai_keys && typeof data.ai_keys === 'object') {
       Object.entries(AI_KEY_MAP).forEach(([aiId, cfg]) => {
         if (!localStorage.getItem(cfg.ls)) {
