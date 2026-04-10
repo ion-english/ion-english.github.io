@@ -3168,17 +3168,25 @@ async function loadDB() {
       const { data: assigns } = await sb.from('assignments').select('book_id, task_options').eq('student_id', uid);
       const bookIds = (assigns || []).map(a => a.book_id);
 
-      const [booksRes, progressRes, teachersRes] = await Promise.all([
+      const [booksRes, progressRes, teachersRes, collectionsRes] = await Promise.all([
         bookIds.length
           ? sb.from('books').select('*, words(id, en, ko, example, sort_order)').in('id', bookIds).limit(100)
           : Promise.resolve({ data: [] }),
         sb.from('progress').select('*').eq('student_id', uid),
-        sb.from('profiles').select('id, name, role').eq('role', 'teacher')
+        sb.from('profiles').select('id, name, role').eq('role', 'teacher'),
+        sb.from('collections').select('id, name').order('created_at', { ascending: false })
       ]);
 
-      DB.books = (booksRes.data || []).map(b => ({
+      const rawBooks = booksRes.data || [];
+      DB.collections = collectionsRes.data || [];
+      console.log('[ION] collections 로드:', DB.collections.length, '개', collectionsRes.error?.message||'');
+      const collMap = {};
+      DB.collections.forEach(c => { collMap[c.id] = c.name; });
+
+      DB.books = rawBooks.map(b => ({
         ...b,
         collectionId: b.collection_id || undefined,
+        collectionName: collMap[b.collection_id] || null,
         created: b.created_at ? new Date(b.created_at).toLocaleDateString('ko-KR') : '',
         words: (b.words || []).sort((a,c) => a.sort_order - c.sort_order).map(w => ({
           id: w.id, en: w.en, ko: w.ko, example: w.example || ''
@@ -3232,7 +3240,8 @@ async function loadDB() {
     // 문장집 + 즐겨찾기 병렬 로드
     await Promise.all([
       loadSentenceBooks().catch(()=>{}),
-      _loadFavFromDB().catch(()=>{})
+      _loadFavFromDB().catch(()=>{}),
+      currentUser.role === 'student' ? loadColls().catch(()=>{}) : Promise.resolve()
     ]);
 
   } catch(e) {
@@ -3698,7 +3707,7 @@ async function doLogin() {
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
       loadAIKeysFromDB(),   // AI 키
-      loadJellyFromDB(),    // 젤리
+      loadSlimeFromDB(),    // 슬라임 전체 (색/이름/꾸미기/젤리)
       loadDB(),             // 메인 데이터
     ]);
     document.getElementById('login-screen').style.display = 'none';
@@ -3761,10 +3770,45 @@ function getSlimeData() {
 function saveSlimeData(data) {
   const key = 'ion_slime_' + (currentUser?.id || 'anon');
   localStorage.setItem(key, JSON.stringify(data));
-  // 젤리만 Supabase에 debounce 저장 (브라우저 간 공유)
-  if (currentUser?.id && typeof data.jelly === 'number') {
-    _saveJellyToDB(data.jelly);
+  // 슬라임 전체 데이터를 Supabase에 debounce 저장 (브라우저 간 공유)
+  if (currentUser?.id) {
+    _saveSlimeDataToDB(data);
   }
+}
+
+let _slimeDBTimer = null;
+function _saveSlimeDataToDB(data) {
+  clearTimeout(_slimeDBTimer);
+  _slimeDBTimer = setTimeout(async () => {
+    try {
+      const update = { slime_data: JSON.stringify(data) };
+      if (typeof data.jelly === 'number') update.jelly = data.jelly;
+      await sb.from('profiles').update(update).eq('id', currentUser.id);
+    } catch(e) {}
+  }, 800);
+}
+
+async function loadSlimeFromDB() {
+  if (!currentUser?.id) return;
+  try {
+    const { data } = await sb.from('profiles').select('slime_data, jelly').eq('id', currentUser.id).single();
+    if (data?.slime_data) {
+      const key = 'ion_slime_' + currentUser.id;
+      const fromDB = JSON.parse(data.slime_data);
+      // jelly는 기존 로직대로 별도 컬럼 우선
+      if (data && typeof data.jelly === 'number') fromDB.jelly = data.jelly;
+      localStorage.setItem(key, JSON.stringify(fromDB));
+    } else if (data?.jelly != null) {
+      // slime_data 없으면 기존 jelly 로직만
+      const key = 'ion_slime_' + currentUser.id;
+      const raw = localStorage.getItem(key);
+      const slime = raw ? JSON.parse(raw) : {};
+      if (typeof slime.jelly !== 'number' || data.jelly >= slime.jelly) {
+        slime.jelly = data.jelly;
+        localStorage.setItem(key, JSON.stringify(slime));
+      }
+    }
+  } catch(e) {}
 }
 
 // ── 젤리 DB 동기화 ──
@@ -6244,7 +6288,13 @@ function showPage(id, addHistory = true) {
   if (id==='pg-filevault') { fvInitTabs(); renderFileVault(); }
   if (id==='pg-classes') renderClasses();
   if (id==='pg-messages') renderMessages();
-  if (id==='pg-mybooks') renderMyBooks();
+  if (id==='pg-mybooks') {
+    if (currentUser?.role === 'student' && (!DB.collections || DB.collections.length === 0)) {
+      loadColls().then(() => renderMyBooks()).catch(() => renderMyBooks());
+    } else {
+      renderMyBooks();
+    }
+  }
   if (id==='pg-flashcard') refreshSelects();
   if (id==='pg-quiz') refreshSelects();
   if (id==='pg-progress') { progSetTab('word'); renderProgress(); }
@@ -6352,6 +6402,7 @@ window.addEventListener('popstate', function(e) {
     if (el) { el.remove(); closedOverlay = true; }
   });
   if (closedOverlay) {
+    speakAllStop();
     history.pushState(e.state, '', window.location.href);
     return;
   }
@@ -7337,7 +7388,14 @@ async function loadSentenceBooks() {
       });
       const countMap = {};
       (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
-      DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
+      // sentence_collections 별도 조회
+      const sentCollIds = [...new Set(books.map(b => b.collection_id).filter(Boolean))];
+      let sentCollMap = {};
+      if (sentCollIds.length) {
+        const { data: scData } = await sb.from('sentence_collections').select('id, name').in('id', sentCollIds);
+        (scData || []).forEach(c => { sentCollMap[c.id] = c.name; });
+      }
+      DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0, collectionName: sentCollMap[b.collection_id] || (DB_sentColls.find(c=>c.id===b.collection_id)?.name) || null }));
     }
     // 핵심단어/문법 — Supabase → localStorage 자동 동기화
     DB_sentBooks.forEach(b => {
@@ -7390,6 +7448,13 @@ async function loadSentColls() {
     const { data } = await sb.from('sentence_collections').select('*').order('created_at');
     DB_sentColls = data || [];
   } catch(e) { DB_sentColls = []; }
+}
+
+async function loadColls() {
+  try {
+    const { data } = await sb.from('collections').select('id, name').order('created_at', { ascending: false });
+    if (data && data.length) DB.collections = data;
+  } catch(e) {}
 }
 
 function sentShowMgmtView() {
@@ -9076,11 +9141,20 @@ async function openSentStudyBook(bookId) {
 
   // 탭 row2
   const tabRow = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <div style="display:flex;gap:3px;background:var(--surface2);border-radius:12px;padding:3px;border:1px solid var(--border)">
       <button id="sst-tab-view" onclick="sentStudySetTab('view')" style="padding:6px 12px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:${col.b};color:#fff;transition:all 0.15s">문장보기</button>
       <button id="sst-tab-read" onclick="sentStudySetTab('read')" style="padding:6px 12px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:none;color:var(--t2);transition:all 0.15s">문장읽기</button>
       <button id="sst-tab-words" onclick="sentStudySetTab('words')" style="padding:6px 12px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:none;color:var(--t2);transition:all 0.15s">핵심단어</button>
       <button id="sst-tab-grammar" onclick="sentStudySetTab('grammar')" style="padding:6px 12px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:none;color:var(--t2);transition:all 0.15s">핵심문법</button>
+    </div>
+    <button id="sst-play-all-btn" data-playing="0"
+      onclick="speakAll([], this)"
+      style="display:flex;align-items:center;gap:5px;padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap"
+      onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'"
+      onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+      ▶ 전체 재생
+    </button>
     </div>
   `;
 
@@ -9119,7 +9193,7 @@ async function renderSstView() {
   panel.innerHTML = `
     <div style="max-width:760px;margin:0 auto;padding:clamp(12px,3vw,20px) clamp(12px,3vw,24px) 40px;display:flex;flex-direction:column;gap:12px">
       ${items.map((it, i) => `
-        <div style="background:#fff;border-radius:18px;border:1.5px solid var(--border);
+        <div id="sst-row-${i}" style="background:#fff;border-radius:18px;border:1.5px solid var(--border);
           padding:clamp(14px,3vw,20px) clamp(14px,3vw,24px);display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
           transition:all 0.2s;box-shadow:0 2px 8px rgba(15,23,42,0.04)"
           onmouseover="this.style.borderColor='${col.b}55';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.09)'"
@@ -9144,6 +9218,27 @@ async function renderSstView() {
       `).join('')}
     </div>
   `;
+
+  // 전체재생 버튼에 items 연결 + 호버 하이라이트
+  const playBtn = document.getElementById('sst-play-all-btn');
+  if (playBtn) {
+    const sentences = items.map(it => it.en);
+    playBtn.onclick = function() {
+      speakAll(sentences, playBtn, function(idx) {
+        document.querySelectorAll('#sst-panel-view [id^="sst-row-"]').forEach(el => {
+          el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.04)';
+          el.style.borderColor = 'var(--border)';
+        });
+        if (idx < 0) return;
+        const row = document.getElementById('sst-row-' + idx);
+        if (row) {
+          row.style.boxShadow = '0 0 0 2.5px ' + col.b + ', 0 6px 20px ' + col.b + '35';
+          row.style.borderColor = col.b;
+          row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    };
+  }
 }
 
 // ── 문장읽기 탭 ───────────────────────────────────────────
@@ -9782,7 +9877,7 @@ async function renderSentenceStudy() {
     _filteredBooks.forEach(function(b, idx) {
       const sc = b.item_count||0;
       const coll = (DB_sentColls||[]).find(c=>c.id===b.collection_id);
-      const collLabel = coll ? coll.name : (b.tag || '문장집');
+      const collLabel = b.collectionName || (coll ? coll.name : null) || b.tag || '문장집';
 
       // 과제 옵션
       const tOpts = DB_sentTaskOpts[b.id] || null;
@@ -9806,14 +9901,16 @@ async function renderSentenceStudy() {
         pct = totalGoal > 0 ? Math.min(100, Math.round((totalDone/totalGoal)*100)) : 0;
       }
 
-      // 과제 칩
-      const taskChips = hasTask ? (() => {
+      // 과제 칩 (팝업용 JSON + 인라인 표시용)
+      const taskChipData = hasTask ? (() => {
         const chips = [];
-        if (tOpts.unscramble>0) chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#eff6ff;color:#2563eb;border-radius:20px;border:1px solid #bfdbfe">배열 ${tOpts.unscramble}회</span>`);
-        if (tOpts.dictation>0)  chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#fdf4ff;color:#9333ea;border-radius:20px;border:1px solid #e9d5ff">빈칸 ${tOpts.dictation}회</span>`);
-        if (tOpts.record>0)     chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#f0fdf4;color:#16a34a;border-radius:20px;border:1px solid #bbf7d0">낭독 ${tOpts.record}회</span>`);
-        return chips.length ? `<div style="padding:0 20px 10px;display:flex;flex-wrap:wrap;gap:5px">${chips.join('')}</div>` : '';
-      })() : '';
+        if (tOpts.unscramble>0) chips.push({label:`어순배열 ${tOpts.unscramble}회`, bg:'#eff6ff', color:'#2563eb', border:'#bfdbfe'});
+        if (tOpts.dictation>0)  chips.push({label:`빈칸채우기 ${tOpts.dictation}회`, bg:'#fdf4ff', color:'#9333ea', border:'#e9d5ff'});
+        if (tOpts.record>0)     chips.push({label:`낭독 ${tOpts.record}회`, bg:'#f0fdf4', color:'#16a34a', border:'#bbf7d0'});
+        return chips;
+      })() : [];
+      const taskChipsJson = JSON.stringify(taskChipData).replace(/"/g,'&quot;');
+      const taskChips = '';
 
       // 잠금 버튼 헬퍼
       function sentLockBtn(label, icon, onclick, allowed) {
@@ -9849,10 +9946,16 @@ async function renderSentenceStudy() {
         <!-- 1행: 컬렉션 pill + 과제배지 + 진도 -->
         <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center">
           <div style="display:flex;align-items:center;gap:6px">
-            <div style="display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:4px 12px">
-              <span style="font-size:13px;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${collLabel}</span>
+            <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
+              <span style="font-size:13px;font-weight:700;color:#2563eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${collLabel}</span>
             </div>
-            ${hasTask ? '<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:11px;font-weight:800;color:#fff">과제</span></div>' : ''}
+            ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
+                style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
+                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>` : hasTask ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:11px;font-weight:800;color:#fff">과제</span></div>` : ''}
           </div>
           ${pct > 0
             ? `<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">${pct}%</span><span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span></div>`
@@ -14117,7 +14220,7 @@ function renderMyBooks() {
         const scores = p.quizScores||[];
         const wc = b.wordCount||b.words?.length||0;
         const coll = (DB.collections||[]).find(c=>c.id===b.collectionId);
-        const collLabel = coll ? coll.name : (b.tag || '단어장');
+        const collLabel = b.collectionName || (coll ? coll.name : null) || b.tag || '단어장';
         const subText = [wc+'개 단어', b.grade].filter(Boolean).join(' · ');
 
         // ── 과제 옵션 로드
@@ -14298,7 +14401,7 @@ function _makeOverlayHeader(opts) {
     <div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:0 clamp(14px,3vw,24px) 0 clamp(14px,3vw,24px);height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 0 rgba(3,22,56,0.04),0 2px 12px rgba(15,23,42,0.05);">
       <!-- 왼쪽: 뒤로가기 + 타이틀 -->
       <div style="display:flex;align-items:center;gap:14px">
-        <button onclick="${opts.backFn}" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
+        <button onclick="speakAllStop();${opts.backFn}" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>${opts.backLabel}
         </button>
         <div>
@@ -14403,7 +14506,7 @@ async function openStudentWordView(bookId) {
     const done = checked.has(w.id||w.en);
     const eB = enHidden ? 'filter:blur(5px);user-select:none;' : '';
     const kB = koHidden ? 'filter:blur(5px);user-select:none;' : '';
-    return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${done?col.b+'55':'#e8eef8'};padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;transition:all 0.2s;${done?'opacity:0.75':''}" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div id="wv-row-${i}" style="background:#fff;border-radius:14px;border:1.5px solid ${done?col.b+'55':'#e8eef8'};padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;transition:all 0.2s;${done?'opacity:0.75':''}" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
       <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}25;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:3px">${w.en}</div>
@@ -14500,6 +14603,13 @@ async function openStudentWordView(bookId) {
     renderContent();
   };
   window.wvSetMode = function(mode) {
+    // 모드 전환 시 재생 중지
+    const pb = document.getElementById('wv-play-all-btn');
+    if (pb && pb.dataset.playing === '1') {
+      window.speechSynthesis.cancel();
+      pb.dataset.playing = '0'; pb.textContent = '▶ 전체 재생';
+      document.querySelectorAll('#wv-body [id^="wv-row-"]').forEach(el => { el.style.boxShadow = ''; });
+    }
     viewMode = mode; cardIdx = 0;
     ['list','card'].forEach(m => { const btn = document.getElementById('wv-mode-'+m); if (btn) { btn.style.background = m===mode ? col.b : 'none'; btn.style.color = m===mode ? '#fff' : '#7ea8cc'; } });
     renderContent();
@@ -14524,7 +14634,18 @@ async function openStudentWordView(bookId) {
         <!-- 구분선 -->
         <div style="width:1px;height:22px;background:var(--border);flex-shrink:0"></div>
 
-        <!-- 그룹2: 가리기 -->
+        <!-- 그룹2: 전체재생 -->
+        <button id="wv-play-all-btn" data-playing="0"
+          style="display:flex;align-items:center;gap:5px;padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap"
+          onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'"
+          onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+          ▶ 전체 재생
+        </button>
+
+        <!-- 구분선 -->
+        <div style="width:1px;height:22px;background:var(--border);flex-shrink:0"></div>
+
+        <!-- 그룹3: 가리기 -->
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">가리기</span>
           <div id="wv-hide-btns" style="display:flex;gap:5px">
@@ -14561,6 +14682,32 @@ async function openStudentWordView(bookId) {
   }) + '<div id="wv-body" style="flex:1;overflow-y:auto"></div>';
 
   document.body.appendChild(ov);
+
+  // 전체 재생 버튼 - 이벤트 리스너로 연결 (words 클로저 직접 참조)
+  const wvPlayBtn = document.getElementById('wv-play-all-btn');
+  if (wvPlayBtn) {
+    wvPlayBtn.addEventListener('click', function() {
+      const hlFn = function(idx) {
+        if (viewMode === 'list') {
+          // 리스트: 해당 행 하이라이트 + 스크롤
+          document.querySelectorAll('#wv-body [id^="wv-row-"]').forEach(el => { el.style.boxShadow = ''; });
+          if (idx < 0) return;
+          const row = document.getElementById('wv-row-' + idx);
+          if (row) {
+            row.style.boxShadow = '0 0 0 2.5px ' + col.b + ', 0 6px 20px ' + col.b + '35';
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else {
+          // 카드: 해당 인덱스로 카드 이동
+          if (idx < 0) return;
+          cardIdx = idx;
+          renderContent();
+        }
+      };
+      speakAll(words.map(w => w.en), wvPlayBtn, hlFn);
+    });
+  }
+
   renderContent();
 }
 
@@ -21616,6 +21763,40 @@ function speak(word) {
   window.speechSynthesis.speak(u);
 }
 
+let _speakAllStopped = false;
+function speakAllStop() {
+  _speakAllStopped = true;
+  window.speechSynthesis.cancel();
+}
+function speakAll(words, btnEl, onHighlight) {
+  _speakAllStopped = false;
+  window.speechSynthesis.cancel();
+  if (btnEl && btnEl.dataset.playing === '1') {
+    btnEl.dataset.playing = '0';
+    btnEl.textContent = '▶ 전체 재생';
+    if (onHighlight) onHighlight(-1);
+    return;
+  }
+  let i = 0;
+  function next() {
+    if (_speakAllStopped) { if (onHighlight) onHighlight(-1); return; }
+    if (i >= words.length) {
+      if (btnEl) { btnEl.dataset.playing='0'; btnEl.textContent='▶ 전체 재생'; }
+      if (onHighlight) onHighlight(-1);
+      return;
+    }
+    if (btnEl && btnEl.dataset.playing !== '1') { if (onHighlight) onHighlight(-1); return; }
+    const idx = i;
+    if (onHighlight) onHighlight(idx);
+    const u = new SpeechSynthesisUtterance(words[i++]);
+    u.lang = 'en-US'; u.rate = 0.85;
+    u.onend = () => { if (!_speakAllStopped) setTimeout(next, 600); };
+    window.speechSynthesis.speak(u);
+  }
+  if (btnEl) { btnEl.dataset.playing='1'; btnEl.textContent='⏹ 중지'; }
+  next();
+}
+
 function shuffle(arr){
   const a=[...arr];
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -22964,6 +23145,7 @@ function renderSlimeHome() {
           <div class="slime-dropdown" id="${uid}">
             <button class="slime-dropdown-item" onclick="openStudentStudy('${b.id}');slimeCloseDropdown('${uid}')">암기</button>
             <button class="slime-dropdown-item" onclick="openStudentQuiz('${b.id}');slimeCloseDropdown('${uid}')">퀴즈</button>
+            <button class="slime-dropdown-item" onclick="openWordTest('${b.id}');slimeCloseDropdown('${uid}')">테스트</button>
           </div>
         </div>
       </div>
