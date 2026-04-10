@@ -315,7 +315,7 @@ body.app-initializing{visibility:hidden}
 }
 .slime-chat-bar-avatar:hover{background:#E0DCFC}
 .slime-chat-bar-avatar-name{
-  font-size:13px;font-weight:600;color:#534AB7;letter-spacing:0.01em;
+  font-size:13px;font-weight:600;color:#1e3a5f;letter-spacing:0.01em;
   font-family:'Outfit',sans-serif;
 }
 .slime-chat-bar-input{
@@ -364,18 +364,18 @@ body.app-initializing{visibility:hidden}
 
 /* 챗봇 드롭다운 패널 */
 .slime-chat-panel{
-  position:fixed;top:58px;right:20px;left:auto;width:340px;
+  position:fixed;top:58px;right:20px;left:auto;width:480px;
   background:#fff;border:1.5px solid #dde8f2;border-radius:20px;
   box-shadow:0 8px 40px rgba(30,58,95,0.13);
-  z-index:9999;overflow:hidden;
+  z-index:999999;overflow:hidden;
   animation:fadeUp 0.18s ease both;
   display:flex;flex-direction:column;
-  max-height:420px;min-width:320px;
+  max-height:600px;min-width:420px;
 }
 .slime-chat-msgs{
-  flex:1;overflow-y:auto;padding:14px 14px 8px;
-  display:flex;flex-direction:column;gap:10px;
-  max-height:300px;
+  flex:1;overflow-y:auto;padding:16px 16px 10px;
+  display:flex;flex-direction:column;gap:12px;
+  max-height:440px;
   scrollbar-width:thin;scrollbar-color:#e2e8f0 transparent;
 }
 .slime-chat-msgs::-webkit-scrollbar{width:4px}
@@ -387,11 +387,11 @@ body.app-initializing{visibility:hidden}
 .slime-chat-bubble-avatar{
   width:28px;height:28px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
+  overflow:visible;
 }
 .slime-chat-bubble-text{
-  max-width:78%;padding:9px 13px;border-radius:16px;
-  font-size:14px;line-height:1.5;color:#1e3a5f;
+  max-width:82%;padding:11px 15px;border-radius:16px;
+  font-size:15px;line-height:1.65;color:#1e3a5f;
   background:#f1f7ff;border:1px solid #dbeafe;
   border-bottom-left-radius:4px;
   word-break:break-word;
@@ -3028,7 +3028,8 @@ let DB = {
   books: [],          // books + words join
   collections: [],    // collections 테이블
   files: [],          // vault_files 테이블
-  progress: {}        // { "userId_bookId": { rounds, quizScores, wrongWords } }
+  progress: {},       // { "userId_bookId": { rounds, quizScores, wrongWords } }
+  taskOptions: {}     // { "bookId": { flashcard, quiz_choice_en2ko, ... } } — 학생용
 };
 
 // =========================================================
@@ -3114,8 +3115,8 @@ async function loadDB() {
           ? sb.from('progress').select('*').in('student_id', myStudentIds)
           : Promise.resolve({ data: [] }),
         isAdmin
-          ? sb.from('assignments').select('student_id, book_id')
-          : sb.from('assignments').select('student_id, book_id')
+          ? sb.from('assignments').select('student_id, book_id, task_options')
+          : sb.from('assignments').select('student_id, book_id, task_options')
               .in('student_id', myStudentIds.length ? myStudentIds : ['00000000-0000-0000-0000-000000000000'])
       ]);
 
@@ -3152,10 +3153,19 @@ async function loadDB() {
           u.assigned = assigns.filter(a => a.student_id === u.id).map(a => a.book_id);
         });
       }
+      // taskOptions 맵 (선생님: 학생별 book_id → options)
+      DB.taskOptions = {};
+      (assigns||[]).forEach(a => {
+        if (a.task_options) {
+          const key = a.student_id + '_' + a.book_id;
+          try { DB.taskOptions[key] = typeof a.task_options === 'string' ? JSON.parse(a.task_options) : a.task_options; }
+          catch(e) {}
+        }
+      });
 
     } else {
       // 학생: 배포된 단어장만 로드
-      const { data: assigns } = await sb.from('assignments').select('book_id').eq('student_id', uid);
+      const { data: assigns } = await sb.from('assignments').select('book_id, task_options').eq('student_id', uid);
       const bookIds = (assigns || []).map(a => a.book_id);
 
       const [booksRes, progressRes, teachersRes] = await Promise.all([
@@ -3178,6 +3188,14 @@ async function loadDB() {
       }));
       // 학생 currentUser에 assigned 직접 설정 (getAssignedBooks가 이걸 참조)
       currentUser.assigned = bookIds;
+      // task_options 맵: bookId → task_options 객체
+      DB.taskOptions = {};
+      (assigns||[]).forEach(a => {
+        if (a.task_options) {
+          try { DB.taskOptions[a.book_id] = typeof a.task_options === 'string' ? JSON.parse(a.task_options) : a.task_options; }
+          catch(e) {}
+        }
+      });
       // 선생님 목록도 포함 (답장 기능에서 필요)
       const teachers = (teachersRes.data || []).map(t => ({ ...t, username: t.name, assigned: [] }));
       DB.users = [{ ...currentUser, assigned: bookIds }, ...teachers];
@@ -3697,10 +3715,11 @@ async function doLogout() {
   clearTimeout(_sessionTimer);
   await sb.auth.signOut();
   currentUser = null;
-  DB = { users: [], books: [], collections: [], files: [], progress: {} };
+  DB = { users: [], books: [], collections: [], files: [], progress: {}, taskOptions: {} };
   DB_sentBooks = []; DB_sentItems = {}; DB_sentColls = [];
   DB_quizLogs = null;
   DB_msgInbox = null; DB_msgSent = null;
+  _slimeChatHistory = []; // 챗봇 히스토리 초기화
   // 민감 캐시 정리 (API 키는 유지, 로그인 관련만)
   clearLoginFailures();
   document.getElementById('login-screen').style.display = 'flex';
@@ -3995,7 +4014,7 @@ function slimeSVG({ size=120, bodyType='Blob', core=['#86e8b8','#22a862'],
   const topY = cy - rh*0.88;
   let stageAcc = '';
   if (stageIdx >= 2) {
-    stageAcc = `<text x="${cx-rw*0.42}" y="${topY-4}" font-size="${rw*0.28}" fill="#a78bfa" opacity=".85">✦</text><text x="${cx+rw*0.30}" y="${topY-8}" font-size="${rw*0.20}" fill="#a78bfa" opacity=".65">✦</text>`;
+    stageAcc = `<text x="${cx-rw*0.42}" y="${topY-4}" font-size="${rw*0.28}" fill="${c0}" opacity=".85">✦</text><text x="${cx+rw*0.30}" y="${topY-8}" font-size="${rw*0.20}" fill="${c0}" opacity=".65">✦</text>`;
   }
 
   // 수동 악세서리
@@ -4026,8 +4045,21 @@ function slimeSVG({ size=120, bodyType='Blob', core=['#86e8b8','#22a862'],
   else if (effect==='smoke') fxBack=`<ellipse cx="${cx-rw*0.28}" cy="${topY-13}" rx="9" ry="7" fill="${light}" opacity=".55"/><ellipse cx="${cx+rw*0.10}" cy="${topY-21}" rx="7" ry="6" fill="${light}" opacity=".40"/>`;
   else if (effect==='flame') fxBack=`<text x="${cx-9}" y="${topY-7}" font-size="16">🔥</text>`;
 
-  // 오라
-  const auraColor = aura || (stageIdx===2 ? 'rgba(167,139,250,0.55)' : stageIdx===3 ? 'rgba(251,191,36,0.70)' : null);
+  // 오라 (슬라임 색상 기반)
+  function hexToRgbVals(hex) {
+    const h = hex.replace('#','');
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return isNaN(r) ? null : [r,g,b];
+  }
+  let auraColor = aura || null;
+  if (!auraColor && stageIdx >= 2) {
+    if (stageIdx >= 3) {
+      auraColor = 'rgba(251,191,36,0.70)';
+    } else {
+      const rgb = hexToRgbVals(c0);
+      auraColor = rgb ? `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.70)` : 'rgba(167,139,250,0.55)';
+    }
+  }
   let auraEl = '';
   if (auraColor) {
     auraEl=`<ellipse cx="${cx}" cy="${cy+rh*0.10}" rx="${rw*1.20}" ry="${rh*1.16}" fill="none" stroke="${auraColor}" stroke-width="${rw*0.075}" opacity=".55"/><ellipse cx="${cx}" cy="${cy+rh*0.10}" rx="${rw*1.36}" ry="${rh*1.32}" fill="none" stroke="${auraColor}" stroke-width="${rw*0.038}" opacity=".28"/>`;
@@ -4444,37 +4476,29 @@ function buildStudentTopbar() {
   right.innerHTML = `
     <div style="display:flex;align-items:center;gap:20px;position:relative">
       <!-- 슬라임 챗봇 바 -->
-      <div class="slime-chat-bar" id="slime-chat-bar">
-        <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
+      <div class="slime-chat-bar" id="slime-chat-bar" onmousedown="event.stopPropagation();stOpenChat()" style="padding:0;overflow:hidden;gap:0;">
+        <div class="slime-chat-bar-avatar" style="border-radius:0;background:#f1f5f9;border:none;border-right:1px solid #e2e8f0;padding:0 12px 0 8px;height:100%;gap:6px;" title="슬라임과 대화하기">
           ${buildMiniSlimeSVG(slime.stage,22,{colorId:slime.colorId})}
           <span class="slime-chat-bar-avatar-name">${slime.slimeName||'슬라임'}</span>
         </div>
-        ${currentUser?.role === 'teacher' ? `
-        <select class="slime-chat-ai-select" id="slime-chat-ai-select" title="AI 선택" onchange="slimeChatSaveAI(this.value)">
-          <option value="gemini">Gemini</option>
-          <option value="cerebras">Cerebras</option>
-          <option value="groq">Groq</option>
-        </select>` : ''}
         <input class="slime-chat-bar-input" id="slime-chat-input"
-          placeholder="슬라임에게 질문하기"
+          placeholder="슬라임에게 물어보세요"
           onkeydown="if(event.key==='Enter')slimeChatSend()"
           oninput="const s=document.getElementById('slime-chat-send');if(s)s.classList.toggle('visible',this.value.trim().length>0||!!_slimePendingImage)"
-          onfocus="const p=document.getElementById('slime-chat-panel');if(p&&p.style.display==='none')stOpenChat()">
+          style="padding:0 10px;">
         <!-- 이미지 첨부 숨김 input -->
         <input type="file" id="slime-img-input" accept="image/*" style="display:none" onchange="slimeChatImageSelected(this)">
-        <button class="slime-chat-bar-send" id="slime-chat-send" onclick="slimeChatSend()">
+        <button class="slime-chat-bar-send" id="slime-chat-send" onclick="slimeChatSend()" style="margin-right:5px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
-        <!-- 채팅 드롭다운 -->
-        <div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
       </div>
       <!-- 아이콘 그룹 -->
       <div style="display:flex;align-items:center;gap:4px">
         <!-- 젤리 배지 -->
         <div id="jelly-badge" title="젤리: AI 챗봇 사용권"
           style="display:flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;
-            background:#e8f0fe;border:1.5px solid #93c5fd;font-family:'Outfit',sans-serif;
-            font-size:13px;font-weight:700;color:#1e6bb8;cursor:default;white-space:nowrap;
+            background:#f1f5f9;border:1px solid #e2e8f0;font-family:'Outfit',sans-serif;
+            font-size:13px;font-weight:600;color:#475569;cursor:default;white-space:nowrap;
             user-select:none">
           🍬 ${typeof slime.jelly === 'number' ? slime.jelly : 10}
         </div>
@@ -4607,35 +4631,46 @@ async function _studyAskWithCtx(userMsg) {
   // 현재 열린 오버레이 탐지
   const activeOverlay = document.getElementById('study-overlay') ||
                         document.getElementById('sent-study-overlay') ||
-                        document.getElementById('word-view-overlay');
-  const inOverlay = !!activeOverlay;
+                        document.getElementById('word-view-overlay') ||
+                        document.getElementById('sent-book-overlay') ||
+                        document.getElementById('teacher-word-overlay') ||
+                        document.getElementById('teacher-sent-overlay') ||
+                        document.getElementById('word-test-overlay');
 
   // 히스토리에 유저 메시지 추가
   _slimeChatHistory.push({ role: 'user', content: userMsg });
 
   const slimeD = getSlimeData();
 
-  if (inOverlay) {
-    _studyOverlayChatRender(slimeD, activeOverlay);
-  } else {
-    const panel = document.getElementById('slime-chat-panel');
-    if (!panel || panel.style.display === 'none') stOpenChat();
-    _slimeChatRenderPanel();
-  }
+  // slime-chat-panel 열기 + 렌더
+  const panel = document.getElementById('slime-chat-panel');
+  if (!panel || panel.style.display === 'none') stOpenChat();
+  _slimeChatRenderPanel();
 
-  // 타이핑 인디케이터
-  const msgsEl = inOverlay
-    ? document.getElementById('overlay-chat-msgs')
-    : document.getElementById('slime-chat-msgs');
+  // 타이핑 인디케이터 — 헤더 슬라임 SVG cloneNode (그라디언트 ID 충돌 완전 방지)
+  const _hdrSVG = document.querySelector('#ov-float-chat svg') || document.querySelector('#slime-chat-panel .slime-chat-bubble-avatar svg');
+  let _tAvatarHTML;
+  if (_hdrSVG) {
+    const _cl = _hdrSVG.cloneNode(true);
+    _cl.setAttribute('width', '24'); _cl.setAttribute('height', '24');
+    _tAvatarHTML = _cl.outerHTML;
+  } else {
+    const _tSlime = getSlimeData();
+    const _tCol = getSlimeColor(_tSlime.colorId || 'mint');
+    _tAvatarHTML = slimeSVG({ size:24, core:[_tCol.a, _tCol.b], eyeStyle: _tSlime.eyeStyle||'round', stageIdx: _tSlime.stage||0, accessory:null, effect:null });
+  }
+  const typingHTML = '<div class="slime-chat-bubble-avatar">' + _tAvatarHTML + '</div>'
+    + '<div class="slime-chat-bubble-text slime-chat-bubble-typing"><span></span><span></span><span></span></div>';
+  const msgsEl = document.getElementById('slime-chat-msgs');
   if (msgsEl) {
     const typing = document.createElement('div');
     typing.className = 'slime-chat-bubble';
     typing.id = 'slime-typing';
-    typing.innerHTML = '<div style="width:24px;height:24px;min-width:24px;flex-shrink:0;overflow:hidden;border-radius:50%">' + buildMiniSlimeSVG(slimeD.stage, 24, {colorId: slimeD.colorId}) + '</div>'
-      + '<div class="slime-chat-bubble-text slime-chat-bubble-typing"><span></span><span></span><span></span></div>';
+    typing.innerHTML = typingHTML;
     msgsEl.appendChild(typing);
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
+
 
   // 젤리 확인 및 차감
   if (currentUser?.role === 'student') {
@@ -4643,9 +4678,10 @@ async function _studyAskWithCtx(userMsg) {
     if (!ok) {
       const t2 = document.getElementById('slime-typing');
       if (t2) t2.remove();
+      const t2ov = document.getElementById('slime-typing-ov');
+      if (t2ov) t2ov.remove();
       _slimeChatHistory.push({ role: 'assistant', content: '🍬 젤리가 없어요! 학습을 완료하면 젤리를 받을 수 있어요. (암기 +3 / 퀴즈 +2 / 문장 +2)' });
-      if (inOverlay) _studyOverlayChatRender(slimeD, activeOverlay);
-      else _slimeChatRenderPanel();
+      _slimeChatRenderPanel();
       return;
     }
   }
@@ -4656,73 +4692,299 @@ async function _studyAskWithCtx(userMsg) {
       + '\n\n[필수 규칙] 한자(漢字), 중국어, 일본어 문자 절대 사용 금지. 영어 단어와 예문은 반드시 영어로 그대로 표시. 예문을 쓸 때는 완전한 영어 문장을 써줘.';
     const messages = [
       { role: 'system', content: sysContent },
-      ..._slimeChatHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
+      ..._slimeChatHistory.slice(-10).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
     ];
 
     let reply = '';
 
-    // AI 선택: DB 공유 Groq 키 우선 → 로컬 설정 순
-    const groqKey = getAIKey('groq');
-    const selectedAI = slimeChatGetAI();
-
-    if (groqKey) {
-      // Groq (DB 공유키 or 로컬키)
-      const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-      for (let i = 0; i < groqModels.length; i++) {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqKey },
-          body: JSON.stringify({ model: groqModels[i], max_tokens: 1024, temperature: 0.7, messages })
-        });
-        const data = await res.json();
-        if (data.error) { if (i < groqModels.length - 1) continue; throw new Error(data.error.message || 'Groq 오류'); }
-        reply = data.choices?.[0]?.message?.content || '...';
-        break;
-      }
-
-    } else if (selectedAI === 'gemini' && getAIKey('gemini')) {
-      const key = getAIKey('gemini');
-      const sysC = messages.find(m => m.role === 'system')?.content || '';
-      const geminiContents = messages.filter(m => m.role !== 'system').map((m, i) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: (i === 0 && m.role === 'user' && sysC) ? sysC + '\n\n' + m.content : m.content }]
-      }));
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: geminiContents, generationConfig: { maxOutputTokens: 1024, temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'Gemini 오류');
-      const rawText = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '...';
-      reply = rawText.replace(/✦+/g, '').replace(/\n{3,}/g, '\n\n').trim() || '...';
-    } else if (selectedAI === 'cerebras' && getAIKey('cerebras')) {
-      const key = getAIKey('cerebras');
-      const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({ model: 'llama3.1-8b', max_tokens: 1024, temperature: 0.7, messages })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'Cerebras 오류');
-      reply = data.choices?.[0]?.message?.content || '...';
-    } else {
-      throw new Error('사용 가능한 AI 키가 없어요. AI Setting에서 키를 입력해주세요.');
-    }
+    // ── AI 폭포식 폴백: Groq → Cerebras → OpenRouter → Gemini ──
+    reply = await _callAI(messages, 1024, slimeChatGetAI());
 
     const t = document.getElementById('slime-typing');
     if (t) t.remove();
+    const tov = document.getElementById('slime-typing-ov');
+    if (tov) tov.remove();
+    reply = _sanitizeChatReply(reply);
     _slimeChatHistory.push({ role: 'assistant', content: reply });
-    if (inOverlay) _studyOverlayChatRender(slimeD, activeOverlay);
-    else _slimeChatRenderPanel();
+    _slimeChatRenderPanel();
 
   } catch(e) {
     const t = document.getElementById('slime-typing');
     if (t) t.remove();
+    const tov = document.getElementById('slime-typing-ov');
+    if (tov) tov.remove();
     _slimeChatHistory.push({ role: 'assistant', content: '오류: ' + e.message + ' 🫧' });
-    if (inOverlay) _studyOverlayChatRender(slimeD, activeOverlay);
-    else _slimeChatRenderPanel();
+    _slimeChatRenderPanel();
+    if (activeOverlay) _studyOverlayChatRender(slimeD, activeOverlay);
   }
+}
+
+/* ══════════════════════════════════════════════════
+   공통 AI 호출 헬퍼
+   텍스트: Groq(70b) → Gemini(flash) → Cerebras(70b) → GitHub(gpt-4o)
+   사진:   Groq Vision(4-scout) → Gemini Vision
+   ══════════════════════════════════════════════════ */
+async function _callSingleAI(ai, key, messages, maxTokens) {
+  if (ai === 'groq') {
+    const models = ['llama-3.3-70b-versatile'];
+    for (const model of models) {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.4, messages })
+      });
+      const d = await res.json();
+      if (!d.error) { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+    }
+    throw new Error('Groq 오류');
+  }
+  if (ai === 'cerebras') {
+    const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'llama-3.3-70b', max_tokens: maxTokens, temperature: 0.4, messages })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'Cerebras 오류');
+    { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+  }
+
+  if (ai === 'gemini') {
+    const sysC = messages.find(m => m.role === 'system')?.content || '';
+    const contents = messages.filter(m => m.role !== 'system').map((m, i) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: (i === 0 && m.role === 'user' && sysC) ? sysC + '\n\n' + m.content : m.content }]
+    }));
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=' + key, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 } })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'Gemini 오류');
+    const raw = (d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').replace(/✦+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    if (!raw) throw new Error('empty');
+    return raw;
+  }
+  if (ai === 'github') {
+    const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'gpt-4o', max_tokens: maxTokens, temperature: 0.4, messages })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'GitHub Models 오류');
+    { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+  }
+  throw new Error('알 수 없는 AI: ' + ai);
+}
+
+async function _callAI(messages, maxTokens, forcedAI) {
+  maxTokens = maxTokens || 1024;
+  let lastErr = '';
+
+  // 선생님이 특정 AI를 수동 선택한 경우 해당 AI만 시도
+  if (forcedAI && forcedAI !== 'auto') {
+    const key = getAIKey(forcedAI);
+    if (!key) throw new Error(forcedAI + ' API 키가 없어요. AI Setting에서 입력해주세요.');
+    return await _callSingleAI(forcedAI, key, messages, maxTokens);
+  }
+
+  // 문법 관련 질문 감지 → GitHub gpt-4o 우선 (정확도 최우선)
+  const _grammarKW = ['문법','시제','현재완료','과거완료','미래완료','수동태','능동태','관계대명사','관계부사','분사','동명사','부정사','to부정사','접속사','전치사','조동사','가정법','비교급','최상급','도치','강조','생략','일치','화법','구문','어법','품사','명사절','형용사절','부사절','현재진행','과거진행','현재완료진행'];
+  const _msgText = messages.map(m => typeof m.content === 'string' ? m.content : '').join(' ');
+  const _isGrammar = _grammarKW.some(kw => _msgText.includes(kw));
+  if (_isGrammar) {
+    const ghKey = getAIKey('github');
+    if (ghKey) {
+      try {
+        const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ghKey },
+          body: JSON.stringify({ model: 'gpt-4o', max_tokens: maxTokens, temperature: 0.4, messages })
+        });
+        const d = await res.json();
+        if (!d.error) { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; }
+        lastErr = d.error?.message || 'GitHub Models 오류';
+      } catch(e) { lastErr = e.message; }
+    }
+    // gpt-4o 실패 시 Gemini로 폴백 (Groq보다 정확)
+    const geminiKey2 = getAIKey('gemini');
+    if (geminiKey2) {
+      try {
+        const sysC2 = messages.find(m => m.role === 'system')?.content || '';
+        const contents2 = messages.filter(m => m.role !== 'system').map((m, i) => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: (i === 0 && m.role === 'user' && sysC2) ? sysC2 + '\n\n' + m.content : m.content }]
+        }));
+        const res2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=' + geminiKey2, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: contents2, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 } })
+        });
+        const d2 = await res2.json();
+        if (!d2.error) {
+          const raw2 = (d2.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').replace(/✦+/g,'').replace(/\n{3,}/g,'\n\n').trim();
+          if (raw2) return raw2;
+        }
+        lastErr = d2.error?.message || 'Gemini 오류';
+      } catch(e) { lastErr = e.message; }
+    }
+  }
+
+  // 폴백 순서: Groq(빠름) → Cerebras(빠름) → Gemini → GitHub(gpt-4o, 느리지만 정확)
+  // 1. Groq
+  const groqKey = getAIKey('groq');
+  if (groqKey) {
+    const models = ['llama-3.3-70b-versatile'];
+    for (const model of models) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqKey },
+          body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0.4, messages })
+        });
+        const d = await res.json();
+        if (d.error) {
+          const isRateLimit = (d.error.message||'').includes('Rate limit') || (d.error.message||'').includes('rate_limit') || d.error.code === 429 || d.error.status === 429;
+          if (isRateLimit) { lastErr = 'groq_ratelimit'; break; } // rate limit → 조용히 다음 AI로
+          lastErr = d.error.message || 'Groq 오류';
+          continue;
+        }
+        { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+      } catch(e) { lastErr = e.message; }
+    }
+  }
+
+  // 2. Cerebras
+  const cerebrasKey = getAIKey('cerebras');
+  if (cerebrasKey) {
+    try {
+      const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cerebrasKey },
+        body: JSON.stringify({ model: 'llama-3.3-70b', max_tokens: maxTokens, temperature: 0.4, messages })
+      });
+      const d = await res.json();
+      if (!d.error) { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+      lastErr = d.error.message || 'Cerebras 오류';
+    } catch(e) { lastErr = e.message; }
+  }
+
+  // 3. Gemini
+  const geminiKey = getAIKey('gemini');
+  if (geminiKey) {
+    try {
+      const sysC = messages.find(m => m.role === 'system')?.content || '';
+      const contents = messages.filter(m => m.role !== 'system').map((m, i) => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: (i === 0 && m.role === 'user' && sysC) ? sysC + '\n\n' + m.content : m.content }]
+      }));
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 } })
+      });
+      const d = await res.json();
+      if (!d.error) {
+        const raw = (d.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').replace(/✦+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+        if (!raw) throw new Error('empty');
+        return raw;
+      }
+      lastErr = d.error.message || 'Gemini 오류';
+    } catch(e) { lastErr = e.message; }
+  }
+
+  // 4. GitHub gpt-4o (느리지만 정확 — 최후 폴백)
+  const ghKey = getAIKey('github');
+  if (ghKey) {
+    try {
+      const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ghKey },
+        body: JSON.stringify({ model: 'gpt-4o', max_tokens: maxTokens, temperature: 0.4, messages })
+      });
+      const d = await res.json();
+      if (!d.error) { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+      lastErr = d.error.message || 'GitHub Models 오류';
+    } catch(e) { lastErr = e.message; }
+  }
+
+  if (lastErr === 'groq_ratelimit') throw new Error('잠시 후 다시 시도해줘! 🫧 (AI 사용량 초과)');
+  throw new Error(lastErr || 'AI 키가 없어요. AI Setting에서 키를 입력해주세요.');
+}
+
+async function _callAIWithImage(messages, imgData, maxTokens, forcedAI) {
+  maxTokens = maxTokens || 1500;
+  let lastErr = '';
+  const userText = (messages.filter(m=>m.role==='user').pop()?.content) || '이 문제를 풀어줘! 답과 풀이를 설명해줘.';
+  const sysMsg = messages.find(m => m.role === 'system')?.content || '';
+  const imgUrl = 'data:' + imgData.mimeType + ';base64,' + imgData.base64;
+
+  const tryGroqVision = async (key) => {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'meta-llama/llama-4-scout-17b-16e-instruct', max_tokens: maxTokens, temperature: 0.4,
+        messages: [
+          { role: 'system', content: sysMsg },
+          { role: 'user', content: [
+            { type: 'image_url', image_url: { url: imgUrl } },
+            { type: 'text', text: userText }
+          ]}
+        ]
+      })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'Groq Vision 오류');
+    { const _r = d.choices?.[0]?.message?.content; if (_r && _r.trim()) return _r; throw new Error('empty'); }
+  };
+
+  const tryGeminiVision = async (key) => {
+    const geminiModels = ['gemini-3.1-flash-lite-preview', 'gemini-3.1-flash-lite-preview-lite'];
+    for (const model of geminiModels) {
+      const imageMsg = { role: 'user', parts: [
+        { inline_data: { mime_type: imgData.mimeType, data: imgData.base64 } },
+        { text: userText }
+      ]};
+      const contents = [{ role: 'user', parts: [{ text: sysMsg }, ...imageMsg.parts] }];
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.6 } })
+      });
+      const d = await res.json();
+      if (d.error) {
+        const isQuota = (d.error.message||'').includes('quota')||(d.error.message||'').includes('RESOURCE_EXHAUSTED')||d.error.code===429;
+        if (isQuota) continue;
+        throw new Error(d.error.message || 'Gemini Vision 오류');
+      }
+      const raw = d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+      if (raw) return raw.replace(/✦+/g,'').replace(/\n{3,}/g,'\n\n').trim();
+    }
+    throw new Error('Gemini Vision 한도 초과');
+  };
+
+
+  // 수동 선택 시 해당 AI만
+  if (forcedAI && forcedAI !== 'auto') {
+    const key = getAIKey(forcedAI);
+    if (!key) throw new Error(forcedAI + ' API 키가 없어요.');
+    if (forcedAI === 'groq') return await tryGroqVision(key);
+    if (forcedAI === 'gemini') return await tryGeminiVision(key);
+    throw new Error(forcedAI + '은 사진 분석을 지원하지 않아요.');
+  }
+
+  // 폭포식: Groq Vision → OpenRouter Vision → Gemini Vision
+  const groqKey = getAIKey('groq');
+  if (groqKey) { try { return await tryGroqVision(groqKey); } catch(e) { lastErr = e.message; } }
+
+  if (orKey) { try { return await tryOrVision(orKey); } catch(e) { lastErr = e.message; } }
+
+  const geminiKey = getAIKey('gemini');
+  if (geminiKey) { try { return await tryGeminiVision(geminiKey); } catch(e) { lastErr = e.message; } }
+
+  throw new Error(lastErr || '사진 분석 가능한 AI 키가 없어요. Groq 또는 Gemini 키를 입력해주세요.');
 }
 
 // ── 오버레이 전용 채팅 패널 렌더러 ──────────────────────
@@ -4739,6 +5001,22 @@ function _escHtmlMsg(str) {
   return _escHtml(str).replace(/\n/g, '<br>');
 }
 
+function _closeOvFloatChat() {
+  const p = document.getElementById('ov-float-chat');
+  if (p) p.remove();
+}
+
+async function _ovFloatChatSend() {
+  const inp = document.getElementById('ov-float-chat-input');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.disabled = true;
+  try { await slimeChatSendMsg(text); }
+  finally { inp.disabled = false; setTimeout(function(){ inp.focus(); }, 50); }
+}
+
 function _closeOverlayChatPanel() {
   const p = document.getElementById('overlay-chat-panel');
   if (!p) return;
@@ -4746,42 +5024,87 @@ function _closeOverlayChatPanel() {
   p.innerHTML = ''; // 다음 열 때 재생성
 }
 
+function _studyOverlayChatEnsureOpen() {
+  const activeOverlay = document.getElementById('study-overlay') ||
+                        document.getElementById('sent-study-overlay') ||
+                        document.getElementById('word-view-overlay');
+  if (!activeOverlay) return;
+  const panel = activeOverlay.querySelector('#overlay-chat-panel') ||
+                document.getElementById('overlay-chat-panel');
+  if (panel && panel.style.display === 'none') {
+    const slime = getSlimeData();
+    _studyOverlayChatRender(slime, activeOverlay);
+  }
+}
+
 function _studyOverlayChatRender(slime, activeOverlay) {
-  // activeOverlay 안의 overlay-chat-panel을 찾거나, 없으면 getElementById fallback
-  const panel = (activeOverlay && activeOverlay.querySelector('#overlay-chat-panel'))
-    || document.getElementById('overlay-chat-panel');
-  if (!panel) return;
   slime = slime || getSlimeData();
   const col = getSlimeColor(slime.colorId);
 
-  panel.style.display = 'flex';
-  panel.style.flexDirection = 'column';
-
-  // 패널 구조가 없으면 처음 생성
-  if (!panel.querySelector('#overlay-chat-msgs')) {
-    panel.innerHTML =
-      '<div style="padding:10px 14px 8px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,' + col.a + '18,' + col.b + '10);flex-shrink:0">'
-        + '<div style="width:24px;height:24px;flex-shrink:0;overflow:hidden">' + buildMiniSlimeSVG(slime.stage, 24, {colorId: slime.colorId}) + '</div>'
-        + '<div style="font-size:14px;font-weight:700;color:#1e3a5f;flex:1">' + (slime.slimeName || '슬라임') + '</div>'
-        + '<button onclick="_closeOverlayChatPanel()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:2px 4px">✕</button>'
-      + '</div>'
-      + '<div id="overlay-chat-msgs" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-height:100px;max-height:320px"></div>';
+  // document.body에 직접 고정 패널 생성 (overlay overflow:hidden 영향 없음)
+  let panel = document.getElementById('ov-float-chat');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'ov-float-chat';
+    panel.style.cssText = 'position:fixed;top:72px;right:20px;width:480px;max-height:600px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;box-shadow:0 8px 40px rgba(30,58,95,0.13);z-index:99999;display:flex;flex-direction:column;overflow:hidden';
+    // 헤더
+    const ovHdr = document.createElement('div');
+    ovHdr.style.cssText = 'padding:10px 14px 8px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,' + col.a + '18,' + col.b + '10);flex-shrink:0';
+    ovHdr.innerHTML = '<div style="width:24px;height:24px;flex-shrink:0;overflow:hidden">' + buildMiniSlimeSVG(slime.stage, 24, {colorId: slime.colorId}) + '</div>'
+      + '<div style="font-size:14px;font-weight:700;color:#1e3a5f;flex:1">' + (slime.slimeName || '슬라임') + '</div>'
+      + '<button onclick="_closeOvFloatChat()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:2px 4px">✕</button>';
+    panel.appendChild(ovHdr);
+    // 메시지 영역
+    const ovMsgs = document.createElement('div');
+    ovMsgs.id = 'ov-float-chat-msgs';
+    ovMsgs.style.cssText = 'flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-height:100px;max-height:320px';
+    panel.appendChild(ovMsgs);
+    // 입력 영역 (createElement로 이벤트 직접 바인딩 - 따옴표 충돌 없음)
+    const ovFooter = document.createElement('div');
+    ovFooter.style.cssText = 'padding:8px 12px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:6px;flex-shrink:0';
+    const ovInp = document.createElement('input');
+    ovInp.id = 'ov-float-chat-input';
+    ovInp.type = 'text';
+    ovInp.placeholder = '슬라임에게 물어보세요';
+    ovInp.style.cssText = 'flex:1;border:1.5px solid #e2e8f0;border-radius:20px;padding:7px 14px;font-size:13px;outline:none';
+    ovInp.addEventListener('keydown', function(e){ if(e.key==='Enter') _ovFloatChatSend(); });
+    ovInp.addEventListener('focus', function(){ this.style.borderColor='#7C6FF7'; });
+    ovInp.addEventListener('blur', function(){ this.style.borderColor='#e2e8f0'; });
+    const ovBtn = document.createElement('button');
+    ovBtn.style.cssText = 'width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7C6FF7,#a78bfa);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    ovBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+    ovBtn.addEventListener('click', function(){ _ovFloatChatSend(); });
+    ovFooter.appendChild(ovInp);
+    ovFooter.appendChild(ovBtn);
+    panel.appendChild(ovFooter);
+    document.body.appendChild(panel);
+    setTimeout(function(){ ovInp.focus(); }, 80);
   }
 
-  const msgsEl = panel.querySelector('#overlay-chat-msgs');
+
+  const msgsEl = document.getElementById('ov-float-chat-msgs');
   if (!msgsEl) return;
 
-  msgsEl.innerHTML = _slimeChatHistory.map(function(m) {
-    if (m.role === 'user') {
-      return '<div class="slime-chat-bubble user"><div class="slime-chat-bubble-text">' + _escHtmlMsg(m.content) + '</div></div>';
-    }
-    const avatarHTML = '<div style="width:24px;height:24px;min-width:24px;flex-shrink:0;overflow:hidden;border-radius:50%">'
+  if (_slimeChatHistory.length === 0) {
+    const avatarHTML = '<div class="slime-chat-bubble-avatar">'
       + buildMiniSlimeSVG(slime.stage, 24, {colorId: slime.colorId}) + '</div>';
-    return '<div class="slime-chat-bubble">'
+    msgsEl.innerHTML = '<div class="slime-chat-bubble">'
       + avatarHTML
-      + '<div class="slime-chat-bubble-text">' + _escHtmlMsg(m.content) + '</div>'
+      + '<div class="slime-chat-bubble-text">' + _slimeChatGreeting(slime) + '</div>'
       + '</div>';
-  }).join('');
+  } else {
+    msgsEl.innerHTML = _slimeChatHistory.map(function(m) {
+      if (m.role === 'user') {
+        return '<div class="slime-chat-bubble user"><div class="slime-chat-bubble-text">' + _escHtmlMsg(m.content) + '</div></div>';
+      }
+      const avatarHTML = '<div class="slime-chat-bubble-avatar">'
+        + buildMiniSlimeSVG(slime.stage, 24, {colorId: slime.colorId}) + '</div>';
+      return '<div class="slime-chat-bubble">'
+        + avatarHTML
+        + '<div class="slime-chat-bubble-text">' + _escHtmlMsg(m.content) + '</div>'
+        + '</div>';
+    }).join('');
+  }
 
   setTimeout(function() {
     if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
@@ -4902,63 +5225,15 @@ function slimeChatClearImage() {
 
 // 이미지 포함 메시지를 AI에 전송
 async function slimeChatSendWithImage(text, imgData) {
-  const selectedAI = slimeChatGetAI();
   const systemMsg = _slimeChatPersonality();
   const userText = text || '이 문제를 풀어줘! 답과 풀이를 설명해줘.';
-
-  // ── Gemini Vision (최우선) ──
-  // Groq·Cerebras는 이미지 미지원 → Gemini로 강제 전환
-  const useGemini = selectedAI === 'gemini' || selectedAI === 'groq' || selectedAI === 'cerebras';
-
-  if (useGemini) {
-    const key = getAIKey('gemini');
-    if (!key) {
-      showToast('📷 이미지 분석은 Gemini API 키가 필요해요! AI Setting에서 입력해주세요.', 'error');
-      openApiKeyModal('gemini');
-      throw new Error('Gemini 키 없음');
-    }
-
-    // 히스토리에서 이전 텍스트 대화 가져오기 (이미지 제외)
-    const prevMsgs = _slimeChatHistory
-      .filter(m => typeof m.content === 'string')
-      .slice(-6) // 최근 6턴만
-      .map((m, i) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: i === 0 ? (systemMsg + '\n\n' + m.content) : m.content }]
-      }));
-
-    const imageMsg = {
-      role: 'user',
-      parts: [
-        { inline_data: { mime_type: imgData.mimeType, data: imgData.base64 } },
-        { text: userText }
-      ]
-    };
-
-    // 첫 메시지면 시스템 프롬프트를 인라인으로 포함
-    const contents = prevMsgs.length > 0
-      ? [...prevMsgs, imageMsg]
-      : [{ role: 'user', parts: [{ text: systemMsg }, ...imageMsg.parts] }];
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: { maxOutputTokens: 1500, temperature: 0.6, thinkingConfig: { thinkingBudget: 0 } }
-        })
-      }
-    );
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || 'Gemini Vision 오류');
-    const raw = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '...';
-    return raw.replace(/✦+/g, '').replace(/\n{3,}/g, '\n\n').trim() || '...';
-  }
-
-  throw new Error('이미지 분석을 지원하지 않는 AI예요. Gemini를 선택해주세요.');
+  const messages = [
+    { role: 'system', content: systemMsg },
+    { role: 'user', content: userText }
+  ];
+  return await _callAIWithImage(messages, imgData, 1500, slimeChatGetAI());
 }
+
 
 let _slimeChatHistory = []; // {role, content | content:[{type,text/image_url}]}
 
@@ -5046,36 +5321,49 @@ function _slimeChatPersonality() {
   const stage = slime.stage || 0;
   const name = slime.slimeName || '슬라임';
   const stageNames = ['베이비 슬라임','루키 슬라임','마스터 슬라임','가디언 슬라임'];
-  const personalities = [
-    `너는 "${name}"이라는 이름의 베이비 슬라임이야. 아직 아기라서 말투가 귀엽고 서툴러. 문장을 짧게 쓰고 "~요", "~해요" 체로만 말해. 가끔 "뿌잉~", "으아~" 같은 감탄사를 써. 이모지를 자주 써. 모르는 게 있으면 솔직하게 "몰라요!" 라고 해.`,
-    `너는 "${name}"이라는 이름의 루키 슬라임이야. 씩씩하고 긍정적인 말투야. 문장 끝에 "~해!", "~이야!" 처럼 활기차게 끝맺어. 학생의 영어 공부를 열심히 응원해줘. 이모지를 적당히 써.`,
-    `너는 "${name}"이라는 이름의 마스터 슬라임이야. 지혜롭고 차분한 선생님 말투야. "~합니다", "~세요" 같은 정중한 존댓말을 써. 이모지는 절제해서 써.`,
-    `너는 "${name}"이라는 이름의 가디언 슬라임이야. 전설적인 존재로 카리스마 있고 심오한 말투를 써. "~하라", "~이다" 같은 단호한 어투를 써. 영어와 학습에 대해 철학적인 조언도 해. 가끔 짧은 영어 명언을 인용해. 이모지는 ⚡ ✨ 만 가끔 써.`
+  const tones = [
+    `말투는 귀엽고 수줍게. "~했어요?", "~해봐요!", "~맞죠?" 같은 식으로 친근하게 말해. 이모지 많이 써. 학생이 잘 하면 "우와 대단해요! 🌟" 같이 리액션해줘.`,
+    `말투는 친구처럼 편하게. "~했어?", "~해봐!", "어렵지 않아!" 같은 식으로 말해. 이모지 적당히 써. 학생을 응원하고 격려해줘.`,
+    `말투는 따뜻한 선배처럼. "~해요", "~해볼까요?", "이렇게 생각해봐요" 같은 식으로 말해. 편안하고 자신감 있게.`,
+    `말투는 깊고 여유 있게. "~해봐", "~이거든", "생각해봤어?" 같은 식으로 말해. ⚡✨ 이모지만 가끔. 학생이 스스로 깨닫도록 유도해.`
   ];
+
   const assignedBooks = getAssignedBooks ? getAssignedBooks() : [];
-  const bookNames = assignedBooks.slice(0,5).map(b=>b.name).join(', ');
-  const sentBooks = (DB_sentBooks||[]).slice(0,5).map(b=>b.name).join(', ');
+  const bookNames = assignedBooks.slice(0, 5).map(b => b.name).join(', ');
+  const sentBooks = (DB_sentBooks || []).slice(0, 5).map(b => b.name).join(', ');
 
-  return `${personalities[stage]}
+  return `[역할 정의]
+너는 ION English 학원의 영어 학습 파트너 슬라임 멘토야. 20년 경력의 영어 교육 전문가이자, 학생과 함께 성장하는 친근한 존재야.
+이름은 ${name}이고, ${tones[Math.min(stage, 3)]}
 
-너의 역할:
-1. 영어 학습 도우미: 단어 뜻, 예문, 발음, 문법 질문에 답해줘
-2. 자유 대화: 학생의 이야기를 들어주고 공감해줘
-3. 학습 격려: 공부하기 싫을 때 동기부여 해줘
-4. 퀴즈 출제: "단어 퀴즈 내줘" 같은 요청에 간단한 퀴즈를 내줘
-5. 문제집 풀기: 사진으로 문제집을 보내면 문제를 읽고 답과 풀이를 친절하게 설명해줘. 영어 문제라면 단어·문법·해석을 포함해서 설명해줘.
+[오개념 방지 및 설명 원칙]
+* 단계적 분석: 답변을 출력하기 전에 스스로 문법적 정확성을 먼저 검토해. 확실하지 않은 정보는 추측해서 말하지 말고, 표준 영문법(Cambridge/Oxford)에 근거해서 설명해. 불확실하면 "이건 상황에 따라 조금씩 달라질 수 있어"라고 솔직하게 말해줘.
+* 교과 과정 기준: 한국 교육부 영어 교과 과정 기준에 맞춰 설명해. 초등(3~6학년), 중학교(1~3학년), 고등학교(1~3학년) 수준에 맞는 정확한 개념과 용어만 사용해.
+* 쉬운 비유 사용: 딱딱한 문법 용어 대신 슬라임이나 아이들의 눈높이에 맞는 사물에 비유해줘. (예: 주어는 기차의 기관차, 동사는 엔진, 목적어는 목적지!)
+* 실제 예문 필수: 모든 설명 뒤에는 반드시 실제로 사용되는 완성된 영어 문장을 쓰고, 바로 다음 줄에 해석을 달아줘. 예문 자리를 절대 비워두지 마.
 
-현재 학생 정보:
-- 이름: ${currentUser?.name || '학생'}
-- 레벨: Lv.${stage+1} (${stageNames[stage]})
-- 배포된 단어장: ${bookNames || '없음'}
-- 배포된 문장집: ${sentBooks || '없음'}${slimeMemoryBuildContext()}
+[대화 가이드라인]
+* 공감 먼저: 학생의 질문에 먼저 공감해줘. "우와, 이 문법이 궁금했구나!"처럼 친근하게 시작해.
+* 핵심 설명: 개념 이해 → 원리 파악 → 암기 순서로 설명해. 문장은 짧게 끊어서 단락을 나눠 가독성 있게 써.
+* 오류 교정: 학생이 잘못 알고 있는 내용이 있다면 "그렇게 생각할 수도 있겠다!"라고 먼저 다독인 뒤 올바른 개념으로 안내해줘.
+* 확인 질문: 설명이 끝난 뒤 자연스럽게 이해 여부를 물어봐줘.
 
-답변은 완전한 문장으로 써. 문장을 중간에 끊지 마. 예문을 쓸 때는 반드시 실제 영어 문장을 완성해서 써. 절대로 따옴표 안을 비워두거나 빈 칸으로 남기지 마.
-반드시 한국어로 답해. 영어 단어·예문은 꼭 필요할 때만 짧게 인용하고, 영어로 설명하거나 영어 문장을 길게 쓰지 마. 단, 설명 중인 개념의 예문은 써도 돼.
-한자, 중국어, 일본어, 기타 외국어는 절대 사용하지 마. 한국어 설명은 순수 한글로만 써.
-위의 말투 지시를 반드시 따르되, 지시문 자체를 응답에 그대로 쓰지 마.`;
+[형식 규칙]
+* 굵게(**) 표시 절대 금지. 단락 나눔과 빈 줄로만 가독성 확보.
+* 설명은 한국어로, 영어 단어와 예문은 영어로 써.
+* 영어와 한국어 외 다른 언어는 쓰지 마.
+
+[학생 정보]
+이름: ${currentUser?.name || '학생'} | 레벨: Lv.${stage + 1} (${stageNames[stage]})
+단어장: ${bookNames || '없음'} | 문장집: ${sentBooks || '없음'}${slimeMemoryBuildContext()}
+학생의 이전 학습 기록이나 저장된 단어를 언급하며 개인화된 대화를 해줘.`;
+
+
+
+
+
 }
+
 
 function _slimeChatGreeting(slime) {
   const name = slime.slimeName || '슬라임';
@@ -5123,9 +5411,10 @@ function _slimeChatRenderPanel() {
   const col = getSlimeColor(slime.colorId);
 
   const quickBtns = [
-    { label:'단어 퀴즈 내줘 🎯', msg:'단어 퀴즈 내줘!' },
-    { label:'오늘 공부 어떻게 할까?', msg:'오늘 영어 공부 어떻게 하면 좋을지 추천해줘!' },
-    { label:'영어 한마디 알려줘', msg:'오늘의 영어 표현 하나 알려줘!' },
+    { label:'단어 퀴즈 내줘', msg:'단어 퀴즈 내줘!' },
+    { label:'오늘 공부 추천', msg:'오늘 영어 공부 어떻게 하면 좋을지 추천해줘!' },
+    { label:'영어 한마디', msg:'오늘의 영어 표현 하나 알려줘!' },
+    { label:'틀린 표현 고쳐줘', msg:'제 영어 문장에서 자주 틀리는 표현이나 문법을 알려줘!' },
   ];
 
   const msgsHTML = _slimeChatHistory.map(m => {
@@ -5151,14 +5440,24 @@ function _slimeChatRenderPanel() {
   }).join('');
 
   panel.innerHTML = `
-    <div style="padding:12px 14px 10px;border-bottom:1px solid #f1f5f9;
+    <div style="padding:10px 12px 9px;border-bottom:1px solid #f1f5f9;
       display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,${col.a}18,${col.b}10)">
-      <div style="width:28px;height:28px">${buildMiniSlimeSVG(slime.stage,28,{colorId:slime.colorId})}</div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#1e3a5f">${slime.slimeName||'슬라임'}</div>
-        <div style="font-size:12px;color:#7ea8cc">Lv.${slime.stage+1} · 언제든지 물어봐!</div>
+      <div style="width:26px;height:26px;flex-shrink:0">${buildMiniSlimeSVG(slime.stage,26,{colorId:slime.colorId})}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#1e3a5f">${slime.slimeName||'슬라임'}</div>
+        <div style="font-size:11px;color:#7ea8cc">Lv.${slime.stage+1} · 언제든지 물어봐!</div>
       </div>
-      <button onclick="stCloseAll()" style="margin-left:auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;line-height:1;padding:2px">✕</button>
+      ${currentUser?.role === 'teacher' ? `
+      <select id="slime-chat-ai-select" title="AI 선택" onchange="slimeChatSaveAI(this.value)"
+        onclick="event.stopPropagation()"
+        style="font-size:11px;font-weight:600;color:#534AB7;background:#EEF0FE;border:1px solid #C8C4F8;border-radius:8px;padding:3px 6px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;max-width:72px;text-align:center;">
+        <option value="auto">🔄 자동</option>
+        <option value="groq">⚡ Groq</option>
+        <option value="gemini">✨ Gemini</option>
+        <option value="cerebras">🧠 Cerebras</option>
+        <option value="github">🐙 GitHub</option>
+      </select>` : ''}
+      <button onclick="stCloseAll()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;line-height:1;padding:2px;flex-shrink:0">✕</button>
     </div>
     <div class="slime-chat-msgs" id="slime-chat-msgs">
       ${_slimeChatHistory.length === 0 ? `
@@ -5179,9 +5478,9 @@ function _slimeChatRenderPanel() {
           <button onclick="slimeChatClearImage()" style="width:22px;height:22px;flex-shrink:0;border:none;background:#e8e5ff;border-radius:50%;color:#7C6FF7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
         </div>
       ` : ''}
-      <!-- 퀵버튼 -->
-      <div style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;width:100%;margin-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
-        ${quickBtns.map(q=>`<button class="slime-chat-quick" style="white-space:nowrap;flex-shrink:0" onclick="slimeChatSendMsg('${q.msg}')">${q.label}</button>`).join('')}
+      <!-- 퀵버튼 2×2 그리드 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;width:100%;margin-bottom:8px;">
+        ${quickBtns.map(q=>`<button class="slime-chat-quick" onclick="slimeChatSendMsg('${q.msg}')" style="white-space:normal;text-align:center;line-height:1.3;padding:7px 6px;font-size:12px;">${q.label}</button>`).join('')}
       </div>
       <!-- 패널 내부 입력창 -->
       <div style="display:flex;align-items:center;gap:6px;width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:24px;padding:4px 6px;box-sizing:border-box"
@@ -5217,18 +5516,24 @@ function _slimeChatRenderPanel() {
   }, 50);
 }
 
+let _slimePanelJustOpened = false;
 function stOpenChat() {
   const panel = document.getElementById('slime-chat-panel');
   if (!panel) return;
-  // 알림·프로필 닫기
   const notif = document.getElementById('st-notif-panel');
   const profile = document.getElementById('st-profile-panel');
   if (notif) notif.style.display = 'none';
   if (profile) profile.style.display = 'none';
 
+  panel.style.animation = 'none';
   panel.style.display = 'flex';
+  panel.offsetHeight;
+  panel.style.animation = '';
   _slimeChatRenderPanel();
-  // 패널 열릴 때 입력창 포커스 (모바일 키보드 자동 올라옴)
+
+  _slimePanelJustOpened = true;
+  setTimeout(() => { _slimePanelJustOpened = false; }, 300);
+
   setTimeout(() => {
     const pi = document.getElementById('slime-panel-input');
     if (pi) pi.focus();
@@ -5269,13 +5574,26 @@ async function _slimePanelSend() {
 }
 
 
+function _openOvFloatChat() {
+  const activeOverlay = document.getElementById('study-overlay') ||
+                        document.getElementById('sent-study-overlay') ||
+                        document.getElementById('word-view-overlay') ||
+                        document.getElementById('sent-book-overlay') ||
+                        document.getElementById('teacher-word-overlay') ||
+                        document.getElementById('teacher-sent-overlay') ||
+                        document.getElementById('word-test-overlay');
+  if (!activeOverlay) return;
+  if (document.getElementById('ov-float-chat')) return;
+  _studyOverlayChatRender(null, activeOverlay);
+}
+
 function stToggleChat() {
   const panel = document.getElementById('slime-chat-panel');
   if (!panel) return;
-  if (panel.style.display === 'none') {
-    stOpenChat();
-  } else {
+  if (panel.style.display === 'flex') {
     panel.style.display = 'none';
+  } else {
+    stOpenChat();
   }
 }
 
@@ -5351,9 +5669,12 @@ async function slimeChatSendMsg(text) {
     }
   }
 
-  // 패널 열려있지 않으면 열기
-  const panel = document.getElementById('slime-chat-panel');
-  if (!panel || panel.style.display === 'none') stOpenChat();
+  // 패널 열려있지 않으면 열기 (오버레이 중엔 건너뜀)
+  const _smAov = document.getElementById('study-overlay')||document.getElementById('sent-study-overlay')||document.getElementById('word-view-overlay')||document.getElementById('sent-book-overlay')||document.getElementById('teacher-word-overlay')||document.getElementById('teacher-sent-overlay')||document.getElementById('word-test-overlay');
+  if (!_smAov) {
+    const panel = document.getElementById('slime-chat-panel');
+    if (!panel || panel.style.display === 'none') stOpenChat();
+  }
 
   _slimeChatHistory.push({ role: 'user', content: text });
   _slimeChatRenderPanel();
@@ -5375,67 +5696,18 @@ async function slimeChatSendMsg(text) {
   }
 
   try {
-    const selectedAI = slimeChatGetAI();
     const messages = [
       { role: 'system', content: _slimeChatPersonality() },
-      ..._slimeChatHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
+      ..._slimeChatHistory.slice(-10).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
     ];
-    let reply = '';
 
-    if (selectedAI === 'gemini') {
-      const key = getAIKey('gemini');
-      if (!key) { showToast('⚙️ Gemini API 키를 먼저 입력하세요.', 'error'); openApiKeyModal('gemini'); throw new Error('키 없음'); }
-      const sysContent = messages.find(m=>m.role==='system')?.content || '';
-      const geminiContents = messages.filter(m=>m.role!=='system').map((m,i)=>({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: (i===0 && m.role==='user' && sysContent) ? sysContent + '\n\n' + m.content : m.content }]
-      }));
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: { maxOutputTokens: 1024, temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } }
-        })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'Gemini 오류');
-      // thinking 마커 제거 후 텍스트 추출
-      const rawText = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '...';
-      reply = rawText.replace(/✦+/g,'').replace(/\n{3,}/g,'\n\n').trim() || '...';
+    // ── AI 폭포식 폴백 ──
+    let reply = await _callAI(messages, 800, slimeChatGetAI());
 
-    } else if (selectedAI === 'cerebras') {
-      const key = getAIKey('cerebras');
-      if (!key) { showToast('⚙️ Cerebras API 키를 먼저 입력하세요.', 'error'); openApiKeyModal('cerebras'); throw new Error('키 없음'); }
-      const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-        body: JSON.stringify({ model: 'llama3.1-8b', max_tokens: 800, temperature: 0.7, messages })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'Cerebras 오류');
-      reply = data.choices?.[0]?.message?.content || '...';
-
-    } else {
-      // Groq (기본)
-      const key = getAIKey('groq');
-      if (!key) { showToast('⚙️ Groq API 키를 먼저 입력하세요.', 'error'); openApiKeyModal('groq'); throw new Error('키 없음'); }
-      const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-      for (let i = 0; i < groqModels.length; i++) {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-          body: JSON.stringify({ model: groqModels[i], max_tokens: 800, temperature: 0.7, messages })
-        });
-        const data = await res.json();
-        if (data.error) { if (i < groqModels.length - 1) continue; throw new Error(data.error.message || 'Groq 오류'); }
-        reply = data.choices?.[0]?.message?.content || '...';
-        break;
-      }
-    }
 
     const t = document.getElementById('slime-typing');
     if (t) t.remove();
+    reply = _sanitizeChatReply(reply);
     _slimeChatHistory.push({ role: 'assistant', content: reply });
     slimeMemoryExtract(text, reply); // 🧠 기억 추출
     _slimeChatRenderPanel();
@@ -5447,31 +5719,25 @@ async function slimeChatSendMsg(text) {
   }
 }
 
-// 외부 클릭 시 채팅 패널 닫기 (기존 stCloseAll 외부클릭 로직 확장)
-document.addEventListener('click', function(e) {
-  const bar = document.getElementById('slime-chat-bar');
-  const panel = document.getElementById('slime-chat-panel');
-  if (!bar || !panel) return;
-  // 학습 탭 AI 버튼 클릭 시엔 닫지 않음
+
+
+// 외부 클릭 시 채팅 패널 닫기
+document.addEventListener('mousedown', function(e) {
+  if (_slimePanelJustOpened) return;
   if (e.target.closest && (
-    e.target.closest('#slime-chat-send') ||
+    e.target.closest('#slime-chat-panel') ||
+    e.target.closest('#ov-float-chat') ||
     e.target.closest('#slime-chat-bar') ||
+    e.target.closest('#overlay-slime-chat-bar') ||
     e.target.closest('.fc-ask-btn') ||
     e.target.closest('#fc-ask-btns') ||
-    e.target.closest('.wrong-ask-btn') ||
-    e.target.closest('#overlay-chat-panel') ||
-    e.target.closest('#overlay-slime-chat-bar')
+    e.target.closest('.wrong-ask-btn')
   )) return;
-  if (panel.style.display !== 'none') {
-    panel.style.display = 'none';
-  }
-  // 오버레이 채팅 패널 외부 클릭 시 닫기
-  const ovPanel = document.getElementById('overlay-chat-panel');
-  if (ovPanel && ovPanel.style.display !== 'none') {
-    ovPanel.style.display = 'none';
-    ovPanel.innerHTML = '';
-  }
-});
+  var ovp = document.getElementById('ov-float-chat');
+  if (ovp) ovp.remove();
+  var p = document.getElementById('slime-chat-panel');
+  if (p && p.style.display !== 'none') p.style.display = 'none';
+}, true); // ← 캡처 단계에서 실행
 
 function stToggleNotif() {
   const notif = document.getElementById('st-notif-panel');
@@ -5492,10 +5758,9 @@ function stToggleProfile() {
 function stCloseAll() {
   const notif = document.getElementById('st-notif-panel');
   const profile = document.getElementById('st-profile-panel');
-  const chat = document.getElementById('slime-chat-panel');
   if (notif) notif.style.display = 'none';
   if (profile) profile.style.display = 'none';
-  if (chat) chat.style.display = 'none';
+  // slime-chat-panel은 여기서 닫지 않음 — 자체 mousedown 핸들러가 담당
 }
 
 function stOpenSettings() {
@@ -5594,13 +5859,7 @@ function applySlimeTheme() {
   root.style.setProperty('--slime-a',      col.a);
   try { root.style.setProperty('--slime-accent-rgb', hexToRgb(col.b)); } catch(e) {}
   // 사이드바 상단 포인트
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) {
-    sidebar.style.borderTop = `3px solid ${col.b}`;
-  }
-  // 탑바 강조색
-  const topbar = document.querySelector('.topbar');
-  if (topbar) topbar.style.borderBottom = `2px solid ${col.b}25`;
+  // 탑바/사이드바 슬라임 테마 띠 제거됨
   // student-mode 클래스는 학생만
   if (currentUser.role === 'student') {
     document.body.classList.add('student-mode');
@@ -5701,6 +5960,7 @@ async function checkSession() {
     if (!profile) return; // profiles 없으면 로그인 화면 유지
 
     currentUser = { ...profile, email: session.user.email };
+    _slimeChatHistory = []; // 사용자 전환 시 챗봇 히스토리 초기화
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
       loadAIKeysFromDB(),   // AI 키 (app_settings + profiles — 2 RTT → 이미 내부 병렬화됨)
@@ -5804,7 +6064,7 @@ sb.auth.onAuthStateChange((event, session) => {
   }
   if (event === 'SIGNED_OUT') {
     currentUser = null;
-    DB = { users: [], books: [], collections: [], files: [], progress: {} };
+    DB = { users: [], books: [], collections: [], files: [], progress: {}, taskOptions: {} };
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app-shell').style.display = 'none';
   }
@@ -6838,36 +7098,180 @@ async function openBookStatusModal(bookId) {
 }
 
 // ── 단어장 보관함: 단어장 배포 ──
-function openBookAssignModal(bookId) {
+async function openBookAssignModal(bookId) {
   const b = (DB.books||[]).find(x=>x.id===bookId);
   if (!b) return;
   const students = (DB.users||[]).filter(u=>u.role==='student');
-  const assigned = new Set();
+
+  // 기존 배포 학생 + task_options 로드
+  let existingAssigns = [];
+  try {
+    const { data } = await sb.from('assignments').select('student_id, task_options').eq('book_id', bookId);
+    existingAssigns = data || [];
+  } catch(e) {}
+  const assignedIds = new Set(existingAssigns.map(a => a.student_id));
+  const existingOpts = {};
+  existingAssigns.forEach(a => { existingOpts[a.student_id] = a.task_options || null; });
+
+  // 기본 옵션 (첫 배포 시 표시용)
+  const defaultOpts = { flashcard: 2, quiz_choice_en2ko: null, quiz_choice_ko2en: null, quiz_input_en2ko: null, quiz_input_ko2en: null };
+
+  function taskOptsLabel(opts) {
+    if (!opts) return '<span style="font-size:12px;color:var(--t3)">과제 미설정</span>';
+    const parts = [];
+    if (opts.flashcard) parts.push(`암기 ${opts.flashcard}회독`);
+    if (opts.quiz_choice_en2ko) parts.push(`객관식 영→한 ${opts.quiz_choice_en2ko}회독`);
+    if (opts.quiz_choice_ko2en) parts.push(`객관식 한→영 ${opts.quiz_choice_ko2en}회독`);
+    if (opts.quiz_input_en2ko) parts.push(`주관식 영→한 ${opts.quiz_input_en2ko}회독`);
+    if (opts.quiz_input_ko2en) parts.push(`주관식 한→영 ${opts.quiz_input_ko2en}회독`);
+    if (opts.test) parts.push(`테스트 ${opts.test}회`);
+    if (!parts.length) return '<span style="font-size:12px;color:var(--t3)">과제 없음 (자유학습)</span>';
+    return '<span style="font-size:11px;color:var(--blue2);font-weight:600">' + parts.join(' · ') + '</span>';
+  }
+
   showModal(`
-    <div class="modal-title">배포 — ${b.name}</div>
-    <div style="font-size:14px;color:var(--t2);margin-bottom:14px">${b.words?.length??0}개 단어</div>
-    <div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px" id="book-assign-list">
-      ${students.length?students.map(s=>`
-        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer">
-          <input type="checkbox" value="${s.id}" class="book-assign-chk" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer">
-          <span style="font-size:15px;font-weight:600">${s.name||s.email}</span>
-          <span style="font-size:13px;color:var(--t3);margin-left:auto">${s.email||''}</span>
+    <div class="modal-title">📤 배포 — ${b.name}</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">${b.wordCount||b.words?.length||0}개 단어 · 학생을 선택하고 과제를 설정하세요</div>
+
+    <!-- STEP1: 학생 선택 -->
+    <div style="font-size:12px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">① 학생 선택</div>
+    <div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:18px" id="book-assign-list">
+      ${students.length ? students.map(s => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${assignedIds.has(s.id)?'var(--blue)':'var(--border)'};border-radius:10px;cursor:pointer;background:${assignedIds.has(s.id)?'var(--blue-dim)':'#fff'};transition:all 0.15s" id="label-${s.id}">
+          <input type="checkbox" value="${s.id}" class="book-assign-chk" ${assignedIds.has(s.id)?'checked':''}
+            style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer"
+            onchange="const l=document.getElementById('label-${s.id}');l.style.borderColor=this.checked?'var(--blue)':'var(--border)';l.style.background=this.checked?'var(--blue-dim)':'#fff'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--t1)">${s.name||s.email}</div>
+            <div id="opts-label-${s.id}" style="margin-top:2px">${taskOptsLabel(existingOpts[s.id])}</div>
+          </div>
+          <button onclick="event.preventDefault();event.stopPropagation();_openTaskOptsModal('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}',document.querySelector('.book-assign-chk[value=\\'${s.id}\\']').checked)"
+            style="flex-shrink:0;padding:5px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap">
+            과제 설정
+          </button>
         </label>`).join('')
-        :'<div style="color:var(--t3);text-align:center;padding:20px">등록된 학생이 없습니다</div>'}
+        : '<div style="color:var(--t3);text-align:center;padding:20px">등록된 학생이 없습니다</div>'}
     </div>
-    <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="doBookAssignFromModal('${bookId}')">배포</button>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="doBookAssignFromModal('${bookId}')">배포 저장</button>
+    </div>
   `);
+
+  // 기존 옵션을 임시 저장소에 세팅
+  window._taskOptsTemp = {};
+  existingAssigns.forEach(a => { window._taskOptsTemp[a.student_id] = a.task_options ? (typeof a.task_options==='string'?JSON.parse(a.task_options):a.task_options) : null; });
+}
+
+// 과제 옵션 서브 모달
+function _openTaskOptsModal(bookId, studentId, studentName, isChecked) {
+  if (!isChecked && !document.querySelector(`.book-assign-chk[value="${studentId}"]`)?.checked) {
+    // 체크 안 된 학생이면 먼저 체크
+    const chk = document.querySelector(`.book-assign-chk[value="${studentId}"]`);
+    if (chk) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+  }
+  const cur = (window._taskOptsTemp && window._taskOptsTemp[studentId]) || {};
+
+  // 기존 옵션이 없는 신규 학생이면 테스트 기본값 1 적용
+  const isNew = !window._taskOptsTemp || window._taskOptsTemp[studentId] === undefined;
+  const defaultTestVal = (val) => (isNew && val === undefined) ? 1 : (val || 0);
+
+  function numSelect(name, label, val, defaultVal) {
+    const resolvedVal = (defaultVal !== undefined) ? defaultVal : (val || 0);
+    const opts = [0,1,2,3,4,5].map(n => `<option value="${n}" ${resolvedVal==n?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;color:var(--t1);font-weight:500">${label}</span>
+      <select id="to_${name}" style="padding:5px 10px;border:1.5px solid var(--border2);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">${opts}</select>
+    </div>`;
+  }
+
+  function sectionDivider(label) {
+    return `<div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;padding:12px 0 4px">${label}</div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'task-opts-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:22px;padding:28px;width:340px;max-width:92vw;box-shadow:0 20px 60px rgba(15,23,42,0.22);animation:fadeUp 0.18s ease both;max-height:90vh;overflow-y:auto">
+      <div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px">과제 설정</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:18px">${studentName}</div>
+      <div style="margin-bottom:6px">
+        ${sectionDivider('📚 학습')}
+        ${numSelect('flashcard', '📖 암기 (플래시카드)', cur.flashcard)}
+        ${numSelect('quiz_choice_en2ko', '📝 객관식 영→한', cur.quiz_choice_en2ko)}
+        ${numSelect('quiz_choice_ko2en', '📝 객관식 한→영', cur.quiz_choice_ko2en)}
+        ${numSelect('quiz_input_en2ko', '✍️ 주관식 영→한', cur.quiz_input_en2ko)}
+        ${numSelect('quiz_input_ko2en', '✍️ 주관식 한→영', cur.quiz_input_ko2en)}
+        ${sectionDivider('📝 테스트')}
+        ${numSelect('test', '🎯 단어 테스트', cur.test, isNew ? defaultTestVal(cur.test) : (cur.test||0))}
+      </div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:16px">0 = 없음(잠금), 1~5 = 목표 회독 수 · 테스트는 신규 배포 시 1회 자동 설정</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('task-opts-overlay').remove()"
+          style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer">취소</button>
+        <button onclick="_saveTaskOptsTemp('${studentId}')"
+          style="flex:1;padding:10px;background:var(--blue);border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer">적용</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+}
+
+function _saveTaskOptsTemp(studentId) {
+  if (!window._taskOptsTemp) window._taskOptsTemp = {};
+  const get = id => { const el=document.getElementById(id); return el?parseInt(el.value)||0:0; };
+  const opts = {
+    flashcard: get('to_flashcard'),
+    quiz_choice_en2ko: get('to_quiz_choice_en2ko'),
+    quiz_choice_ko2en: get('to_quiz_choice_ko2en'),
+    quiz_input_en2ko: get('to_quiz_input_en2ko'),
+    quiz_input_ko2en: get('to_quiz_input_ko2en'),
+    test: get('to_test'),
+  };
+  window._taskOptsTemp[studentId] = opts;
+  // 레이블 업데이트
+  const labelEl = document.getElementById('opts-label-' + studentId);
+  if (labelEl) {
+    const parts = [];
+    if (opts.flashcard) parts.push(`암기 ${opts.flashcard}회독`);
+    if (opts.quiz_choice_en2ko) parts.push(`객관식 영→한 ${opts.quiz_choice_en2ko}회독`);
+    if (opts.quiz_choice_ko2en) parts.push(`객관식 한→영 ${opts.quiz_choice_ko2en}회독`);
+    if (opts.quiz_input_en2ko) parts.push(`주관식 영→한 ${opts.quiz_input_en2ko}회독`);
+    if (opts.quiz_input_ko2en) parts.push(`주관식 한→영 ${opts.quiz_input_ko2en}회독`);
+    if (opts.test) parts.push(`테스트 ${opts.test}회`);
+    labelEl.innerHTML = parts.length
+      ? '<span style="font-size:11px;color:var(--blue2);font-weight:600">' + parts.join(' · ') + '</span>'
+      : '<span style="font-size:12px;color:var(--t3)">과제 없음 (자유학습)</span>';
+  }
+  document.getElementById('task-opts-overlay').remove();
 }
 async function doBookAssignFromModal(bookId) {
   const chks = [...document.querySelectorAll('.book-assign-chk:checked')];
+  const unchks = [...document.querySelectorAll('.book-assign-chk:not(:checked)')];
   if (!chks.length) { showToast('학생을 선택하세요.','error'); return; }
-  const studentIds = chks.map(c=>c.value);
+  const opts = window._taskOptsTemp || {};
   try {
-    await Promise.all(studentIds.map(sid =>
-      sb.from('assignments').upsert({book_id:bookId, student_id:sid},{onConflict:'book_id,student_id'})
-    ));
+    // 배포 (upsert + task_options)
+    await Promise.all(chks.map(c => {
+      const sid = c.value;
+      const taskOpts = opts[sid] || null;
+      return sb.from('assignments').upsert(
+        { book_id: bookId, student_id: sid, task_options: taskOpts },
+        { onConflict: 'book_id,student_id' }
+      );
+    }));
+    // 체크 해제된 학생은 배포 취소
+    if (unchks.length) {
+      await Promise.all(unchks.map(c =>
+        sb.from('assignments').delete().eq('book_id', bookId).eq('student_id', c.value)
+      ));
+    }
+    window._taskOptsTemp = {};
     closeModal();
     showToast('배포 완료!','success');
+    await loadDB();
   } catch(e) { showToast('오류: '+e.message,'error'); }
 }
 
@@ -6883,6 +7287,7 @@ async function doBookAssignFromModal(bookId) {
 let DB_sentBooks = [];
 let DB_sentItems = {};     // bookId → []
 let DB_sentAssigns = [];   // {student_id, book_id}
+let DB_sentTaskOpts = {};  // bookId → task_options (학생용)
 let DB_quizLogs   = null;  // null=미로드, 배열=로드됨
 let _sentActiveBook = null;
 let _sentStudyBook  = null;
@@ -6910,7 +7315,7 @@ async function loadSentenceBooks() {
       (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
       DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
     } else {
-      const { data: assigns, error: aErr } = await sb.from('sentence_assignments').select('book_id').eq('student_id', currentUser.id);
+      const { data: assigns, error: aErr } = await sb.from('sentence_assignments').select('book_id, task_options').eq('student_id', currentUser.id);
       if (aErr) console.error('🔴 sentence_assignments 에러:', aErr.message);
       const bookIds = (assigns||[]).map(a => a.book_id);
       if (!bookIds.length) { DB_sentBooks = []; return; }
@@ -6922,6 +7327,14 @@ async function loadSentenceBooks() {
       if (bErr) console.error('🔴 sentence_books(학생) 에러:', bErr.message);
       books = data || [];
       DB_sentAssigns = assigns || [];
+      // task_options 캐시
+      DB_sentTaskOpts = {};
+      (assigns||[]).forEach(a => {
+        if (a.task_options) {
+          try { DB_sentTaskOpts[a.book_id] = typeof a.task_options === 'string' ? JSON.parse(a.task_options) : a.task_options; }
+          catch(e) {}
+        }
+      });
       const countMap = {};
       (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
       DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
@@ -7252,7 +7665,7 @@ function sentBookListHTML(b, draggable) {
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
           onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">시험지</button>
-        <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
+        <button onclick="event.stopPropagation();sentQuickPrint('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:4px"
           title="바로 인쇄"
@@ -7322,7 +7735,7 @@ function sentBookCardHTML(b) {
           onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
           시험지
         </button>
-        <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
+        <button onclick="event.stopPropagation();sentQuickPrint('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:3px"
           title="바로 인쇄"
@@ -8359,44 +8772,137 @@ async function openSentStatusModal(bookId) {
 async function openSentAssignModal(bookId) {
   const b = DB_sentBooks.find(b => b.id === bookId);
   const students = DB.users.filter(u => u.role === 'student');
-  let assigned = [];
+  let existingAssigns = [];
   try {
-    const { data } = await sb.from('sentence_assignments').select('student_id').eq('book_id', bookId);
-    assigned = (data||[]).map(d => d.student_id);
+    const { data } = await sb.from('sentence_assignments').select('student_id, task_options').eq('book_id', bookId);
+    existingAssigns = data || [];
   } catch(e) {}
+  const assignedIds = new Set(existingAssigns.map(a => a.student_id));
+  const existingOpts = {};
+  existingAssigns.forEach(a => { existingOpts[a.student_id] = a.task_options || null; });
+
+  function sentTaskLabel(opts) {
+    if (!opts) return '<span style="font-size:12px;color:var(--t3)">과제 미설정</span>';
+    const parts = [];
+    if (opts.unscramble) parts.push(`배열 ${opts.unscramble}회독`);
+    if (opts.dictation)  parts.push(`빈칸 ${opts.dictation}회독`);
+    if (opts.record)     parts.push(`낭독 ${opts.record}회독`);
+    if (!parts.length) return '<span style="font-size:12px;color:var(--t3)">과제 없음 (자유학습)</span>';
+    return '<span style="font-size:11px;color:var(--blue2);font-weight:600">' + parts.join(' · ') + '</span>';
+  }
 
   showModal(`
     <div class="modal-title">📤 배포 — ${b?.name}</div>
-    <div style="font-size:14px;color:var(--t2);margin-bottom:14px">학생을 선택하면 문장학습 탭에 나타납니다.</div>
-    ${students.length ? `<div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto">
-      ${students.map(s => `
-        <label style="display:flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid var(--border);border-radius:9px;cursor:pointer;background:var(--bg)">
-          <input type="checkbox" value="${s.id}" class="sent-assign-chk" ${assigned.includes(s.id)?'checked':''}
-            style="width:15px;height:15px;accent-color:var(--blue)">
-          <span style="font-size:15px">${s.name}</span>
-          <span style="font-size:13px;color:var(--t3)">${s.grade||''}</span>
-        </label>`).join('')}
-    </div>` : '<div style="color:var(--t3);font-size:14px;padding:12px 0">등록된 학생이 없습니다.</div>'}
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">학생을 선택하고 과제를 설정하세요</div>
+
+    <div style="font-size:12px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">① 학생 선택</div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;margin-bottom:18px">
+      ${students.length ? students.map(s => `
+        <label style="display:flex;align-items:center;gap:10px;padding:9px 13px;border:1.5px solid ${assignedIds.has(s.id)?'var(--blue)':'var(--border)'};border-radius:9px;cursor:pointer;background:${assignedIds.has(s.id)?'var(--blue-dim)':'#fff'};transition:all 0.15s" id="slabel-${s.id}">
+          <input type="checkbox" value="${s.id}" class="sent-assign-chk" ${assignedIds.has(s.id)?'checked':''}
+            style="width:15px;height:15px;accent-color:var(--blue)"
+            onchange="const l=document.getElementById('slabel-${s.id}');l.style.borderColor=this.checked?'var(--blue)':'var(--border)';l.style.background=this.checked?'var(--blue-dim)':'#fff'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--t1)">${s.name||s.email}</div>
+            <div id="sopts-label-${s.id}" style="margin-top:2px">${sentTaskLabel(existingOpts[s.id])}</div>
+          </div>
+          <button onclick="event.preventDefault();event.stopPropagation();_openSentTaskOptsModal('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}',document.querySelector('.sent-assign-chk[value=\\'${s.id}\\']').checked)"
+            style="flex-shrink:0;padding:5px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap">
+            과제 설정
+          </button>
+        </label>`).join('')
+        : '<div style="color:var(--t3);font-size:14px;padding:12px 0">등록된 학생이 없습니다.</div>'}
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="saveSentAssign('${bookId}')">저장</button>
     </div>
   `);
+
+  window._sentTaskOptsTemp = {};
+  existingAssigns.forEach(a => {
+    window._sentTaskOptsTemp[a.student_id] = a.task_options
+      ? (typeof a.task_options === 'string' ? JSON.parse(a.task_options) : a.task_options)
+      : null;
+  });
+}
+
+function _openSentTaskOptsModal(bookId, studentId, studentName, isChecked) {
+  if (!isChecked && !document.querySelector(`.sent-assign-chk[value="${studentId}"]`)?.checked) {
+    const chk = document.querySelector(`.sent-assign-chk[value="${studentId}"]`);
+    if (chk) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+  }
+  const cur = (window._sentTaskOptsTemp && window._sentTaskOptsTemp[studentId]) || {};
+
+  function numSelect(name, label, val) {
+    const opts = [0,1,2,3,4,5].map(n => `<option value="${n}" ${(val||0)==n?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;color:var(--t1);font-weight:500">${label}</span>
+      <select id="sto_${name}" style="padding:5px 10px;border:1.5px solid var(--border2);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">${opts}</select>
+    </div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sent-task-opts-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:22px;padding:28px;width:320px;max-width:92vw;box-shadow:0 20px 60px rgba(15,23,42,0.22);animation:fadeUp 0.18s ease both">
+      <div style="font-size:16px;font-weight:800;color:var(--t1);margin-bottom:4px">과제 설정 — 문장집</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:18px">${studentName}</div>
+      <div style="margin-bottom:6px">
+        ${numSelect('unscramble', '🔀 배열 학습', cur.unscramble)}
+        ${numSelect('dictation',  '✍️ 빈칸 학습', cur.dictation)}
+        ${numSelect('record',     '🎤 낭독 학습', cur.record)}
+      </div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:16px">0 = 없음(잠금), 1~5 = 목표 회독 수</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('sent-task-opts-overlay').remove()"
+          style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer">취소</button>
+        <button onclick="_saveSentTaskOptsTemp('${studentId}')"
+          style="flex:1;padding:10px;background:var(--blue);border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer">적용</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+}
+
+function _saveSentTaskOptsTemp(studentId) {
+  if (!window._sentTaskOptsTemp) window._sentTaskOptsTemp = {};
+  const get = id => { const el = document.getElementById(id); return el ? parseInt(el.value)||0 : 0; };
+  const opts = {
+    unscramble: get('sto_unscramble'),
+    dictation:  get('sto_dictation'),
+    record:     get('sto_record'),
+  };
+  window._sentTaskOptsTemp[studentId] = opts;
+  const labelEl = document.getElementById('sopts-label-' + studentId);
+  if (labelEl) {
+    const parts = [];
+    if (opts.unscramble) parts.push(`배열 ${opts.unscramble}회독`);
+    if (opts.dictation)  parts.push(`빈칸 ${opts.dictation}회독`);
+    if (opts.record)     parts.push(`낭독 ${opts.record}회독`);
+    labelEl.innerHTML = parts.length
+      ? '<span style="font-size:11px;color:var(--blue2);font-weight:600">' + parts.join(' · ') + '</span>'
+      : '<span style="font-size:12px;color:var(--t3)">과제 없음 (자유학습)</span>';
+  }
+  document.getElementById('sent-task-opts-overlay').remove();
 }
 
 async function saveSentAssign(bookId) {
   const checked = [...document.querySelectorAll('.sent-assign-chk:checked')].map(c => c.value);
   const unchecked = [...document.querySelectorAll('.sent-assign-chk:not(:checked)')].map(c => c.value);
+  const opts = window._sentTaskOptsTemp || {};
   try {
     if (checked.length) {
-      const inserts = checked.map(sid => ({ student_id: sid, book_id: bookId }));
-      await sb.from('sentence_assignments').upsert(inserts, { onConflict: 'student_id,book_id', ignoreDuplicates: true });
+      const inserts = checked.map(sid => ({ student_id: sid, book_id: bookId, task_options: opts[sid] || null }));
+      await sb.from('sentence_assignments').upsert(inserts, { onConflict: 'student_id,book_id' });
     }
     if (unchecked.length) {
       for (const sid of unchecked) {
         await sb.from('sentence_assignments').delete().eq('student_id', sid).eq('book_id', bookId);
       }
     }
+    window._sentTaskOptsTemp = {};
     closeModal();
     showToast('배포 설정이 저장됐습니다.', 'success');
   } catch(e) { showToast('오류: ' + e.message, 'error'); }
@@ -9275,11 +9781,60 @@ async function renderSentenceStudy() {
     const _filteredBooks = _ssq ? DB_sentBooks.filter(b=>(b.name||'').toLowerCase().includes(_ssq)) : DB_sentBooks;
     _filteredBooks.forEach(function(b, idx) {
       const sc = b.item_count||0;
-      const pct = 0;
       const coll = (DB_sentColls||[]).find(c=>c.id===b.collection_id);
       const collLabel = coll ? coll.name : (b.tag || '문장집');
+
+      // 과제 옵션
+      const tOpts = DB_sentTaskOpts[b.id] || null;
+      const hasTask = tOpts && Object.values(tOpts).some(v => v > 0);
+      const unscAllowed = !hasTask || (tOpts && tOpts.unscramble > 0);
+      const dictAllowed = !hasTask || (tOpts && tOpts.dictation > 0);
+      const recAllowed  = !hasTask || (tOpts && tOpts.record > 0);
+
+      // 과제 기반 진도 계산 (localStorage task_done 기준)
+      let pct = 0;
+      if (hasTask) {
+        let totalGoal = 0, totalDone = 0;
+        ['unscramble','dictation','record'].forEach(mode => {
+          const goal = tOpts[mode] || 0;
+          if (goal > 0) {
+            totalGoal += goal;
+            const done = parseInt(localStorage.getItem('stask_done_'+currentUser.id+'_'+b.id+'_'+mode)||'0');
+            totalDone += Math.min(done, goal);
+          }
+        });
+        pct = totalGoal > 0 ? Math.min(100, Math.round((totalDone/totalGoal)*100)) : 0;
+      }
+
+      // 과제 칩
+      const taskChips = hasTask ? (() => {
+        const chips = [];
+        if (tOpts.unscramble>0) chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#eff6ff;color:#2563eb;border-radius:20px;border:1px solid #bfdbfe">배열 ${tOpts.unscramble}회</span>`);
+        if (tOpts.dictation>0)  chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#fdf4ff;color:#9333ea;border-radius:20px;border:1px solid #e9d5ff">빈칸 ${tOpts.dictation}회</span>`);
+        if (tOpts.record>0)     chips.push(`<span style="font-size:11px;font-weight:700;padding:2px 8px;background:#f0fdf4;color:#16a34a;border-radius:20px;border:1px solid #bbf7d0">낭독 ${tOpts.record}회</span>`);
+        return chips.length ? `<div style="padding:0 20px 10px;display:flex;flex-wrap:wrap;gap:5px">${chips.join('')}</div>` : '';
+      })() : '';
+
+      // 잠금 버튼 헬퍼
+      function sentLockBtn(label, icon, onclick, allowed) {
+        const lockedStyle = 'padding:10px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:13px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px;opacity:0.6';
+        const activeStyle = 'padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px';
+        if (!allowed) {
+          return `<button style="${lockedStyle}" disabled title="과제에 없는 학습 유형입니다">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            ${label}
+          </button>`;
+        }
+        return `<button onclick="${onclick}"
+          style="${activeStyle}"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
+          onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
+          ${icon}${label}
+        </button>`;
+      }
+
       const card = document.createElement('div');
-      card.style.cssText = `position:relative;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid #e8edf4;transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:default`;
+      card.style.cssText = `position:relative;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid ${hasTask?'#dbeafe':'#e8edf4'};transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:default`;
       card.onmouseenter = function(){
         this.style.transform='translateY(-4px)';
         this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';
@@ -9288,16 +9843,19 @@ async function renderSentenceStudy() {
       card.onmouseleave = function(){
         this.style.transform='';
         this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';
-        this.style.borderColor='#e8edf4';
+        this.style.borderColor=hasTask?'#dbeafe':'#e8edf4';
       };
       card.innerHTML = `
-        <!-- 1행: 컬렉션 pill + 점수 -->
+        <!-- 1행: 컬렉션 pill + 과제배지 + 진도 -->
         <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center">
-          <div style="display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:4px 12px">
-            <span style="font-size:13px;font-weight:700;color:#475569;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${collLabel}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="display:inline-flex;align-items:center;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:4px 12px">
+              <span style="font-size:13px;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${collLabel}</span>
+            </div>
+            ${hasTask ? '<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:11px;font-weight:800;color:#fff">과제</span></div>' : ''}
           </div>
           ${pct > 0
-            ? '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">'+pct+'%</span><span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">MASTERED</span></div>'
+            ? `<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">${pct}%</span><span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span></div>`
             : '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:14px;font-weight:600;color:#cbd5e1">미시작</span></div>'
           }
         </div>
@@ -9307,8 +9865,11 @@ async function renderSentenceStudy() {
           <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name||''}</div>
         </div>
 
+        <!-- 과제 칩 -->
+        ${taskChips}
+
         <!-- 3행: 진도바 -->
-        <div style="padding:12px 20px 0">
+        <div style="padding:${hasTask?'4px':'12px'} 20px 0">
           <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
             <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);border-radius:99px;transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1);box-shadow:0 0 8px rgba(5,150,105,0.5)"></div>
           </div>
@@ -9330,29 +9891,11 @@ async function renderSentenceStudy() {
           </button>
         </div>
 
-        <!-- 6행: 배열 / 빈칸 / 낭독 1x3 그리드 -->
+        <!-- 6행: 배열 / 빈칸 / 낭독 -->
         <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-          <button onclick="startSentStudy('${b.id}','unscramble')"
-            style="padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px"
-            onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            배열
-          </button>
-          <button onclick="startSentStudy('${b.id}','dictation')"
-            style="padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px"
-            onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            빈칸
-          </button>
-          <button onclick="startSentRecording('${b.id}')"
-            style="padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px"
-            onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            낭독
-          </button>
+          ${sentLockBtn('배열', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', "startSentStudy('"+b.id+"','unscramble')", unscAllowed)}
+          ${sentLockBtn('빈칸', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', "startSentStudy('"+b.id+"','dictation')", dictAllowed)}
+          ${sentLockBtn('낭독', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>', "startSentRecording('"+b.id+"')", recAllowed)}
         </div>
       `;
       grid.appendChild(card);
@@ -9681,6 +10224,14 @@ async function sentFinish() {
   // 젤리 지급: 문장 학습 완료
   if (results.length > 0) addJelly(2, '문장 학습 완료');
   if (results.length > 0 && _sentStudyBook && currentUser) {
+    // 과제 task_done 카운트 업데이트 (배열/빈칸)
+    const _stMode = _sentStudyMode; // 'unscramble' | 'dictation'
+    const _stOpts = DB_sentTaskOpts[_sentStudyBook] || null;
+    if (_stOpts && _stOpts[_stMode] > 0) {
+      const _lsKey = 'stask_done_'+currentUser.id+'_'+_sentStudyBook+'_'+_stMode;
+      const _cur = parseInt(localStorage.getItem(_lsKey)||'0');
+      if (_cur < _stOpts[_stMode]) localStorage.setItem(_lsKey, _cur + 1);
+    }
     const total   = results.length;
     const correct = results.filter(r => r.correct).length;
     const wrongItems = results.filter(r => !r.correct).map(r => r.item.en);
@@ -10186,6 +10737,16 @@ async function recSaveWhole() {
     });
   } catch(e) { console.warn('DB 저장 실패 (무시):', e.message); }
 
+  // 낭독 과제 task_done 카운트
+  if (currentUser && window._recBookId) {
+    const _rOpts = DB_sentTaskOpts[window._recBookId] || null;
+    if (_rOpts && _rOpts.record > 0) {
+      const _rKey = 'stask_done_'+currentUser.id+'_'+window._recBookId+'_record';
+      const _rCur = parseInt(localStorage.getItem(_rKey)||'0');
+      if (_rCur < _rOpts.record) localStorage.setItem(_rKey, _rCur + 1);
+    }
+  }
+
   showToast('낭독 완료! 잘 했어요 🎉', 'success');
   sentFinish();
 }
@@ -10519,12 +11080,13 @@ function sttBuildHtml(reshuffle) {
   qList = qList.map((q,i) => ({ ...q, n: i+1 }));
 
   const fsS = Math.max(7, fs * 0.85);
-  const marginMm = 12;
 
   function qHTML(q, ans) {
     const item = q.item;
-    const ansLine = `<div style="margin-top:4pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*14}pt"></div>`;
-    const ansLineShort = `<div style="margin-top:4pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*8}pt"></div>`;
+    const _ansMb = onePage ? 3 : fs*1.5;
+    const _ansMt = onePage ? '4pt' : 'auto';
+    const ansLine = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'4pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*14}pt"></div>`;
+    const ansLineShort = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'4pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*8}pt"></div>`;
 
     if (q.type === 'writing') return [
       `<div style="font-size:${fs}pt;line-height:${lh};color:#111">${item.ko}</div>`,
@@ -10583,27 +11145,27 @@ function sttBuildHtml(reshuffle) {
       const slice = qList.slice(i, i+cols);
       while (slice.length < cols) slice.push(null);
       const tds = slice.map(q => q
-        ? `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:0.4pt solid #ddd">
-            <div style="display:flex;gap:5pt;align-items:flex-start">
-              <span style="font-size:${(fs*0.7).toFixed(1)}pt;color:#bbb;flex-shrink:0;min-width:13pt;line-height:${lh}">${q.n}.</span>
-              <div style="flex:1;min-width:0">${qHTML(q,ans)}</div>
+        ? `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-right:0.5pt dashed #ccc">
+            <div style="display:flex;gap:5pt;align-items:flex-start;flex:1">
+              <span style="font-size:${(fs*0.7).toFixed(1)}pt;color:#999;flex-shrink:0;min-width:13pt;line-height:${lh}">${q.n}.</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column">${qHTML(q,ans)}</div>
             </div>
            </td>`
-        : `<td style="border:0.4pt solid #ddd;width:${colW}%"></td>`
+        : `<td style="border:none;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
       ).join('');
       rows.push(`<tr>${tds}</tr>`);
     }
     const titleSize = Math.min(16, fs*1.4);
-    return `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2pt solid #111;padding-bottom:10pt;margin-bottom:14pt">
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:none;padding-bottom:0;margin-bottom:14pt">
       <div>
         <div style="font-size:${titleSize.toFixed(1)}pt;font-weight:900;letter-spacing:-0.3px;line-height:1.3">${title}${ans?' <span style="font-size:11pt;color:#b91c1c;font-weight:700">【 정 답 지 】</span>':''}</div>
       </div>
-      <div style="text-align:right;font-size:9pt;color:#555;line-height:2.2">
+      <div style="text-align:right;font-size:9pt;color:#555;line-height:3.2">
         <div style="font-size:10pt;font-weight:700;letter-spacing:1.5px">ION ENGLISH</div>
         ${ans?'':`이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>`}
       </div>
     </div>
-    <table style="width:100%;border-collapse:collapse;table-layout:fixed"><tbody>${rows.join('')}</tbody></table>`;
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;border:none"><tbody>${rows.join('')}</tbody></table>`;
   }
 
   const ansKeyHtml = withKey ? `<div style="page-break-before:always">${sheetHTML(true)}</div>` : '';
@@ -10613,12 +11175,18 @@ function sttBuildHtml(reshuffle) {
     `<title>${title}</title>`,
     '<style>',
     '* { box-sizing:border-box; margin:0; padding:0; }',
-    `@page { size: A4 portrait; margin: ${marginMm}mm ${marginMm+2}mm; }`,
+    `@page { size: A4 portrait; margin: ${onePage ? '6mm' : marginMm+'mm '+(marginMm+2)+'mm '+(marginMm+6)+'mm'}; }`,
     'body { font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:#111; }',
-    'table { width:100%; border-collapse:collapse; table-layout:fixed; }',
+    'table { width:100%; border-collapse:collapse; table-layout:fixed; border-top:1.5pt solid #111; border-bottom:1.5pt solid #111; }',
     'td { word-break:break-word; }',
+    `tr { break-inside:${onePage?'auto':'avoid'}; page-break-inside:${onePage?'auto':'avoid'}; ${onePage?'':'display:flex;'} }`,
+    `td { ${onePage?'vertical-align:top;':'display:flex; flex-direction:column;'} }`,
+    'td:last-child { border-right:none !important; }',
     `@media screen { body { max-width:210mm; margin:0 auto; padding:${marginMm+2}mm ${marginMm+4}mm; background:white; box-shadow:0 0 30px rgba(0,0,0,0.15); min-height:297mm; } }`,
-    '@media print { body { padding:0; } }',
+    '@media print {',
+    '  @page { @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } }',
+    '  body { padding:0; }',
+    '}',
     '</style></head><body>',
     sheetHTML(false),
     ansKeyHtml,
@@ -11543,22 +12111,28 @@ async function setBookCollection(bookId, collId) {
 async function loadBookWords(bookId) {
   const b = DB.books.find(b => b.id === bookId);
   if (!b) return [];
-  if (b._wordsLoaded) return b.words;
+  if (b._wordsLoaded && b.words && b.words.length > 0) return b.words;
 
-  try {
-    const { data, error } = await sb.from('words')
-      .select('id, book_id, en, ko, example, sort_order')
-      .eq('book_id', bookId)
-      .order('sort_order', { ascending: true });
-    if (error) throw error;
-    b.words = (data || []).map(w => ({ id: w.id, en: w.en, ko: w.ko, example: w.example || '' }));
-    b.wordCount = b.words.length;
-    b._wordsLoaded = true;
-  } catch(e) {
-    console.warn('words 로드 실패:', e.message, e);
-    showToast('단어 로드 실패: ' + e.message, 'error');
-    b.words = b.words || [];
+  // 최대 2회 시도
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await sb.from('words')
+        .select('id, book_id, en, ko, example, sort_order')
+        .eq('book_id', bookId)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      b.words = (data || []).map(w => ({ id: w.id, en: w.en, ko: w.ko, example: w.example || '' }));
+      b.wordCount = b.words.length;
+      b._wordsLoaded = true;
+      return b.words;
+    } catch(e) {
+      console.warn(`words 로드 실패 (시도 ${attempt+1}/2):`, e.message);
+      b._wordsLoaded = false;
+      if (attempt === 1) showToast('단어 로드 실패: ' + e.message, 'error');
+      else await new Promise(r => setTimeout(r, 800)); // 재시도 전 대기
+    }
   }
+  b.words = b.words || [];
   return b.words;
 }
 
@@ -12924,15 +13498,26 @@ async function openStudentDetailModal(studentId) {
         }).filter(Boolean).join('');
 
         const recentLogs = bookLogs.slice(0,5).map(l => {
+          const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
+          const isAbandoned = isWordTest && l.force_submit;
           const pct = Math.round(l.score/l.total*100);
-          const c = pct>=80?'var(--green)':pct>=60?'#f59e0b':'var(--red)';
+          const c = isAbandoned ? 'var(--t3)' : pct>=80?'var(--green)':pct>=60?'#f59e0b':'var(--red)';
           const date = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'});
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:18px;font-weight:700;color:${c};min-width:44px">${pct}%</span>
+          const hasSnapshot = !!(l.questions_json);
+          const _logId1 = l.id || (l.student_id + '_' + (l.taken_at||''));
+          if (hasSnapshot) window._gradedLogMap[_logId1] = l;
+          const _sName = (s.name||'').replace(/\\/g,'').replace(/'/g,"\\'");
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <span style="font-size:18px;font-weight:700;color:${c};min-width:44px">${isAbandoned ? '-' : pct+'%'}</span>
             <span style="color:var(--t3);font-size:14px">${l.score}/${l.total}문제</span>
-            <span style="background:rgba(30,77,183,0.1);color:var(--blue2);border-radius:6px;padding:1px 6px;font-size:13px">${modeLabel[l.mode]||l.mode}</span>
-            <span style="background:rgba(16,185,129,0.1);color:var(--green);border-radius:6px;padding:1px 6px;font-size:13px">${dirLabel[l.direction]||l.direction}</span>
+            ${isWordTest
+              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:1px 7px;font-size:13px;font-weight:700">테스트</span>`
+              : `<span style="background:rgba(30,77,183,0.1);color:var(--blue2);border-radius:6px;padding:1px 6px;font-size:13px">${modeLabel[l.mode]||l.mode}</span>
+                 <span style="background:rgba(16,185,129,0.1);color:var(--green);border-radius:6px;padding:1px 6px;font-size:13px">${dirLabel[l.direction]||l.direction}</span>`
+            }
+            ${isAbandoned ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>` : ''}
             <span style="margin-left:auto;color:var(--t3);font-size:13px">${date}</span>
+            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId1}','${_sName}')" style="padding:3px 10px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
           </div>`;
         }).join('');
 
@@ -13436,6 +14021,39 @@ function populateAIDest() {
 // =========================================================
 //  STUDENT: MY BOOKS (슬라임 연계 UI)
 // =========================================================
+function showTaskChipsPopup(btn, chipsJson) {
+  // 기존 팝업 제거
+  document.querySelectorAll('.task-chips-popup').forEach(el => el.remove());
+  const chips = JSON.parse(chipsJson.replace(/&quot;/g, '"'));
+  if (!chips.length) return;
+
+  const popup = document.createElement('div');
+  popup.className = 'task-chips-popup';
+  popup.style.cssText = 'position:absolute;z-index:9999;background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 8px 32px rgba(15,23,42,0.16),0 2px 8px rgba(15,23,42,0.08);border:1.5px solid #e0e9f8;display:flex;flex-direction:column;gap:6px;min-width:170px;animation:fadeUp 0.15s ease both';
+  popup.innerHTML = chips.map(c =>
+    `<span style="font-size:12px;font-weight:700;padding:4px 10px;background:${c.bg};color:${c.color};border-radius:20px;border:1px solid ${c.border};white-space:nowrap">${c.label}</span>`
+  ).join('');
+  document.body.appendChild(popup);
+
+  // 위치 계산 (버튼 아래)
+  const rect = btn.getBoundingClientRect();
+  const pw = popup.offsetWidth || 180;
+  let left = rect.left + window.scrollX;
+  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  popup.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  popup.style.left = left + 'px';
+
+  // 외부 클릭 시 닫기
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target) && e.target !== btn) {
+        popup.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 0);
+}
+
 function renderMyBooks() {
   const q=document.getElementById('mybooks-search')?.value.toLowerCase()||'';
   const books = getAssignedBooks().filter(b=>b.name.toLowerCase().includes(q)||(b.tag||'').includes(q));
@@ -13497,26 +14115,109 @@ function renderMyBooks() {
         const p = DB.progress[key]||{};
         const rounds = p.rounds||0;
         const scores = p.quizScores||[];
-        const avg = scores.length?Math.round(scores.reduce((a,c)=>a+c,0)/scores.length):null;
         const wc = b.wordCount||b.words?.length||0;
-        const pct = rounds>0?Math.min(100,Math.round((rounds/5)*100)):0;
         const coll = (DB.collections||[]).find(c=>c.id===b.collectionId);
         const collLabel = coll ? coll.name : (b.tag || '단어장');
         const subText = [wc+'개 단어', b.grade].filter(Boolean).join(' · ');
+
+        // ── 과제 옵션 로드
+        const taskOpts = (DB.taskOptions||{})[b.id] || null;
+        const hasTask = taskOpts && Object.values(taskOpts).some(v => v > 0);
+
+        // ── 과제 기반 진도 계산
+        function calcProgress() {
+          if (!hasTask) {
+            // 과제 없으면 기존 방식 (암기 5회독 기준)
+            return { pct: rounds>0 ? Math.min(100, Math.round((rounds/5)*100)) : 0, detail: '' };
+          }
+          let totalGoal = 0, totalDone = 0;
+          const pProgress = DB.progress[key] || {};
+          // 암기
+          if (taskOpts.flashcard > 0) {
+            totalGoal += taskOpts.flashcard;
+            totalDone += Math.min(pProgress.rounds||0, taskOpts.flashcard);
+          }
+          // 퀴즈 (quizScores 배열 길이 = 총 퀴즈 횟수로 근사)
+          const quizRounds = (pProgress.quizScores||[]).length;
+          const quizTypes = ['quiz_choice_en2ko','quiz_choice_ko2en','quiz_input_en2ko','quiz_input_ko2en'];
+          quizTypes.forEach(qt => {
+            if (taskOpts[qt] > 0) {
+              totalGoal += taskOpts[qt];
+              // 각 유형별 완료 수는 localStorage에서 추적
+              const done = parseInt(localStorage.getItem('task_done_'+currentUser.id+'_'+b.id+'_'+qt)||'0');
+              totalDone += Math.min(done, taskOpts[qt]);
+            }
+          });
+          const pct = totalGoal > 0 ? Math.min(100, Math.round((totalDone/totalGoal)*100)) : 0;
+          return { pct, detail: totalDone + '/' + totalGoal + ' 완료' };
+        }
+        const { pct, detail } = calcProgress();
+        const masteredPct = pct > 0 ? pct : null;
+
+        // ── 버튼 잠금 헬퍼
+        function lockBtn(label, icon, onclick, isLocked, isAssigned) {
+          const lockedStyle = 'padding:11px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:13px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;position:relative;opacity:0.7';
+          const activeStyle = 'padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px';
+          if (!isAssigned) return ''; // 과제에 없으면 아예 숨김
+          if (isLocked) {
+            return `<button style="${lockedStyle}" disabled title="과제에 없는 학습 유형입니다">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              ${label}
+            </button>`;
+          }
+          return `<button onclick="${onclick}"
+            style="${activeStyle}"
+            onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
+            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
+            ${icon}${label}
+          </button>`;
+        }
+
+        // 과제 유형 판단
+        const fcAssigned   = !hasTask || (taskOpts && taskOpts.flashcard > 0);
+        const quizAssigned = !hasTask || (taskOpts && (taskOpts.quiz_choice_en2ko>0||taskOpts.quiz_choice_ko2en>0||taskOpts.quiz_input_en2ko>0||taskOpts.quiz_input_ko2en>0));
+        const testAssigned = !hasTask || (taskOpts && taskOpts.test > 0);
+
+        // 과제 팝업 버튼용 데이터 (JSON 직렬화)
+        const taskChipData = hasTask ? (() => {
+          const chips = [];
+          if (taskOpts.flashcard>0) chips.push({label:`암기 ${taskOpts.flashcard}회`, bg:'#eff6ff', color:'#2563eb', border:'#bfdbfe'});
+          if (taskOpts.quiz_choice_en2ko>0) chips.push({label:`객관식 영→한 ${taskOpts.quiz_choice_en2ko}회`, bg:'#f0fdf4', color:'#16a34a', border:'#bbf7d0'});
+          if (taskOpts.quiz_choice_ko2en>0) chips.push({label:`객관식 한→영 ${taskOpts.quiz_choice_ko2en}회`, bg:'#f0fdf4', color:'#16a34a', border:'#bbf7d0'});
+          if (taskOpts.quiz_input_en2ko>0) chips.push({label:`주관식 영→한 ${taskOpts.quiz_input_en2ko}회`, bg:'#fdf4ff', color:'#9333ea', border:'#e9d5ff'});
+          if (taskOpts.quiz_input_ko2en>0) chips.push({label:`주관식 한→영 ${taskOpts.quiz_input_ko2en}회`, bg:'#fdf4ff', color:'#9333ea', border:'#e9d5ff'});
+          if (taskOpts.test>0) chips.push({label:`테스트 ${taskOpts.test}회`, bg:'#fff7ed', color:'#c2410c', border:'#fed7aa'});
+          return chips;
+        })() : [];
+        const taskChipsJson = JSON.stringify(taskChipData).replace(/"/g,'&quot;');
+
+        const fcIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+        const qzIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+        const tsIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
+
         return `
         <div style="background:#fff;border-radius:20px;overflow:hidden;
           box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);
-          transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:1.5px solid #e8edf4;"
+          transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:1.5px solid ${hasTask?'#dbeafe':'#e8edf4'};"
           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='#e8edf4'">
+          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'">
 
-          <!-- 1행: 컬렉션 pill + 점수 -->
+          <!-- 1행: 컬렉션 pill + 과제배지(팝업버튼) + 점수 -->
           <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center">
-            <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
-              <span style="font-size:13px;font-weight:700;color:#2563eb;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${collLabel}</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
+                <span style="font-size:13px;font-weight:700;color:#2563eb;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${collLabel}</span>
+              </div>
+              ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
+                style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
+                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>` : hasTask ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span></div>` : ''}
             </div>
-            ${avg!==null
-              ? '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">'+avg+'%</span><span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">MASTERED</span></div>'
+            ${masteredPct!==null
+              ? `<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">${masteredPct}%</span><span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span></div>`
               : '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:14px;font-weight:600;color:#cbd5e1">미시작</span></div>'
             }
           </div>
@@ -13533,12 +14234,12 @@ function renderMyBooks() {
             </div>
           </div>
 
-          <!-- 4행: 단어 수 · 회독 수 -->
+          <!-- 4행: 단어 수 · 진도 -->
           <div style="padding:8px 20px 0">
-            <span style="font-size:13px;color:#94a3b8;font-weight:500">${subText}${rounds>0?' · '+rounds+'회독 완료':''}</span>
+            <span style="font-size:13px;color:#94a3b8;font-weight:500">${subText}${detail ? ' · ' + detail : (rounds>0?' · '+rounds+'회독 완료':'')}</span>
           </div>
 
-          <!-- 5행: 버튼 -->
+          <!-- 5행: 단어보기 버튼 -->
           <div style="padding:14px 16px 10px">
             <button onclick="openStudentWordView('${b.id}')"
               style="width:100%;padding:11px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28)"
@@ -13549,27 +14250,9 @@ function renderMyBooks() {
             </button>
           </div>
           <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <button onclick="openStudentStudy('${b.id}')"
-              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
-              onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-              onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              암기
-            </button>
-            <button onclick="openStudentQuizPopup('${b.id}')"
-              style="padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
-              onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-              onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              퀴즈
-            </button>
-            <button onclick="openWordTest('${b.id}')"
-              style="padding:11px 0;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:2px solid #fbbf24;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px"
-              onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(251,191,36,0.4)'"
-              onmouseout="this.style.transform='';this.style.boxShadow=''">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              테스트
-            </button>
+            ${lockBtn('암기', fcIcon, "openStudentStudy('"+b.id+"')", !fcAssigned, !hasTask||fcAssigned)}
+            ${lockBtn('퀴즈', qzIcon, "openStudentQuizPopup('"+b.id+"')", !quizAssigned, !hasTask||quizAssigned)}
+            ${lockBtn('테스트', tsIcon, "openWordTest('"+b.id+"')", !testAssigned, !hasTask||testAssigned)}
           </div>
         </div>
 `;
@@ -13625,30 +14308,30 @@ function _makeOverlayHeader(opts) {
       </div>
       <!-- 우측: 슬라임 챗봇바 + 아이콘 -->
       <div style="display:flex;align-items:center;gap:20px;position:relative">
-        <div class="slime-chat-bar" id="overlay-slime-chat-bar" style="min-width:180px;max-width:320px;flex:1">
-          <div class="slime-chat-bar-avatar" onclick="stToggleChat()" title="슬라임과 대화하기">
+        <div class="slime-chat-bar" id="overlay-slime-chat-bar" onmousedown="event.stopPropagation();stOpenChat()" style="padding:0;overflow:hidden;gap:0;">
+          <div class="slime-chat-bar-avatar" style="border-radius:0;background:#f1f5f9;border:none;border-right:1px solid #e2e8f0;padding:0 12px 0 8px;height:100%;gap:6px;" title="슬라임과 대화하기">
             ${buildMiniSlimeSVG(slime.stage, 22, {colorId: slime.colorId})}
             <span class="slime-chat-bar-avatar-name">${slime.slimeName || '슬라임'}</span>
           </div>
           <input class="slime-chat-bar-input" id="overlay-chat-input"
-            placeholder="슬라임에게 질문하기"
+            placeholder="슬라임에게 물어보세요"
             onkeydown="if(event.key==='Enter')_studyTabChatSend(this)"
             oninput="const b=document.getElementById('overlay-chat-send');if(b){b.style.opacity=this.value.trim().length>0?'1':'0';b.style.pointerEvents=this.value.trim().length>0?'auto':'none';}"
-            onfocus="const p=document.getElementById('slime-chat-panel');if(p&&p.style.display==='none')stOpenChat()">
+            style="padding:0 10px;">
           <button id="overlay-chat-send" class="slime-chat-bar-send"
-            style="opacity:0;pointer-events:none"
+            style="opacity:0;pointer-events:none;margin-right:5px;"
             onclick="_studyTabChatSend(document.getElementById('overlay-chat-input'))">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
         <!-- 오버레이 전용 채팅 패널 -->
-        <div id="overlay-chat-panel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:340px;max-height:420px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;box-shadow:0 8px 40px rgba(30,58,95,0.13);z-index:2000;flex-direction:column;overflow:hidden;animation:fadeUp 0.18s ease both"></div>
+        <div id="overlay-chat-panel" style="display:none;position:fixed;top:72px;right:20px;width:340px;max-height:420px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;box-shadow:0 8px 40px rgba(30,58,95,0.13);z-index:2100;flex-direction:column;overflow:hidden"></div>
         <div style="display:flex;align-items:center;gap:4px">
           <!-- 젤리 배지 (오버레이) -->
           <div id="ov-jelly-badge" title="젤리: AI 챗봇 사용권"
             style="display:flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;
-              background:#e8f0fe;border:1.5px solid #93c5fd;font-family:'Outfit',sans-serif;
-              font-size:13px;font-weight:700;color:#1e6bb8;white-space:nowrap;user-select:none">
+              background:#f1f5f9;border:1px solid #e2e8f0;font-family:'Outfit',sans-serif;
+              font-size:13px;font-weight:600;color:#475569;white-space:nowrap;user-select:none">
             🍬 ${getJelly()}
           </div>
           <button class="student-topbar-btn" id="ov-notif-btn" onclick="stToggleNotif()" title="알림">
@@ -13857,7 +14540,7 @@ async function openStudentWordView(bookId) {
         <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
         <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">암기</button>
         <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">퀴즈</button>
-        <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#92400e;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">📝 테스트</button>
+        <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
         <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           프린트
@@ -13916,10 +14599,14 @@ function _openStudyOverlay(type, bookId) {
     });
   } else {
     document.getElementById('quiz-sel').value = bookId;
-    startQuiz().then(() => {
+    if (!_quizMode) _quizMode = 'choice';
+    if (!_quizDir)  _quizDir  = 'en2ko';
+    (async () => {
+      await startQuiz();
+      // startQuiz 성공 여부와 무관하게 quiz-body를 오버레이로 이동
       const src = document.getElementById(srcId);
       if (src && loBody) loBody.appendChild(src);
-    });
+    })();
   }
 }
 
@@ -14397,6 +15084,8 @@ async function recordStudied(){
   catch(e){ console.error('진도 저장 실패', e); }
   // 젤리 지급: 암기 1회독
   addJelly(3, '암기 학습 완료');
+  // 과제 진도에는 DB.progress[key].rounds 자체를 사용하므로 별도 처리 불필요
+  // (renderMyBooks에서 Math.min(rounds, flashcard) 로 계산)
 }
 
 // =========================================================
@@ -14477,6 +15166,30 @@ function openStudentQuizPopup(bookId) {
   const card = document.createElement('div');
   card.style.cssText = `background:#fff;border-radius:26px;padding:32px 28px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(15,23,42,0.22);position:relative;animation:fadeUp 0.2s ease both`;
 
+  // 과제 옵션 확인
+  const _tOpts = (DB.taskOptions||{})[bookId] || null;
+  const _hasTask = _tOpts && Object.values(_tOpts).some(v => v > 0);
+  function _qBtn(label, subLabel, mode, dir, optKey) {
+    const allowed = !_hasTask || (_tOpts && _tOpts[optKey] > 0);
+    const done = parseInt(localStorage.getItem('task_done_'+currentUser.id+'_'+bookId+'_'+optKey)||'0');
+    const goal = _tOpts ? (_tOpts[optKey]||0) : 0;
+    const badge = (_hasTask && goal > 0) ? ` <span style="font-size:11px;font-weight:700;color:${done>=goal?'#16a34a':'#2563eb'}">${done}/${goal}회</span>` : '';
+    if (!allowed) {
+      return `<div style="padding:14px 12px;background:#f8fafc;border:1.5px solid #e8edf4;border-radius:16px;position:relative;opacity:0.55;cursor:not-allowed">
+        <div style="position:absolute;top:8px;right:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div style="font-size:13px;font-weight:700;color:#94a3b8">${label}</div>
+        <div style="font-size:12px;color:#c0cbe0;margin-top:2px">${subLabel}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px">과제 미부여</div>
+      </div>`;
+    }
+    return `<button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','${mode}','${dir}')"
+      style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;"
+      onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">
+      ${label}${badge}<br><span style="font-size:12px;font-weight:400;color:#64748b">${subLabel}</span>
+    </button>`;
+  }
+
   card.innerHTML = `
     <!-- 닫기 -->
     <button onclick="document.getElementById('quiz-type-popup').remove()"
@@ -14485,39 +15198,20 @@ function openStudentQuizPopup(bookId) {
     <!-- 타이틀 -->
     <div style="font-size:13px;font-weight:700;color:${col.dark};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">📝 퀴즈</div>
     <div style="font-size:20px;font-weight:900;color:#1e3a5f;margin-bottom:4px">퀴즈 선택</div>
-    <div style="font-size:14px;color:#7ea8cc;margin-bottom:22px">유형과 방향을 선택해 주세요</div>
+    <div style="font-size:14px;color:#7ea8cc;margin-bottom:22px">${_hasTask?'과제로 부여된 유형만 활성화됩니다':'유형과 방향을 선택해 주세요'}</div>
 
-    <!-- 구분선 -->
+    <!-- 객관식 -->
     <div style="font-size:13px;font-weight:700;color:#1e3a5f;margin-bottom:8px">객관식 퀴즈</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
-      <button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','choice','en2ko')"
-        style="padding:14px 12px;background:linear-gradient(135deg,${col.a}22,${col.b}15);border:1.5px solid ${col.b}40;border-radius:16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.18s;text-align:left;"
-        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px ${col.b}25'"
-        onmouseout="this.style.transform='';this.style.boxShadow=''">
-        영어 → 한국어<br><span style="font-size:13px;font-weight:400;color:#64748b">영어 보고 뜻 맞추기</span>
-      </button>
-      <button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','choice','ko2en')"
-        style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;"
-        onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-2px)'"
-        onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">
-        한국어 → 영어<br><span style="font-size:13px;font-weight:400;color:#64748b">뜻 보고 영어 맞추기</span>
-      </button>
+      ${_qBtn('영어 → 한국어','영어 보고 뜻 맞추기','choice','en2ko','quiz_choice_en2ko')}
+      ${_qBtn('한국어 → 영어','뜻 보고 영어 맞추기','choice','ko2en','quiz_choice_ko2en')}
     </div>
 
+    <!-- 주관식 -->
     <div style="font-size:13px;font-weight:700;color:#1e3a5f;margin-bottom:8px">주관식 퀴즈</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','input','en2ko')"
-        style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;"
-        onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-2px)'"
-        onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">
-        영어 → 한국어<br><span style="font-size:13px;font-weight:400;color:#64748b">직접 한국어 입력</span>
-      </button>
-      <button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','input','ko2en')"
-        style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;"
-        onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-2px)'"
-        onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">
-        한국어 → 영어<br><span style="font-size:13px;font-weight:400;color:#64748b">직접 영어 입력</span>
-      </button>
+      ${_qBtn('영어 → 한국어','직접 한국어 입력','input','en2ko','quiz_input_en2ko')}
+      ${_qBtn('한국어 → 영어','직접 영어 입력','input','ko2en','quiz_input_ko2en')}
     </div>
   `;
 
@@ -14549,11 +15243,11 @@ async function startQuiz(){
     if (dirEl)  _quizDir  = dirEl.value;
   }
   const mode = _quizMode;
-  await loadBookWords(id);
+  const loadedWords = await loadBookWords(id);
 
   // 미암기 필터
   const onlyUnmemorized = document.getElementById('quiz-unmemorized-only')?.checked;
-  let pool = [...book.words];
+  let pool = [...(loadedWords && loadedWords.length ? loadedWords : (book.words || []))];
   if (onlyUnmemorized) {
     const checked = new Set(JSON.parse(localStorage.getItem('wl_check_' + id)||'[]'));
     if (checked.size > 0) {
@@ -14565,7 +15259,12 @@ async function startQuiz(){
     }
   }
 
-  if(pool.length<(mode==='choice'?4:1)){showToast(mode==='choice'?`4지선다는 최소 4개 필요 (현재 ${pool.length}개)`:'단어가 없습니다.','error');return;}
+  if(pool.length<(mode==='choice'?4:1)){
+    const body=document.getElementById('quiz-body');
+    if(body) body.innerHTML=`<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">${mode==='choice'?`4지선다는 최소 4개 필요 (현재 ${pool.length}개)`:'단어가 없습니다.'}</div></div>`;
+    showToast(mode==='choice'?`4지선다는 최소 4개 필요 (현재 ${pool.length}개)`:'단어가 없습니다.','error');
+    return;
+  }
   quizWords=shuffle(pool);
   quizIdx=0; quizScore=0; quizAnswered=false; quizWrong=[];
   startFocusGuard(); // 🔒 시험 시작 시 포커스 감시 ON
@@ -14574,6 +15273,7 @@ async function startQuiz(){
 
 function renderQuiz(){
   const body=document.getElementById('quiz-body');
+  if(!body) return;
   if(quizIdx>=quizWords.length){
     // ── 결과 화면 ──
     stopFocusGuard(); // 🔒 시험 완료 시 포커스 감시 OFF
@@ -14856,9 +15556,15 @@ function answerChoice(btn,selId,corrId){
 function checkInput(wid, dir, mode){
   if(quizAnswered)return; quizAnswered=true;
   const w=quizWords.find(w=>String(w.id)===String(wid));
-  const ans=document.getElementById('quiz-inp').value.trim().toLowerCase();
-  const correct=dir==='en2ko'?w.ko.toLowerCase():w.en.toLowerCase();
-  const ok = ans===correct || correct.split(',').map(s=>s.trim()).some(s=>s===ans) || (correct.includes(ans) && ans.length>=3);
+  const ans=document.getElementById('quiz-inp').value.trim();
+  const _norm = s => s.replace(/\(.*?\)/g,'').replace(/\[.*?\]/g,'').replace(/\s+/g,'').toLowerCase();
+  const correctRaw = dir==='en2ko' ? w.ko : w.en;
+  const userNorm = _norm(ans), corrNorm = _norm(correctRaw);
+  const ok = userNorm.length > 0 && (
+    userNorm === corrNorm ||
+    corrNorm.split(',').map(s=>_norm(s)).some(s=>s===userNorm) ||
+    corrNorm.includes(userNorm) || userNorm.includes(corrNorm)
+  );
   const fb=document.getElementById('qfb');
   if(ok){
     quizScore++;
@@ -14967,8 +15673,12 @@ function _onVisibilityChange() {
 
 function _onWindowBlur() {
   if (!_fgActive) return;
-  // 모바일에서 visibilitychange와 중복될 수 있으므로 hidden 상태가 아닐 때만 처리
-  if (document.visibilityState !== 'hidden') _onFocusLost('창 이탈');
+  // visibilitychange로 이미 처리되거나, 페이지 내 포커스 이동(input 클릭 등)은 무시
+  // 실제 창 이탈은 잠시 후 visibilityState가 hidden으로 바뀌므로 딜레이 체크
+  setTimeout(function() {
+    if (!_fgActive) return;
+    if (document.visibilityState === 'hidden') _onFocusLost('창 이탈');
+  }, 200);
 }
 
 function _onFocusLost(reason) {
@@ -15094,6 +15804,16 @@ async function recordQuizScore(pct){
     if (existing >= 0) DB.progress[key].wrongWords[existing] = {...w, count: (DB.progress[key].wrongWords[existing].count||1)+1};
     else DB.progress[key].wrongWords.push({...w, count:1});
   });
+  // 과제 task_done 카운트 업데이트
+  const _tDoneKey = 'task_done_'+currentUser.id+'_'+id+'_quiz_'+mode+'_'+dir;
+  const _tOptsNow = (DB.taskOptions||{})[id]||null;
+  const _optKey = 'quiz_'+mode+'_'+dir.replace('2','').replace('en','en2').replace('ko','ko2');
+  // 실제 옵션 키 형식: quiz_choice_en2ko 등
+  const _realOptKey = 'quiz_'+mode+'_'+(dir==='en2ko'?'en2ko':'ko2en');
+  const _lsKey = 'task_done_'+currentUser.id+'_'+id+'_'+_realOptKey;
+  const _curDone = parseInt(localStorage.getItem(_lsKey)||'0');
+  const _goal = _tOptsNow ? (_tOptsNow[_realOptKey]||0) : 0;
+  if (_goal > 0 && _curDone < _goal) localStorage.setItem(_lsKey, _curDone+1);
   // 젤리 지급: 퀴즈 완료
   addJelly(2, '퀴즈 완료');
   try {
@@ -15447,20 +16167,32 @@ async function renderProgress(){
 
       // 최근 퀴즈 기록 5개
       const recentLogs = bookLogs.slice(0,5).map(l=>{
+        const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
+        const isAbandoned = isWordTest && l.force_submit;
         const pct   = Math.round(l.score/l.total*100);
-        const c     = pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
+        const c     = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
         const date  = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
         const wrongW= l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
+        const hasSnapshot = !!(l.questions_json);
+        const _logId2 = l.id || (l.student_id + '_' + (l.taken_at||''));
+        if (hasSnapshot) window._gradedLogMap[_logId2] = l;
         return `
           <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${pct}%</span>
+            <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned ? '-' : pct+'%'}</span>
             <span style="color:#64748b">${l.score}/${l.total}문제</span>
-            <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-            <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>
-            ${wrongW.length
-              ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-              : `<span style="color:#059669;font-size:13px;font-weight:600">✓ 전부 정답</span>`}
+            ${isWordTest
+              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
+              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
+            }
+            ${isAbandoned
+              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+              : wrongW.length
+                ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+                : `<span style="color:#059669;font-size:13px;font-weight:600">✓ 전부 정답</span>`
+            }
             <span style="margin-left:auto;color:#94a3b8;font-size:13px">${date}</span>
+            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId2}')" style="padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
           </div>`;
       }).join('');
 
@@ -15884,20 +16616,33 @@ async function renderProgress(){
 
       // 최근 퀴즈 기록 5개
       const recentLogs = bookLogs.slice(0,5).map(l=>{
+        const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
+        const isAbandoned = isWordTest && l.force_submit;
         const pct   = Math.round(l.score/l.total*100);
-        const c     = pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
+        const c     = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
         const date  = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
         const wrongW= l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
+        const hasSnapshot = !!(l.questions_json);
+        const _logId3 = l.id || (l.student_id + '_' + (l.taken_at||''));
+        if (hasSnapshot) window._gradedLogMap[_logId3] = l;
         return `
           <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${c};min-width:44px">${pct}%</span>
+            <span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${c};min-width:44px">${isAbandoned ? '-' : pct+'%'}</span>
             <span style="color:#64748b">${l.score}/${l.total}문제</span>
-            <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-            <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>
-            ${wrongW.length
-              ? `<span style="color:#ef4444;font-size:12px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-              : `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`}
+            ${isWordTest
+              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700">테스트</span>`
+              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
+            }
+            ${isAbandoned
+              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+              : wrongW.length
+                ? `<span style="color:#ef4444;font-size:12px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+                : isWordTest ? `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
+                : `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
+            }
             <span style="margin-left:auto;color:#94a3b8;font-size:12px">${date}</span>
+            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId3}')" style="padding:2px 9px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
           </div>`;
       }).join('');
 
@@ -16305,6 +17050,33 @@ function fvpSanitizeKo(text) {
     .replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2CEAF]/g, '')
     .replace(/[\u3040-\u30FF\uFF65-\uFF9F]/g, '') // 히라가나/카타카나
     .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 챗봇 응답 전용: 한글+영어+기본문장부호만 보존, 한자/태국어/아랍어 등 제거
+function _sanitizeChatReply(text) {
+  if (!text) return '';
+  return text
+    // 특수 장식 문자 제거 (✦ ✧ ★ 등 Gemini/LLM이 출력하는 불필요한 기호)
+    .replace(/[✦✧✨⭐★☆]/g, '')
+    // 한자 제거
+    .replace(/[\u4E00-\u9FFF\u3400-\u4DBF]/g, '')
+    // 일본어 제거
+    .replace(/[\u3040-\u30FF\uFF65-\uFF9F]/g, '')
+    // 태국어 제거
+    .replace(/[\u0E00-\u0E7F]/g, '')
+    // 아랍어 제거
+    .replace(/[\u0600-\u06FF]/g, '')
+    // 베트남어 라틴 확장 문자 제거
+    .replace(/[\u1EA0-\u1EF9\u0102\u0103\u01A0\u01A1\u01AF\u01B0]/g, '')
+    // 기타 비라틴/비한글 문자 제거 (한글, 영어, 숫자, 기본 문장부호 보존)
+    .replace(/[^\u0000-\u007F\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF\s]/g, function(c) {
+      // 이모지(U+1F000 이상)는 보존
+      const code = c.codePointAt(0);
+      if (code >= 0x1F000) return c;
+      return '';
+    })
+    .replace(/  +/g, ' ')
     .trim();
 }
 
@@ -17635,7 +18407,7 @@ async function openWordPrintStudio(bookId) {
     const perCol = Math.ceil(wList.length / cols);
 
     function itemHTML(w, n) {
-      return `<td style="padding:${cellPad};vertical-align:top;width:${colW}%;border:0.5pt solid #ddd">
+      return `<td style="padding:${cellPad};vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
         <div style="display:flex;gap:6pt;align-items:flex-start">
           <span style="font-weight:400;font-size:${Math.round(fs*0.65)}pt;color:#c0c0c0;flex-shrink:0;min-width:12pt;line-height:${lh}">${n}.</span>
           <div style="flex:1;min-width:0">
@@ -17654,7 +18426,7 @@ async function openWordPrintStudio(bookId) {
       while (slice.length < cols) slice.push(null);
       const tds = slice.map((w, ci) => w
         ? itemHTML(w, i + ci + 1)
-        : `<td style="border:0.5pt solid #ddd;width:${colW}%"></td>`
+        : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
       ).join('');
       rows.push(`<tr>${tds}</tr>`);
     }
@@ -17664,12 +18436,12 @@ async function openWordPrintStudio(bookId) {
 
     const sheetBody = `
       <div style="display:flex;justify-content:space-between;align-items:flex-end;
-                  border-bottom:2pt solid #111;padding-bottom:10pt;margin-bottom:14pt">
+                  border-bottom:none;padding-bottom:0;margin-bottom:14pt">
         <div>
           <div style="font-size:${titleSize}pt;font-weight:900;letter-spacing:-0.3px;line-height:1.3">${title}</div>
-          <div style="font-size:9pt;color:#666;margin-top:4pt">${order==='rand'?'랜덤 순서':'원래 순서'} · 총 ${wList.length}개 단어 · ${today}</div>
+          <div style="font-size:9pt;color:#666;margin-top:4pt">총 ${wList.length}개</div>
         </div>
-        <div style="text-align:right;font-size:9pt;color:#555;line-height:2.2">
+        <div style="text-align:right;font-size:9pt;color:#555;line-height:3.2">
           <div style="font-size:10pt;font-weight:700;letter-spacing:1.5px">ION ENGLISH</div>
           이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>
         </div>
@@ -17684,19 +18456,24 @@ async function openWordPrintStudio(bookId) {
       `<title>${title}</title>`,
       '<style>',
       '* { box-sizing:border-box; margin:0; padding:0; }',
-      '@page { size: A4 portrait; margin: 14mm 16mm; }',
+      '@page { size: A4 portrait; margin: 14mm 16mm 20mm; }',
       'body {',
       '  font-family: "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;',
       `  font-size: ${fs}pt;`,
       '  color: #111;',
       '}',
-      'table { width:100%; border-collapse:collapse; table-layout:fixed; }',
+      'table { width:100%; border-collapse:collapse; table-layout:fixed; border-top:1.5pt solid #111; border-bottom:1.5pt solid #111; }',
       'td { word-break: break-word; }',
+      'tr { break-inside:avoid; page-break-inside:avoid; }',
+      'td:last-child { border-right:none !important; }',
       '@media screen {',
       '  body { max-width:210mm; margin:0 auto; padding:16mm 18mm;',
       '         background:white; box-shadow:0 0 30px rgba(0,0,0,0.15); min-height:297mm; }',
       '}',
-      '@media print { body { padding:0; } }',
+      '@media print {',
+      '  @page { @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } }',
+      '  body { padding:0; }',
+      '}',
       '</style>',
       '</head><body>',
       sheetBody,
@@ -17765,6 +18542,85 @@ async function openWordPrintStudio(bookId) {
   setTimeout(wpsLivePreview, 100);
 }
 
+// ── 채점된 시험지 뷰어 ──────────────────────────────────────
+window._gradedLogMap = {};
+function openGradedTestView(logId, studentName) {
+  const log = window._gradedLogMap[logId];
+  if (!log) { showToast('시험지 데이터를 찾을 수 없습니다.', 'error'); return; }
+  const questions = log.questions_json
+    ? (typeof log.questions_json === 'string' ? JSON.parse(log.questions_json) : log.questions_json)
+    : [];
+  if (!questions.length) { showToast('저장된 시험지 데이터가 없습니다.', 'error'); return; }
+
+  const total   = log.total || questions.length;
+  const correct = log.score || questions.filter(q => q.correct).length;
+  const pct     = Math.round(correct / total * 100);
+  const date    = new Date(log.taken_at).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  const book    = DB.books.find(b => b.id === log.book_id);
+  const bookName = book ? book.name : '단어장';
+  const pctColor = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+  const nameLabel = studentName ? `<span style="font-size:14px;color:#64748b;font-weight:600">${studentName}</span> · ` : '';
+
+  const ov = _createOverlay('graded-test-view-overlay', '#f8fafc');
+  ov.innerHTML = `
+    <div style="flex-shrink:0;background:#fff;border-bottom:1.5px solid #e2e8f0;padding:14px 20px">
+      <div style="display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:#64748b;margin-bottom:2px">${nameLabel}📘 ${bookName}</div>
+          <div style="font-size:15px;font-weight:800;color:#1e3a5f">채점된 시험지</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+          <div style="text-align:right">
+            <div style="font-size:30px;font-weight:900;color:${pctColor};line-height:1">${pct}점</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px">${correct}/${total} 정답 · ${date}</div>
+          </div>
+          <button onclick="document.getElementById('graded-test-view-overlay').remove()"
+            style="padding:8px 18px;background:#f1f5f9;color:#475569;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">닫기</button>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px">
+      <div style="max-width:680px;margin:0 auto">
+        ${questions.map((q, i) => {
+          const isCorrect = q.correct;
+          const borderColor = isCorrect ? '#86efac' : '#fca5a5';
+          const bg          = isCorrect ? '#f0fdf4' : '#fef2f2';
+          const icon        = isCorrect ? '✅' : '❌';
+          const dirBadge    = q.dir === 'en2ko'
+            ? `<span style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:2px 8px">영→한</span>`
+            : `<span style="font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:10px;padding:2px 8px">한→영</span>`;
+          const prompt      = q.dir === 'en2ko'
+            ? `<span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:#1e3a5f">${q.en}</span>`
+            : `<span style="font-size:18px;font-weight:800;color:#1e3a5f">${q.ko}</span>`;
+          const correctAns  = q.dir === 'en2ko' ? q.ko : q.en;
+          const aiTag       = q.aiChecked ? `<span style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:2px 7px;margin-left:4px">🤖 유의어 인정</span>` : '';
+          return `<div style="background:${bg};border:2px solid ${borderColor};border-radius:16px;padding:16px 20px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+              <span style="font-size:13px;font-weight:800;color:#6366f1;background:#eef2ff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+              ${dirBadge}
+              <div style="flex:1">${prompt}</div>
+              <span style="font-size:18px">${icon}</span>${aiTag}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:3px;letter-spacing:0.5px">학생 답안</div>
+                <div style="font-size:15px;font-weight:700;color:${isCorrect?'#059669':'#dc2626'};font-family:'Outfit',sans-serif">
+                  ${q.answer || '<span style="color:#94a3b8;font-weight:400;font-size:13px">미입력</span>'}
+                </div>
+              </div>
+              ${!isCorrect ? `<div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:3px;letter-spacing:0.5px">정답</div>
+                <div style="font-size:15px;font-weight:700;color:#059669;font-family:'JetBrains Mono',monospace">${correctAns}</div>
+              </div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+        <div style="height:40px"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
 // ── 단어장 카드 → 시험지
 // ── 단어장 빠른 인쇄 (설정 모달 없이 기본값으로 바로 인쇄)
 async function bookQuickPrint(bookId) {
@@ -17802,7 +18658,7 @@ async function bookQuickPrint(bookId) {
   const tableStyle = 'width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:20pt';
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
-  @page { margin: 15mm; }
+  @page { margin: 15mm 15mm 21mm; @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } }
   body { font-family: 'Malgun Gothic', sans-serif; margin: 0; }
   h2 { font-size: 16pt; margin: 0 0 4pt; }
   .meta { font-size: 9pt; color: #6b7280; margin-bottom: 16pt; }
@@ -17838,10 +18694,16 @@ async function bookQuickPrint(bookId) {
   };
 }
 
-// ── 문장집 빠른 인쇄 (sentMakeTest 오버레이로 진입)
+// ── 문장집 빠른 인쇄 (문장 목록 인쇄 스튜디오로 진입)
 async function sentQuickPrint(bookId) {
-  await sentMakeTest(bookId);
-  // 오버레이 열리면 인쇄 버튼 자동 클릭 안 함 — 바로 설정 화면으로 진입
+  showToast('문장 불러오는 중...', 'info');
+  const b = DB_sentBooks.find(b => b.id === bookId);
+  if (!b) { showToast('문장집을 찾을 수 없습니다.', 'error'); return; }
+  _slBookId = bookId;
+  _slItems = await loadSentenceItems(bookId);
+  if (!_slItems.length) { showToast('문장이 없습니다.', 'error'); return; }
+  window._slpItems = _slItems;
+  openSentListPrint(bookId);
 }
 async function bookMakeTest(bookId) {
   const b = DB.books.find(b => b.id === bookId);
@@ -17912,6 +18774,18 @@ function testShowSettings(defaultTitle, words) {
       <div style="width:360px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:20px 18px">
 
         <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">설정</div>
+
+        <!-- 1면 인쇄 토글 -->
+        <div style="margin-bottom:14px">
+          <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px solid rgba(99,102,241,0.4);border-radius:10px;background:rgba(99,102,241,0.08);cursor:pointer;transition:all 0.15s"
+            onmouseover="this.style.background='rgba(99,102,241,0.15)'" onmouseout="this.style.background='rgba(99,102,241,0.08)'" id="ts-onepage-label">
+            <input type="checkbox" id="ts-onepage" style="width:15px;height:15px;accent-color:#818cf8" onchange="tsOnepageToggle()">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">📄 1면 인쇄 최적화</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px">25~30문제를 1장에 맞게 자동 압축</div>
+            </div>
+          </label>
+        </div>
 
         <!-- 제목 -->
         <div style="margin-bottom:14px">
@@ -18035,6 +18909,38 @@ function testShowSettings(defaultTitle, words) {
 }
 
 // ── 수량 조절 헬퍼
+function tsOnepageToggle() {
+  const on = document.getElementById('ts-onepage')?.checked;
+  if (!on) {
+    // 원래 기본값 복원
+    const fs = document.getElementById('ts-fontscale');
+    const lh = document.getElementById('ts-lineheight');
+    const pd = document.getElementById('ts-padding');
+    if (fs) fs.value = 10;
+    if (lh) lh.value = '1.5';
+    if (pd) pd.value = 'normal';
+    return tsLivePreview();
+  }
+  // 1면 모드: 글자 8pt, 행간 최소, 셀여백 좁게, 2단
+  const fs = document.getElementById('ts-fontscale');
+  const lh = document.getElementById('ts-lineheight');
+  const pd = document.getElementById('ts-padding');
+  const cols = document.querySelectorAll('input[name="ts-cols"]');
+  if (fs) fs.value = 13;
+  if (lh) lh.value = '1.0';
+  if (pd) pd.value = 'tight';
+  // 2단 강제
+  cols.forEach((r, i) => {
+    r.checked = (r.value === '2');
+    const lbl = r.closest('label');
+    if (lbl) {
+      lbl.style.borderColor = r.value==='2' ? '#1e4db7' : 'rgba(255,255,255,0.12)';
+      lbl.style.background  = r.value==='2' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.04)';
+    }
+  });
+  tsLivePreview();
+}
+
 function tsAdjFont(delta) {
   const el = document.getElementById('ts-fontscale');
   if (!el) return;
@@ -18121,10 +19027,12 @@ function tsBuiltHtml(autoPrint) {
   const title      = document.getElementById('ts-title')?.value || '단어 시험';
   const collName   = window._testColl || '';
   const cols       = parseInt(document.querySelector('input[name="ts-cols"]:checked')?.value || 2);
-  const withKey    = document.getElementById('ts-answerkey')?.checked !== false;
+  const withKey    = document.getElementById('ts-answerkey')?.checked === true;
+  const onePage    = document.getElementById('ts-onepage')?.checked || false;
   const fs         = Math.min(20, Math.max(6, parseFloat(document.getElementById('ts-fontscale')?.value || 10)));
   const lineHeight = parseFloat(document.getElementById('ts-lineheight')?.value || 1.5);
   const paddingMode= document.getElementById('ts-padding')?.value || 'normal';
+  const marginMm   = onePage ? 6 : 12;
 
   const nEn2Ko  = parseInt(document.getElementById('ts-en2ko')?.value)  || 0;
   const nKo2En  = parseInt(document.getElementById('ts-ko2en')?.value)  || 0;
@@ -18163,14 +19071,16 @@ function tsBuiltHtml(autoPrint) {
 
   // 여백
   const padMap = { tight:'3pt 6pt', normal:'5pt 8pt', wide:'8pt 10pt' };
-  const cellPad = padMap[paddingMode] || '5pt 8pt';
+  const cellPad = onePage ? '5pt 8pt' : (padMap[paddingMode] || '5pt 8pt');
 
   const lh = lineHeight.toFixed(1);
   const L  = ['①','②','③','④'];
 
   function qHTML(q, ans) {
     const red = 'color:#b91c1c;font-weight:700;';
-    const ansLine = `<div style="margin-top:5pt;border-bottom:1pt solid #999;height:${fs*1.4}pt;width:${fs*8}pt"></div>`;
+    const _mb = onePage ? 6 : fs*1.5;
+    const _mt = onePage ? '4pt' : 'auto';
+    const ansLine = `<div style="margin-top:${_mt};padding-top:${onePage?'0':'5pt'};margin-bottom:${_mb}pt;border-bottom:1pt solid #999;height:${fs*1.4}pt;width:${fs*8}pt"></div>`;
 
     if (q.type === 'en2ko') return [
        `<div style="font-family:'Times New Roman',Georgia,serif;font-weight:700;font-size:${(fs*1.15).toFixed(1)}pt;line-height:${lh};color:#111">${q.q}</div>`,
@@ -18206,13 +19116,13 @@ function tsBuiltHtml(autoPrint) {
       const slice = qList.slice(i, i + cols);
       while (slice.length < cols) slice.push(null);
       const tds = slice.map(q => q
-        ? `<td style="padding:${cellPad};vertical-align:top;width:${colW}%;border:0.5pt solid #ddd">
-            <div style="display:flex;gap:6pt;align-items:flex-start">
-              <span style="font-weight:400;font-size:${Math.round(fs*0.65)}pt;color:#c0c0c0;flex-shrink:0;min-width:12pt;line-height:${lh}">${q.n}.</span>
-              <div style="flex:1;min-width:0">${qHTML(q,ans)}</div>
+        ? `<td style="padding:${cellPad};vertical-align:top;width:${colW}%;border:none;border-right:0.5pt dashed #ccc">
+            <div style="display:flex;gap:6pt;align-items:flex-start;${onePage?'':' flex:1;'}">
+              <span style="font-weight:400;font-size:${Math.round(fs*0.65)}pt;color:#999;flex-shrink:0;min-width:12pt;line-height:${lh}">${q.n}.</span>
+              <div style="flex:1;min-width:0;${onePage?'':' display:flex;flex-direction:column;'}">${qHTML(q,ans)}</div>
             </div>
            </td>`
-        : `<td style="border:0.5pt solid #ddd;width:${colW}%"></td>`
+        : `<td style="border:none;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
       ).join('');
       rows.push(`<tr>${tds}</tr>`);
     }
@@ -18220,14 +19130,14 @@ function tsBuiltHtml(autoPrint) {
     const titleSize = Math.min(16, fs * 1.4).toFixed(1);
     return `
       <div style="display:flex;justify-content:space-between;align-items:flex-end;
-                  border-bottom:2pt solid #111;padding-bottom:10pt;margin-bottom:14pt">
+                  border-bottom:none;padding-bottom:0;margin-bottom:${onePage?'5pt':'14pt'}">
         <div>
           <div style="font-size:${titleSize}pt;font-weight:900;letter-spacing:-0.3px;line-height:1.3">
             ${title}${ans?' <span style="font-size:11pt;color:#b91c1c;font-weight:700">【 정 답 지 】</span>':''}
           </div>
           ${collName?`<div style="font-size:9pt;color:#666;margin-top:4pt;letter-spacing:0.2px">${collName}</div>`:''}
         </div>
-        <div style="text-align:right;font-size:9pt;color:#555;line-height:2.2">
+        <div style="text-align:right;font-size:9pt;color:#555;line-height:3.2">
           <div style="font-size:10pt;font-weight:700;letter-spacing:1.5px">ION ENGLISH</div>
           ${ans?'':`이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>`}
         </div>
@@ -18247,19 +19157,25 @@ function tsBuiltHtml(autoPrint) {
     `<title>${title}</title>`,
     '<style>',
     '* { box-sizing:border-box; margin:0; padding:0; }',
-    '@page { size: A4 portrait; margin: 14mm 16mm; }',
+    `@page { size: A4 portrait; margin: ${onePage ? '6mm 6mm 8mm' : '14mm 16mm 20mm'}; }`,
     'body {',
     '  font-family: "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;',
     `  font-size: ${fs}pt;`,
     '  color: #111;',
     '}',
-    'table { width:100%; border-collapse:collapse; table-layout:fixed; }',
+    `table { width:100%; border-collapse:collapse; table-layout:fixed; border-top:1.5pt solid #111; border-bottom:1.5pt solid #111; margin-top:${onePage?'8pt':'0'}; }`,
     'td { word-break: break-word; }',
+    `tr { break-inside:${onePage?'auto':'avoid'}; page-break-inside:${onePage?'auto':'avoid'}; ${onePage?'':'display:flex;'} }`,
+    `td { ${onePage?'vertical-align:top;':'display:flex; flex-direction:column;'} }`,
+    'td:last-child { border-right:none !important; }',
     '@media screen {',
     '  body { max-width:210mm; margin:0 auto; padding:16mm 18mm;',
     '         background:white; box-shadow:0 0 30px rgba(0,0,0,0.15); min-height:297mm; }',
     '}',
-    '@media print { body { padding:0; } }',
+    '@media print {',
+    '  @page { @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } }',
+    '  body { padding:0; }',
+    '}',
     '</style>',
     '</head><body>',
     sheetHTML(false),
@@ -19088,7 +20004,10 @@ async function openWordTest(bookId) {
   }
   function _wtOnBlur() {
     if (!_wtFgActive) return;
-    if (document.visibilityState !== 'hidden') _wtFocusLost('창 이탈');
+    setTimeout(function() {
+      if (!_wtFgActive) return;
+      if (document.visibilityState === 'hidden') _wtFocusLost('창 이탈');
+    }, 200);
   }
   function _wtFocusLost(reason) {
     if (!_wtFgActive || submitted) return;
@@ -19107,7 +20026,7 @@ async function openWordTest(bookId) {
     if (_wtFgWarnings >= WT_MAX_WARN) {
       wtStopFG();
       _showFocusAlert('⚠️ 테스트가 자동 제출되었습니다', `화면을 ${WT_MAX_WARN}회 이탈하여 테스트가 자동 제출되었습니다.`, null, true);
-      setTimeout(() => wtSubmit(true), 2000);
+      setTimeout(() => wtSubmit('abandon').catch(e=>console.error(e)), 2000);
     } else {
       _showFocusAlert(`🚨 경고 ${_wtFgWarnings}/${WT_MAX_WARN}`, `테스트 화면을 벗어났습니다! (${reason})\n경고 ${WT_MAX_WARN}회 초과 시 테스트가 자동 제출됩니다.`, remaining > 0 ? `남은 기회: ${remaining}회` : null, false);
     }
@@ -19127,7 +20046,7 @@ async function openWordTest(bookId) {
       }
       if (timerSec <= 0) {
         clearInterval(timerInterval);
-        wtSubmit(true);
+        wtSubmit('timeout').catch(e=>console.error(e));
       }
     }, 1000);
   }
@@ -19152,7 +20071,7 @@ async function openWordTest(bookId) {
           <span style="font-size:13px;font-weight:800;color:${col.b};background:${col.b}18;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
           ${dirBadge}
           <div style="flex:1">${prompt}</div>
-          ${q.correct === true ? `<span style="font-size:18px">✅</span>` : q.correct === false ? `<span style="font-size:18px">❌</span>` : ''}
+          ${q.correct === true ? `<span style="font-size:18px">✅</span>${q._aiChecked ? `<span style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:2px 7px;margin-left:4px">🤖 유의어 인정</span>` : ''}` : q.correct === false ? `<span style="font-size:18px">❌</span>` : ''}
         </div>
         <input id="wt-inp-${i}" type="text" value="${esc(q.answer||'')}"
           placeholder="${placeholder}"
@@ -19167,18 +20086,115 @@ async function openWordTest(bookId) {
   }
 
   // ── 채점 ───────────────────────────────────────────
-  function grade() {
+  // 정규화 함수 (공통)
+  const _wtNorm = str => str
+    .replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '')
+    .replace(/\s+/g, '').toLowerCase();
+
+  // 1차 정규화 채점 (동기)
+  function gradeSync() {
     questions.forEach((q, i) => {
       const inp = document.getElementById(`wt-inp-${i}`);
       if (inp) q.answer = inp.value.trim();
-      const userAns = (q.answer || '').trim().toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
-      const correct = (q.dir === 'en2ko' ? q.w.ko : q.w.en).toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
-      q.correct = userAns === correct;
+      const userAns = _wtNorm(q.answer || '');
+      const correctRaw = q.dir === 'en2ko' ? q.w.ko : q.w.en;
+      const correctNorm = _wtNorm(correctRaw);
+      q.correct = userAns.length > 0 && (
+        userAns === correctNorm ||
+        correctNorm.includes(userAns) ||
+        userAns.includes(correctNorm)
+      );
+      q._aiChecked = false;
     });
   }
 
+  // 2차 AI 유의어 판정 (en→ko 틀린 문제만)
+  async function gradeAISynonyms() {
+    const groqKey = getAIKey('groq');
+    const geminiKey = getAIKey('gemini');
+    if (!groqKey && !geminiKey) return; // AI 키 없으면 스킵
+
+    const targets = questions.filter(q => q.correct === false && q.dir === 'en2ko' && (q.answer||'').trim().length > 0);
+    if (targets.length === 0) return;
+
+    // 배치 프롬프트: 한 번에 모아서 처리
+    const items = targets.map((q, i) => `${i+1}. 영어단어: "${q.w.en}" | 정답: "${q.w.ko}" | 학생답: "${q.answer}"`).join('\n');
+    const prompt = `영어 단어 시험 채점입니다. 각 항목에서 "학생답"이 "정답"과 같은 의미(유의어, 동의어, 의미상 동일)인지 판단하세요.\n\n${items}\n\n각 번호에 대해 O(정답 인정) 또는 X(오답)만 한 줄씩 응답하세요. 예:\n1. O\n2. X`;
+
+    const githubKey = getAIKey('github');
+    const cerebrasKey = getAIKey('cerebras');
+    try {
+      let reply = '';
+      // 1순위: GitHub Models gpt-4o-mini (한국어 유의어 판단 최적, 배치 1req)
+      if (githubKey) {
+        const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + githubKey },
+          body: JSON.stringify({ model: 'gpt-4o', max_tokens: 200, temperature: 0,
+            messages: [{ role: 'user', content: prompt }] })
+        });
+        const data = await res.json();
+        if (!data.error) reply = data.choices?.[0]?.message?.content || '';
+      }
+      // 2순위: Gemini
+      if (!reply && geminiKey) {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 200, temperature: 0 } })
+        });
+        const data = await res.json();
+        if (!data.error) reply = data.candidates?.[0]?.content?.parts?.map(p => p.text||'').join('') || '';
+      }
+      // 3순위: Groq
+      if (!reply && groqKey) {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqKey },
+          body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 200, temperature: 0,
+            messages: [{ role: 'user', content: prompt }] })
+        });
+        const data = await res.json();
+        if (!data.error) reply = data.choices?.[0]?.message?.content || '';
+      }
+      // 4순위: Cerebras
+      if (!reply && cerebrasKey) {
+        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cerebrasKey },
+          body: JSON.stringify({ model: 'llama-3.3-70b', max_tokens: 200, temperature: 0,
+            messages: [{ role: 'user', content: prompt }] })
+        });
+        const data = await res.json();
+        if (!data.error) reply = data.choices?.[0]?.message?.content || '';
+      }
+
+      // 응답 파싱: "1. O", "2. X" 형태
+      const lines = reply.split('\n').map(l => l.trim()).filter(Boolean);
+      lines.forEach(line => {
+        const m = line.match(/^(\d+)\.\s*([OXox○×✓✗])/);
+        if (!m) return;
+        const idx = parseInt(m[1]) - 1;
+        const pass = /[Oo○✓]/.test(m[2]);
+        if (targets[idx]) {
+          targets[idx].correct = pass;
+          targets[idx]._aiChecked = true;
+        }
+      });
+    } catch(e) { console.warn('AI 유의어 채점 실패 (무시):', e); }
+  }
+
+  async function gradeAsync() {
+    gradeSync();
+    await gradeAISynonyms();
+  }
+
   // ── 제출 ───────────────────────────────────────────
-  async function wtSubmit(force = false) {
+  async function wtSubmit(reason = '') {
+    // reason: '' = 수동제출, 'abandon' = 화면이탈, 'timeout' = 타이머만료
+    const force = (reason === 'abandon' || reason === 'timeout');
+    const isAbandoned = (reason === 'abandon');
     if (submitted) return;
     document.getElementById('_fgAlert')?.remove();
     // 답 수집
@@ -19188,21 +20204,17 @@ async function openWordTest(bookId) {
     });
     const blank = questions.filter(q => !(q.answer||'').trim()).length;
     if (!force && blank > 0) {
-      const ok = await new Promise(resolve => {
-        showModal(`<div class="modal-title">📝 테스트 제출</div>
-          <p style="color:var(--text-muted);font-size:15px;margin-bottom:16px"><strong>${blank}개</strong> 문제가 미입력 상태입니다.<br>그대로 제출하시겠어요?</p>
-          <div class="modal-actions">
-            <button class="btn btn-ghost" onclick="closeModal();window._wtSubmitResolve(false)">취소</button>
-            <button class="btn btn-primary" onclick="closeModal();window._wtSubmitResolve(true)">제출</button>
-          </div>`);
-        window._wtSubmitResolve = resolve;
-      });
-      if (!ok) return;
+      if (!confirm(`${blank}개 문제가 미입력 상태입니다.\n그대로 제출하시겠어요?`)) return;
     }
     submitted = true;
     stopTimer();
     wtStopFG();
-    grade();
+    // 채점 중 UI
+    const _sb = document.getElementById('wt-submit-btn');
+    if (_sb) { _sb.disabled = true; _sb.textContent = '🤖 AI 채점 중...'; }
+    const hdrPre = document.getElementById('wt-result-hdr');
+    if (hdrPre) { hdrPre.style.display = 'block'; hdrPre.innerHTML = '<div style="font-size:14px;color:#64748b;padding:8px 0">🤖 유의어 판정 중입니다...</div>'; }
+    await gradeAsync();
     render();
     const correct = questions.filter(q => q.correct).length;
     const total = questions.length;
@@ -19221,27 +20233,38 @@ async function openWordTest(bookId) {
         <button onclick="wtRestart()" style="margin-left:auto;padding:8px 20px;background:${col.b};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">다시 풀기</button>
       </div>`;
     }
-    // 점수 저장
-    try {
-      const key = currentUser.id + '_' + bookId;
-      if (!DB.progress[key]) DB.progress[key] = { studied: 0, quizScores: [], rounds: 0, wrongWords: [] };
-      if (!DB.progress[key].quizScores) DB.progress[key].quizScores = [];
-      DB.progress[key].quizScores.push(pct);
-      const wrongList = questions.filter(q => !q.correct).map(q => ({ en: q.w.en, ko: q.w.ko }));
-      wrongList.forEach(w => {
-        const ei = DB.progress[key].wrongWords?.findIndex(x => x.en === w.en) ?? -1;
-        if (ei >= 0) DB.progress[key].wrongWords[ei].count = (DB.progress[key].wrongWords[ei].count || 1) + 1;
-        else { if (!DB.progress[key].wrongWords) DB.progress[key].wrongWords = []; DB.progress[key].wrongWords.push({ ...w, count: 1 }); }
-      });
-      await sbSaveProgress(currentUser.id, bookId, DB.progress[key]);
-      await sb.from('quiz_logs').insert({
-        student_id: currentUser.id, book_id: bookId,
-        score: correct, total,
-        mode: 'essay', direction: 'mixed',
-        wrong_words_json: JSON.stringify(wrongList)
-      });
-      addJelly(2, '테스트 완료');
-    } catch(e) { console.error('테스트 점수 저장 실패', e); }
+    // 점수 저장 (비동기, UI 블로킹 없이)
+    (async () => {
+      try {
+        const key = currentUser.id + '_' + bookId;
+        if (!DB.progress[key]) DB.progress[key] = { studied: 0, quizScores: [], rounds: 0, wrongWords: [] };
+        if (!DB.progress[key].quizScores) DB.progress[key].quizScores = [];
+        DB.progress[key].quizScores.push(pct);
+        const wrongList = questions.filter(q => !q.correct).map(q => ({ en: q.w.en, ko: q.w.ko }));
+        wrongList.forEach(w => {
+          const ei = DB.progress[key].wrongWords?.findIndex(x => x.en === w.en) ?? -1;
+          if (ei >= 0) DB.progress[key].wrongWords[ei].count = (DB.progress[key].wrongWords[ei].count || 1) + 1;
+          else { if (!DB.progress[key].wrongWords) DB.progress[key].wrongWords = []; DB.progress[key].wrongWords.push({ ...w, count: 1 }); }
+        });
+        await sbSaveProgress(currentUser.id, bookId, DB.progress[key]);
+        const questionsSnapshot = questions.map(q => ({
+          en: q.w.en, ko: q.w.ko,
+          dir: q.dir,
+          answer: q.answer || '',
+          correct: q.correct,
+          aiChecked: q._aiChecked || false
+        }));
+        await sb.from('quiz_logs').insert({
+          student_id: currentUser.id, book_id: bookId,
+          score: correct, total,
+          mode: 'essay', direction: 'mixed',
+          wrong_words_json: JSON.stringify(wrongList),
+          questions_json: JSON.stringify(questionsSnapshot),
+          force_submit: isAbandoned
+        });
+        addJelly(2, '테스트 완료');
+      } catch(e) { console.error('테스트 점수 저장 실패', e); }
+    })();
     // 제출 버튼 → 닫기 버튼으로
     const submitBtn = document.getElementById('wt-submit-btn');
     if (submitBtn) {
@@ -19258,7 +20281,7 @@ async function openWordTest(bookId) {
     openWordTest(bookId);
   };
   window.wtSaveInput = function(i, val) { if (questions[i]) questions[i].answer = val; };
-  window.wtSubmitGlobal = function(force) { wtSubmit(force); };
+  window.wtSubmitGlobal = function() { wtSubmit('').catch(e => console.error(e)); };
   window.wtCloseOverlay = function() { stopTimer(); wtStopFG(); document.getElementById('word-test-overlay')?.remove(); };
 
   // ── 오버레이 생성 ──────────────────────────────────
@@ -19586,7 +20609,7 @@ async function openTeacherWordView(bookId) {
       <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
       <button onclick="document.getElementById('teacher-word-overlay').remove();openBookStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${bColor}cc,${bColor});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${bColor}40;white-space:nowrap">암기</button>
       <button onclick="openStudentQuizPopup('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">퀴즈</button>
-      <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #fbbf24;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#92400e;cursor:pointer;transition:all 0.15s;white-space:nowrap">📝 테스트</button>
+      <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
       <div style="width:1px;height:22px;background:var(--border)"></div>
       <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>프린트</button>
       <button onclick="bookMakeTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">시험지</button>
@@ -20167,29 +21190,33 @@ function wlCardNav(dir) {
 // =========================================================
 // ─── 멀티 AI 키 관리 ─────────────────────────────────────
 const AI_KEY_MAP = {
-  groq:     { ls: 'ion_groq_key',     label: 'Groq',     prefix: 'gsk_',   url: 'https://console.groq.com',                    placeholder: 'gsk_...' },
-  gemini:   { ls: 'ion_gemini_key',   label: 'Gemini',   prefix: null,     url: 'https://aistudio.google.com/app/apikey',       placeholder: 'AIza...' },
-  cerebras: { ls: 'ion_cerebras_key', label: 'Cerebras', prefix: null,     url: 'https://cloud.cerebras.ai/platform/apikeys',   placeholder: 'csk-...' },
+  groq:        { ls: 'ion_groq_key',        label: 'Groq',        prefix: 'gsk_',  url: 'https://console.groq.com',                          placeholder: 'gsk_...' },
+  gemini:      { ls: 'ion_gemini_key',      label: 'Gemini',      prefix: null,    url: 'https://aistudio.google.com/app/apikey',             placeholder: 'AIza...' },
+  cerebras:    { ls: 'ion_cerebras_key',    label: 'Cerebras',    prefix: null,    url: 'https://cloud.cerebras.ai/platform/apikeys',         placeholder: 'csk-...' },
+  github:      { ls: 'ion_github_key',      label: 'GitHub Models', prefix: null,  url: 'https://github.com/settings/tokens',                placeholder: 'ghp_...' },
 };
 
 // ── AI 키: Supabase profiles.ai_keys (JSON) ↔ localStorage 동기 ──
+// 전체 AI 키 메모리 캐시
+const _cachedAIKeys = {};
+
 async function loadAIKeysFromDB() {
   if (!currentUser?.id) return;
   try {
-    // app_settings + profiles.ai_keys 동시 조회 (병렬화)
-    const sharedKeyNames = ['shared_groq_key','shared_gemini_key','shared_cerebras_key'];
+    const sharedKeyNames = ['shared_groq_key','shared_gemini_key','shared_cerebras_key','shared_openrouter_key','shared_github_key'];
     const [{ data: rows }, { data }] = await Promise.all([
       sb.from('app_settings').select('key,value').in('key', sharedKeyNames),
       sb.from('profiles').select('ai_keys').eq('id', currentUser.id).single()
     ]);
-    // 1) 공유 키 적용
-    const sharedAiMap = { shared_groq_key:'groq', shared_gemini_key:'gemini', shared_cerebras_key:'cerebras' };
+    const sharedAiMap = { shared_groq_key:'groq', shared_gemini_key:'gemini', shared_cerebras_key:'cerebras', shared_openrouter_key:'openrouter', shared_github_key:'github' };
+    // 1) 공유 키 적용 (선생님이 등록한 키 → 전체 학생 공유)
     if (rows?.length) {
       rows.forEach(row => {
         const aiId = sharedAiMap[row.key];
         if (aiId && row.value) {
           const cfg = AI_KEY_MAP[aiId];
           localStorage.setItem(cfg.ls, row.value);
+          _cachedAIKeys[aiId] = row.value;
           if (aiId === 'groq') _cachedGroqKey = row.value;
         }
       });
@@ -20197,27 +21224,37 @@ async function loadAIKeysFromDB() {
     // 2) 공유 키 없는 항목만 개인 키로 보완
     if (data?.ai_keys && typeof data.ai_keys === 'object') {
       Object.entries(AI_KEY_MAP).forEach(([aiId, cfg]) => {
-        if (!localStorage.getItem(cfg.ls)) {
+        if (!_cachedAIKeys[aiId]) {
           const val = data.ai_keys[aiId];
           if (val) {
             localStorage.setItem(cfg.ls, val);
+            _cachedAIKeys[aiId] = val;
             if (aiId === 'groq') _cachedGroqKey = val;
           }
         }
       });
     }
-  } catch(e) { /* 무시 */ }
+  } catch(e) {
+    console.warn('AI 키 로드 실패, localStorage 폴백:', e.message);
+    // 실패 시 localStorage에 남아있는 값을 메모리 캐시로 복원
+    Object.entries(AI_KEY_MAP).forEach(([aiId, cfg]) => {
+      const val = localStorage.getItem(cfg.ls);
+      if (val && !_cachedAIKeys[aiId]) {
+        _cachedAIKeys[aiId] = val;
+        if (aiId === 'groq') _cachedGroqKey = val;
+      }
+    });
+  }
 }
 
 function getAIKey(aiId) {
   const cfg = AI_KEY_MAP[aiId];
   if (!cfg) return '';
-  if (aiId === 'groq') return _cachedGroqKey || localStorage.getItem(cfg.ls) || '';
-  return localStorage.getItem(cfg.ls) || '';
+  return _cachedAIKeys[aiId] || (aiId === 'groq' ? _cachedGroqKey : null) || localStorage.getItem(cfg.ls) || '';
 }
 function slimeChatGetAI() {
   const sel = document.getElementById('slime-chat-ai-select');
-  return sel ? sel.value : (localStorage.getItem('ion_chat_ai') || 'gemini');
+  return sel ? sel.value : (localStorage.getItem('ion_chat_ai') || 'auto');
 }
 
 function slimeChatSaveAI(val) {
@@ -20226,7 +21263,7 @@ function slimeChatSaveAI(val) {
 
 function slimeChatInitAISelect() {
   const sel = document.getElementById('slime-chat-ai-select');
-  if (sel) sel.value = localStorage.getItem('ion_chat_ai') || 'gemini';
+  if (sel) sel.value = localStorage.getItem('ion_chat_ai') || 'auto';
 }
 
 let _aiModalTab = 'groq';
@@ -20237,8 +21274,8 @@ function openApiKeyModal(defaultTab) {
 }
 
 function _renderApiKeyModal() {
-  const tabs = ['groq','gemini','cerebras'];
-  const tabLabels = { groq:'Groq', gemini:'Gemini', cerebras:'Cerebras' };
+  const tabs = ['groq','gemini','cerebras','github'];
+  const tabLabels = { groq:'Groq', gemini:'Gemini', cerebras:'Cerebras', github:'GitHub' };
   const cfg = AI_KEY_MAP[_aiModalTab];
   const current = getAIKey(_aiModalTab);
   const masked = current ? current.slice(0,8) + '••••••••••••' : '';
@@ -20483,7 +21520,6 @@ async function loadGroqKeyFromDB() {
 // Groq 모델 우선순위 (fallback 순서)
 const GROQ_MODELS = [
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
 ];
 
 async function callGroq(prompt, modelIdx, systemMsg) {
@@ -20520,7 +21556,7 @@ async function callGroq(prompt, modelIdx, systemMsg) {
   if (d.error) {
     const msg = d.error.message || '';
     const isModelErr = msg.includes('model') || msg.includes('Model') || d.error.code === 'model_not_found';
-    const isRateErr  = msg.includes('rate') || msg.includes('Rate') || res.status === 429;
+    const isRateErr  = msg.includes('rate') || msg.includes('Rate') || msg.includes('Rate limit') || res.status === 429;
     if ((isModelErr || isRateErr) && idx < GROQ_MODELS.length - 1) {
       console.warn(`모델 ${model} 실패 (${msg}), 다음 모델 시도...`);
       return callGroq(prompt, idx + 1);
@@ -20968,14 +22004,14 @@ function slpBuildHtml() {
       ? `<div style="margin-top:3pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*10}pt"></div>`
       : `<div style="font-size:${(fs*0.9).toFixed(1)}pt;color:#555;margin-top:2pt;line-height:${lh}">${it.ko}</div>`;
     const ko = showKo ? koContent : '';
-    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:0.4pt solid #ddd">
+    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
       <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div style="flex:1">${en}${ko}</div></div>
     </td>`;
   });
   const rows = [];
   for (let i = 0; i < cells.length; i += cols) {
     const sl = cells.slice(i, i+cols);
-    while (sl.length < cols) sl.push(`<td style="border:0.4pt solid #ddd;width:${colW}%"></td>`);
+    while (sl.length < cols) sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
   const mm = 12;
@@ -20983,16 +22019,18 @@ function slpBuildHtml() {
     '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">',
     `<title>${title}</title>`,
     '<style>* { box-sizing:border-box; margin:0; padding:0; }',
-    `@page { size: A4 portrait; margin: ${mm}mm ${mm+2}mm; }`,
+    `@page { size: A4 portrait; margin: ${mm}mm ${mm+2}mm ${mm+6}mm; }`,
     'body { font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:#111; }',
-    'table { width:100%; border-collapse:collapse; table-layout:fixed; }',
+    'table { width:100%; border-collapse:collapse; table-layout:fixed; border-top:1.5pt solid #111; border-bottom:1.5pt solid #111; }',
+    'tr { break-inside:avoid; page-break-inside:avoid; }',
+    'td:last-child { border-right:none !important; }',
     `@media screen { body { max-width:210mm; margin:0 auto; padding:${mm+2}mm ${mm+4}mm; background:white; box-shadow:0 0 30px rgba(0,0,0,0.15); min-height:297mm; } }`,
-    '@media print { body { padding:0; } }</style></head><body>',
-    `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2pt solid #111;padding-bottom:10pt;margin-bottom:14pt">
+    '@media print { @page { @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } } body { padding:0; } }</style></head><body>',
+    `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:none;padding-bottom:0;margin-bottom:14pt">
       <div style="font-size:${Math.min(16,fs*1.4).toFixed(1)}pt;font-weight:900;letter-spacing:-0.3px">${title}</div>
-      <div style="text-align:right;font-size:9pt;color:#555;line-height:2.2">
+      <div style="text-align:right;font-size:9pt;color:#555;line-height:3.2">
         <div style="font-size:10pt;font-weight:700;letter-spacing:1.5px">ION ENGLISH</div>
-        ${hideKo?`이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>`:''}
+        이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>
       </div>
     </div>`,
     `<table><tbody>${rows.join('')}</tbody></table>`,
@@ -21233,7 +22271,7 @@ function wlpBuildHtml() {
          : `<div style="font-size:${fs}pt;color:#444;line-height:${lh};margin-top:1pt">${w.ko}</div>`
       : '';
     const ex    = showEx && w.example ? `<div style="font-size:${fs - 2}pt;color:#888;font-style:italic;line-height:${lh};margin-top:2pt">${w.example}</div>` : '';
-    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:0.4pt solid #ddd">
+    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
       <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div>${en}${ko}${ex}</div></div>
     </td>`;
   });
@@ -21241,7 +22279,7 @@ function wlpBuildHtml() {
   const rows = [];
   for (let i = 0; i < cells.length; i += cols) {
     const sl = cells.slice(i, i + cols);
-    while (sl.length < cols) sl.push(`<td style="border:0.4pt solid #ddd;width:${colW}%"></td>`);
+    while (sl.length < cols) sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
 
@@ -21254,21 +22292,26 @@ function wlpBuildHtml() {
     `<title>${title}</title>`,
     '<style>',
     '* { box-sizing:border-box; margin:0; padding:0; }',
-    '@page { size: A4 portrait; margin: 14mm 16mm; }',
+    '@page { size: A4 portrait; margin: 14mm 16mm 20mm; }',
     'body { font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:#111; }',
-    'table { width:100%; border-collapse:collapse; table-layout:fixed; }',
+    'table { width:100%; border-collapse:collapse; table-layout:fixed; border-top:1.5pt solid #111; border-bottom:1.5pt solid #111; }',
     'td { word-break:break-word; }',
+    'tr { break-inside:avoid; page-break-inside:avoid; }',
+    'td:last-child { border-right:none !important; }',
     '@media screen { body { max-width:210mm; margin:0 auto; padding:14mm 16mm; background:white; box-shadow:0 0 30px rgba(0,0,0,0.15); min-height:297mm; } }',
-    '@media print { body { padding:0; } }',
+    '@media print {',
+    '  @page { @bottom-center { content: counter(page) " / " counter(pages); font-size:8pt; color:#999; font-family:sans-serif; } }',
+    '  body { padding:0; }',
+    '}',
     '</style></head><body>',
-    `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2pt solid #111;padding-bottom:10pt;margin-bottom:14pt">
+    `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:none;padding-bottom:0;margin-bottom:14pt">
       <div>
         <div style="font-size:${titleSize}pt;font-weight:900;letter-spacing:-0.3px;line-height:1.3">${title}</div>
         ${collName?`<div style="font-size:9pt;color:#666;margin-top:4pt">${collName}</div>`:''}
       </div>
-      <div style="text-align:right;font-size:9pt;color:#555;line-height:2.2">
+      <div style="text-align:right;font-size:9pt;color:#555;line-height:3.2">
         <div style="font-size:10pt;font-weight:700;letter-spacing:1.5px">ION ENGLISH</div>
-        ${hideKo?`이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>`:''}
+        이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>
       </div>
     </div>`,
     `<table><tbody>${rows.join('')}</tbody></table>`,
@@ -21982,7 +23025,7 @@ function renderSlimeHome() {
       <div class="slime-card-top-wrap">
         <div class="slime-aura-ring"></div>
         <div class="slime-stage ${slime.stage>=2?'has-aura':''}" onclick="onSlimeClick(event)" title="클릭하면 반응해요!">
-          ${slime.stage>=2&&stageData.auraColor?`<div class="slime-aura" style="background:conic-gradient(${stageData.auraColor},transparent 60%,${stageData.auraColor})"></div>`:''}
+
           <div class="slime-body" id="slime-body-main">${buildSlimeSVG(slime.stage,180)}</div>
         </div>
         <div class="slime-name-tag">${slime.slimeName||'내 슬라임'}</div>
@@ -22166,5 +23209,7 @@ async function updateUnreadBadge() {
 }
 
 </script>
+<!-- 슬라임 채팅 패널 (항상 body 최상위) -->
+<div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
 </body>
 </html>
