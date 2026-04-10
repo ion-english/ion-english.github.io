@@ -11041,7 +11041,7 @@ async function sentMakeTest(bookId) {
         <!-- 정답지 -->
         <div style="margin-bottom:14px">
           <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
-            <input type="checkbox" id="stt-answerkey" style="width:15px;height:15px;accent-color:#3b82f6">
+            <input type="checkbox" id="stt-answerkey" style="width:15px;height:15px;accent-color:#3b82f6" onchange="sttPreview()">
             <span style="font-size:14px;color:rgba(255,255,255,0.7)">정답지 함께 생성</span>
           </label>
         </div>
@@ -11129,12 +11129,14 @@ function sttBuildHtml(reshuffle) {
   const items = window._sttItems;
   if (!items?.length) return null;
 
-  const title   = document.getElementById('stt-title')?.value || '문장 시험';
-  const cols    = parseInt(document.querySelector('input[name="stt-cols"]:checked')?.value || 1);
-  const fs      = parseFloat(document.getElementById('stt-fontsize')?.value || 11);
-  const lh      = parseFloat(document.getElementById('stt-lineheight')?.value || 1.5);
-  const cp      = parseInt(document.getElementById('stt-cellpad')?.value || 5);
-  const withKey = document.getElementById('stt-answerkey')?.checked;
+  const title    = document.getElementById('stt-title')?.value || '문장 시험';
+  const cols     = parseInt(document.querySelector('input[name="stt-cols"]:checked')?.value || 1);
+  const fs       = parseFloat(document.getElementById('stt-fontsize')?.value || 11);
+  const lh       = parseFloat(document.getElementById('stt-lineheight')?.value || 1.5);
+  const cp       = parseInt(document.getElementById('stt-cellpad')?.value || 5);
+  const withKey  = document.getElementById('stt-answerkey')?.checked;
+  const onePage  = document.getElementById('stt-onepage')?.checked || false;
+  const marginMm = onePage ? 6 : 12;
   const nW  = parseInt(document.getElementById('stt-writing')?.value) || 0;
   const nT  = parseInt(document.getElementById('stt-trans')?.value)   || 0;
   const nO  = parseInt(document.getElementById('stt-order')?.value)   || 0;
