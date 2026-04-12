@@ -11259,6 +11259,7 @@ function renderSentStudyCard() {
     const displayWords = words.map((w, i) => blankIdxs.has(i)
       ? `<input data-answer="${w.replace(/[.,!?]/g,'').toLowerCase()}" type="password" class="pw-visible" placeholder=""
           autocomplete="new-password" autocorrect="off" autocapitalize="none" spellcheck="false"
+          inputmode="text"
           onfocus="this.type='text'"
           style="width:${Math.min(Math.max(50,w.length*14),window.innerWidth<=600?Math.min(w.length*13,160):w.length*16)}px;border:none;border-bottom:3px solid ${col.b};
           background:transparent;color:#1a2d4a;font-size:clamp(17px,5vw,22px);font-weight:700;
@@ -17843,6 +17844,7 @@ function renderQuiz(){
         <input class="form-input pw-visible" id="quiz-inp"
           type="password"
           autocomplete="new-password" autocorrect="off" autocapitalize="none" spellcheck="false"
+          inputmode="text"
           onfocus="this.type='text'"
           placeholder="${dir==='en2ko'?'한국어 뜻 입력':'영어 단어 입력'}"
           style="flex:1;border-radius:14px;border:2px solid var(--border);font-size:16px;padding:12px 16px"
@@ -22546,10 +22548,10 @@ async function openWordTest(bookId) {
           <div style="flex:1">${prompt}</div>
           ${q.correct === true ? `<span style="font-size:18px">✅</span>${q._aiChecked ? `<span style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:2px 7px;margin-left:4px">🤖 유의어 인정</span>` : ''}` : q.correct === false ? `<span style="font-size:18px">❌</span>` : ''}
         </div>
-        <input id="wt-inp-${i}" type="password" class="pw-visible" value="${esc(q.answer||'')}"
+        <input id="wt-inp-${i}" type="${submitted?'text':'password'}" class="pw-visible" value="${esc(q.answer||'')}"
           placeholder="${placeholder}"
           autocomplete="new-password" autocorrect="off" autocapitalize="none" spellcheck="false"
-          onfocus="this.type='text'"
+          inputmode="text"
           oninput="wtSaveInput(${i},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();const nx=document.getElementById('wt-inp-${i+1}');if(nx)nx.focus();}"
           style="width:100%;padding:10px 14px;border:1.5px solid ${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'};border-radius:10px;font-size:15px;font-family:'Outfit',sans-serif;outline:none;background:${q.correct!==null?'transparent':'#fff'};box-sizing:border-box;transition:border-color 0.2s"
