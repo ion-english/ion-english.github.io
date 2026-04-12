@@ -361,7 +361,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  z-index: 50;
+  z-index: 10;
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(.32,0,.18,1);
 }
@@ -504,6 +504,100 @@
   flex-shrink: 0;
   padding-bottom: 2px;
 }
+
+/* ── 선택 삭제 모드 ── */
+.msg-select-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(239,68,68,0.08);
+  border-bottom: 1px solid rgba(239,68,68,0.18);
+  flex-shrink: 0;
+  animation: msgPop 0.15s ease both;
+}
+.msg-select-bar.active { display: flex; }
+.msg-select-bar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #ef4444; }
+.msg-select-bar-right { display: flex; gap: 8px; }
+.msg-sel-count { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+.msg-sel-btn {
+  padding: 5px 13px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.msg-sel-btn:active { transform: scale(0.96); }
+.msg-sel-btn.cancel { background: rgba(0,0,0,0.06); color: var(--text); }
+.msg-sel-btn.delete { background: #ef4444; color: #fff; }
+.msg-sel-btn.delete:disabled { background: rgba(239,68,68,0.35); cursor: not-allowed; }
+[data-theme="dark"] .msg-sel-btn.cancel { background: rgba(255,255,255,0.1); }
+
+/* 버블 선택 체크박스 */
+.msg-bubble-wrap { position: relative; }
+.msg-bubble-checkbox {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-self: center;
+  transition: border-color 0.15s, background 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+}
+.msg-bubble-checkbox::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.msg-bubble-checkbox:checked {
+  border-color: #6366f1;
+  background: #ede9fe;
+}
+.msg-bubble-checkbox:checked::after { opacity: 1; }
+
+body.msg-select-mode .msg-bubble-checkbox { display: flex; }
+body.msg-select-mode .msg-bubble-wrap { cursor: pointer; }
+body.msg-select-mode .msg-bubble-wrap:hover .msg-bubble-checkbox { border-color: #6366f1; }
+
+/* 선택된 버블 하이라이트 */
+body.msg-select-mode .msg-bubble-wrap.selected .msg-bubble {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* 선택 삭제 모드에선 입력바 숨김 */
+body.msg-select-mode .msg-chat-inputbar { display: none !important; }
+
+/* 헤더 선택 삭제 버튼 */
+.msg-select-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.msg-select-delete-btn:hover { background: rgba(239,68,68,0.10); }
+.msg-select-delete-btn:active { transform: scale(0.93); }
 
 /* 입력바 — 글래스 */
 .msg-chat-inputbar {
@@ -3635,7 +3729,7 @@ body.student-mode {
               <div class="msg-tab-indicator"></div>
               <button id="msgtab-friends" class="msg-tab active" onclick="switchMsgMainTab('friends')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>학생</span>
+                <span id="msgtab-friends-label">학생</span>
               </button>
               <button id="msgtab-chats" class="msg-tab" onclick="switchMsgMainTab('chats')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -3645,11 +3739,15 @@ body.student-mode {
             </div>
           </div>
 
-          <!-- ══ 친구목록 패널 ══ -->
+          <!-- ══ 친구목록 패널 (선생님: 학생목록 / 학생: 친구목록) ══ -->
           <div id="msg-panel-friends" class="msg-panel">
             <div class="msg-search-bar">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="msg-friends-search" oninput="renderFriendsList()" placeholder="학생 이름 검색…">
+              <input id="msg-friends-search" oninput="msgFriendsSearchHandler()" placeholder="이름 검색…">
+              <!-- 학생 전용: 친구 추가 버튼 -->
+              <button id="msg-add-friend-btn" onclick="openAddFriendModal()" style="display:none;border:none;background:none;cursor:pointer;padding:2px 0 2px 6px;color:var(--accent);flex-shrink:0" title="친구 추가">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              </button>
             </div>
             <div id="msg-friends-body" class="msg-list-body"></div>
           </div>
@@ -3670,6 +3768,26 @@ body.student-mode {
                 <div id="msg-chat-name" class="msg-chat-hname"></div>
                 <div id="msg-chat-sub" class="msg-chat-hsub"></div>
               </div>
+              <!-- 선택 삭제 버튼 -->
+              <button class="msg-select-delete-btn" onclick="enterMsgSelectMode()" title="메시지 선택 삭제" style="margin-left:auto">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="4" height="4" rx="1"/><rect x="3" y="11" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><line x1="10" y1="7" x2="21" y2="7"/><line x1="10" y1="13" x2="21" y2="13"/><line x1="10" y1="19" x2="21" y2="19"/></svg>
+              </button>
+              <!-- 전체 삭제 버튼 -->
+              <button class="msg-back-btn" onclick="deleteChatConfirm()" title="대화 전체 삭제" style="color:#ef4444;opacity:0.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+            <!-- 선택 삭제 모드 바 -->
+            <div id="msg-select-bar" class="msg-select-bar">
+              <div class="msg-select-bar-left">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                선택 삭제 모드
+                <span id="msg-sel-count" class="msg-sel-count">0개 선택</span>
+              </div>
+              <div class="msg-select-bar-right">
+                <button class="msg-sel-btn cancel" onclick="exitMsgSelectMode()">취소</button>
+                <button class="msg-sel-btn delete" id="msg-sel-delete-btn" onclick="deleteSelectedMsgs()" disabled>삭제</button>
+              </div>
             </div>
             <div id="msg-chat-messages" class="msg-chat-body"></div>
             <div class="msg-chat-inputbar">
@@ -3684,7 +3802,7 @@ body.student-mode {
 
         </div><!-- #msg-root -->
 
-        <!-- ══ 학생 바텀시트 팝업 ══ -->
+        <!-- ══ 학생 바텀시트 팝업 (선생님용) ══ -->
         <div id="msg-bs-backdrop" class="msg-bs-backdrop" onclick="closeMsgStudentPopup()"></div>
         <div id="msg-bs" class="msg-bs">
           <div class="msg-bs-handle"></div>
@@ -3711,6 +3829,37 @@ body.student-mode {
             <button class="msg-bs-btn primary" onclick="openChatWithStudent()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               쪽지 보내기
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ 학생용 친구 바텀시트 팝업 ══ -->
+        <div id="msg-friend-bs-backdrop" class="msg-bs-backdrop" onclick="closeMsgFriendPopup()"></div>
+        <div id="msg-friend-bs" class="msg-bs">
+          <div class="msg-bs-handle"></div>
+          <div class="msg-bs-profile">
+            <div id="mfp-avatar" class="msg-bs-avatar"></div>
+            <div class="msg-bs-info">
+              <div id="mfp-name" class="msg-bs-name"></div>
+              <div id="mfp-meta" class="msg-bs-meta"></div>
+              <div id="mfp-badge" class="msg-bs-badge-wrap"></div>
+            </div>
+          </div>
+          <div id="mfp-exp-bar-wrap" class="msg-bs-exp-wrap">
+            <div class="msg-bs-exp-labels">
+              <span id="mfp-stage-name"></span>
+              <span id="mfp-exp-val"></span>
+            </div>
+            <div class="msg-bs-exp-track"><div id="mfp-exp-fill" class="msg-bs-exp-fill"></div></div>
+          </div>
+          <div class="msg-bs-actions">
+            <button class="msg-bs-btn ghost" id="mfp-delete-btn" onclick="removeFriend()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              친구 삭제
+            </button>
+            <button class="msg-bs-btn primary" onclick="openChatWithFriend()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              메시지 보내기
             </button>
           </div>
         </div>
@@ -3813,7 +3962,8 @@ async function loadDB() {
         .map(u => ({
           id: u.id, name: u.name, role: u.role, grade: u.grade || '',
           username: u.email || u.name, teacherId: u.teacher_id || null,
-          assigned: u.assigned_book_ids || []
+          assigned: u.assigned_book_ids || [],
+          slime_data: u.slime_data || null
         }));
 
       DB.files = (filesRes.data || []).map(f => ({
@@ -4425,7 +4575,7 @@ async function doLogin() {
       await sb.from('profiles').insert(np);
       currentUser = { ...np, isAdmin: false };
     } else {
-      currentUser = { ...profile, email, isAdmin: profile.is_admin === true };
+      currentUser = { ...profile, email, isAdmin: profile.is_admin === true, teacherId: profile.teacher_id || null };
     }
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
@@ -4485,21 +4635,28 @@ function getSlimeData() {
   return data;
 }
 
-function saveSlimeData(data) {
+function saveSlimeData(data, immediate=false) {
   _slimeCache = { ...data };
-  if (currentUser?.id) _saveSlimeDataToDB(data);
+  if (currentUser?.id) _saveSlimeDataToDB(data, immediate);
 }
 
 let _slimeDBTimer = null;
-function _saveSlimeDataToDB(data) {
+function _saveSlimeDataToDB(data, immediate=false) {
   clearTimeout(_slimeDBTimer);
-  _slimeDBTimer = setTimeout(async () => {
+  const doSave = async () => {
     try {
       const update = { slime_data: JSON.stringify(data) };
       if (typeof data.jelly === 'number') update.jelly = data.jelly;
-      await sb.from('profiles').update(update).eq('id', currentUser.id);
-    } catch(e) {}
-  }, 300);
+      console.log('[SlimeSave] DB저장:', data.colorId, 'stage:', data.stage, 'immediate:', immediate);
+      const res = await sb.from('profiles').update(update).eq('id', currentUser.id);
+      console.log('[SlimeSave] 저장결과:', res.error ? '❌ '+res.error.message : '✅ 성공');
+    } catch(e) { console.error('[SlimeSave] 저장오류:', e); }
+  };
+  if (immediate) {
+    doSave();
+  } else {
+    _slimeDBTimer = setTimeout(doSave, 300);
+  }
 }
 
 // 탭 닫힘 직전 즉시 저장
@@ -4528,6 +4685,7 @@ async function loadSlimeFromDB() {
     const { data } = await sb.from('profiles').select('slime_data, jelly').eq('id', currentUser.id).single();
     if (data?.slime_data) {
       const fromDB = JSON.parse(data.slime_data);
+      console.log('[SlimeLoad] DB에서 로드:', fromDB.colorId, 'stage:', fromDB.stage);
       if (typeof data.jelly === 'number') fromDB.jelly = data.jelly;
       _slimeCache = fromDB;
     } else {
@@ -6739,12 +6897,12 @@ async function checkSession() {
 
     if (!profile) return; // profiles 없으면 로그인 화면 유지
 
-    currentUser = { ...profile, email: session.user.email };
+    currentUser = { ...profile, email: session.user.email, teacherId: profile.teacher_id || null };
     _slimeChatHistory = []; // 사용자 전환 시 챗봇 히스토리 초기화
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
       loadAIKeysFromDB(),   // AI 키 (app_settings + profiles — 2 RTT → 이미 내부 병렬화됨)
-      loadJellyFromDB(),    // 젤리 (profiles)
+      loadSlimeFromDB(),    // 슬라임 전체 (색/이름/꾸미기/젤리) ← 새로고침 시 필수
       loadDB(),             // 메인 데이터
     ]);
     document.getElementById('login-screen').style.display = 'none';
@@ -18166,31 +18324,7 @@ function renderFC() {
 
       </div>
 
-      <!-- ── 하단 슬라임 패널 (모바일 전용) ── -->
-      ${isMobile ? `
-      <div class="mobile-slime-panel" id="fc-mobile-panel">
-        <div class="msp-char" onclick="_mspBounce('fc-msp-char')" title="클릭해봐요!">
-          <div class="msp-bubble" id="fc-msp-bubble"></div>
-          <div class="msp-anim" id="fc-msp-char">
-            ${_buildMspSVG(slime.stage, 80)}
-          </div>
-        </div>
-        <div class="msp-info">
-          <div class="msp-top">
-            <span class="msp-name">${slime.slimeName||'내 슬라임'}</span>
-            <span class="msp-lv">Lv. ${slime.stage+1}</span>
-          </div>
-          <div class="msp-xp-row">
-            <div class="msp-xp-track"><div class="msp-xp-fill" id="fc-msp-xp" style="width:${xpPct}%"></div></div>
-            <span class="msp-xp-num">${slime.exp.toLocaleString()} / ${xpMax.toLocaleString()} XP</span>
-          </div>
-          <div class="msp-chips">
-            <div class="msp-chip streak">🔥 ${streak}일</div>
-            <div class="msp-chip score" id="fc-msp-score">✓ ${fcIdx} / ${fcWords.length}</div>
-            <div class="msp-chip xpgain" id="fc-msp-xpgain">+0 XP</div>
-          </div>
-        </div>
-      </div>` : ''}
+
 
     </div>
   `;
@@ -18208,7 +18342,7 @@ function fcKnow() {
     localStorage.setItem('wl_check_'+bookId, JSON.stringify([...window._fcChecked]));
   }
   // 모바일 하단 패널 표정 업데이트
-  if (window.innerWidth <= 600) _mspReact('fc', 'know');
+  _hdrSlimeReact(true);
   setSlimeMood('sparkle', 900);
   setTimeout(() => fcNext(), 600);
 }
@@ -18221,7 +18355,7 @@ function fcDontKnow() {
   window._fcChecked.add(wordKey);
   localStorage.setItem('wl_check_'+bookId, JSON.stringify([...window._fcChecked]));
   // 모바일 하단 패널 표정 업데이트
-  if (window.innerWidth <= 600) _mspReact('fc', 'dont');
+  _hdrSlimeReact(false);
   setSlimeMood('tears', 900);
   setTimeout(() => fcNext(), 600);
 }
@@ -18256,6 +18390,73 @@ function _buildMspSVG(stageIdx, size) {
   return svg
     .replace(/(<svg\b[^>]*)\bwidth="[^"]*"/g, '$1width="'+size+'"')
     .replace(/(<svg\b[^>]*)\bheight="[^"]*"/g, '$1height="'+size+'"');
+}
+
+// ── 헤더 슬라임 리액션 (모바일: 하단 패널 대체) ──────────────
+function _hdrSlimeReact(isGood) {
+  const avatarWrap = document.querySelector('#overlay-slime-chat-bar .slime-chat-bar-avatar');
+  if (!avatarWrap) return;
+  const slime = getSlimeData();
+  const col   = getSlimeColor(slime.colorId);
+
+  let bubble = document.getElementById('hdr-slime-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.id = 'hdr-slime-bubble';
+    bubble.style.cssText = 'position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;font-weight:700;color:#fff;padding:4px 10px;border-radius:8px;pointer-events:none;z-index:9999;opacity:0;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,0.18)';
+    const arrow = document.createElement('div');
+    arrow.id = 'hdr-slime-arrow';
+    arrow.style.cssText = 'position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:5px solid';
+    bubble.appendChild(arrow);
+    const chatBar = document.getElementById('overlay-slime-chat-bar');
+    if (chatBar) { chatBar.style.position = 'relative'; chatBar.appendChild(bubble); }
+  }
+  const arrow = document.getElementById('hdr-slime-arrow');
+
+  const mood = isGood ? 'sparkle' : 'tears';
+  const msg  = isGood ? '\u2726 \uc815\ub2f5! +2 XP' : '\ud83d\ude22 \uc624\ub2f5\uc774\uc5d0\uc694...';
+  const bg   = isGood ? '#10b981' : '#475569';
+
+  // 표정 교체
+  try {
+    const newSVG = slimeSVG({ size:22, core:[col.a,col.b], eyeStyle:slime.eyeStyle||'round', stageIdx:slime.stage, accessory:slime.accessory||'none', mood });
+    const svgEl = avatarWrap.querySelector('svg');
+    if (svgEl) { const tmp = document.createElement('div'); tmp.innerHTML = newSVG; const ns = tmp.querySelector('svg'); if (ns) svgEl.replaceWith(ns); }
+  } catch(e) {}
+
+  // 애니메이션
+  if (isGood) {
+    avatarWrap.style.transition = 'transform .08s';
+    avatarWrap.style.transform  = 'scale(1.3,.8)';
+    setTimeout(()=>{ avatarWrap.style.transform='scale(.88,1.18)'; },80);
+    setTimeout(()=>{ avatarWrap.style.transform='scale(1.08,.95)'; },160);
+    setTimeout(()=>{ avatarWrap.style.transform='scale(1,1)'; avatarWrap.style.transition=''; },240);
+  } else {
+    avatarWrap.style.transition = 'transform .09s';
+    avatarWrap.style.transform  = 'translateX(-5px)';
+    setTimeout(()=>{ avatarWrap.style.transform='translateX(5px)'; },90);
+    setTimeout(()=>{ avatarWrap.style.transform='translateX(-3px)'; },180);
+    setTimeout(()=>{ avatarWrap.style.transform='translateX(0)'; avatarWrap.style.transition=''; },270);
+  }
+
+  // 말풍선
+  bubble.style.background = bg;
+  if (arrow) arrow.style.borderBottomColor = bg;
+  // 텍스트 노드 갱신
+  const tn = Array.from(bubble.childNodes).find(n => n.nodeType === 3);
+  if (tn) tn.textContent = msg;
+  else bubble.insertBefore(document.createTextNode(msg), bubble.firstChild);
+  bubble.style.opacity = '1';
+  setTimeout(()=>{ bubble.style.opacity = '0'; }, 1600);
+
+  // 원복
+  setTimeout(()=>{
+    try {
+      const normalSVG = slimeSVG({ size:22, core:[col.a,col.b], eyeStyle:slime.eyeStyle||'round', stageIdx:slime.stage, accessory:slime.accessory||'none', mood:'normal' });
+      const svgEl = avatarWrap.querySelector('svg');
+      if (svgEl) { const tmp = document.createElement('div'); tmp.innerHTML = normalSVG; const ns = tmp.querySelector('svg'); if (ns) svgEl.replaceWith(ns); }
+    } catch(e) {}
+  }, 1800);
 }
 
 function _mspBounce(elId) {
@@ -18795,31 +18996,7 @@ function renderQuiz(){
       </div>
     </div>
 
-    <!-- ── 하단 슬라임 패널 (모바일 전용) ── -->
-    ${isMobileQ ? `
-    <div class="mobile-slime-panel" id="quiz-mobile-panel">
-      <div class="msp-char" onclick="_mspBounce('quiz-msp-char')" title="클릭해봐요!">
-        <div class="msp-bubble" id="quiz-msp-bubble"></div>
-        <div class="msp-anim" id="quiz-msp-char">
-          ${_buildMspSVG(slimeQ.stage, 80)}
-        </div>
-      </div>
-      <div class="msp-info">
-        <div class="msp-top">
-          <span class="msp-name">${slimeQ.slimeName||'내 슬라임'}</span>
-          <span class="msp-lv">Lv. ${slimeQ.stage+1}</span>
-        </div>
-        <div class="msp-xp-row">
-          <div class="msp-xp-track"><div class="msp-xp-fill" id="quiz-msp-xp" style="width:${xpPctQ}%"></div></div>
-          <span class="msp-xp-num" >${slimeQ.exp.toLocaleString()} / ${xpMaxQ.toLocaleString()} XP</span>
-        </div>
-        <div class="msp-chips">
-          <div class="msp-chip streak">🔥 ${streakQ}일</div>
-          <div class="msp-chip score" id="quiz-msp-score">✓ ${quizScore} / ${quizWords.length}</div>
-          <div class="msp-chip pct" id="quiz-msp-pct">${quizIdx>0?Math.round(quizScore/quizIdx*100):0}%</div>
-        </div>
-      </div>
-    </div>` : ''}
+
 
   </div>`;
   if(mode==='input') setTimeout(()=>document.getElementById('quiz-inp')?.focus(),80);
@@ -18835,7 +19012,7 @@ function answerChoice(btn,selId,corrId){
     btn.classList.add('correct');quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! 슬라임이 기뻐해요 🎉';
-    if(window.innerWidth<=600) _mspReact('quiz','correct');
+    _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
     // 퀴즈 하단 칩 업데이트
     const sc=document.getElementById('quiz-msp-score');
@@ -18850,7 +19027,7 @@ function answerChoice(btn,selId,corrId){
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML=`❌ 오답 — 정답: <strong>${dir==='en2ko'?cw.ko:cw.en}</strong>`;
     quizWrong.push(cw);
-    if(window.innerWidth<=600) _mspReact('quiz','wrong');
+    _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
@@ -18880,7 +19057,7 @@ function checkInput(wid, dir, mode){
     quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
-    if(window.innerWidth<=600) _mspReact('quiz','correct');
+    _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
@@ -18890,7 +19067,7 @@ function checkInput(wid, dir, mode){
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML='❌ 오답 — 정답: <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
     quizWrong.push(w);
-    if(window.innerWidth<=600) _mspReact('quiz','wrong');
+    _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
@@ -25873,6 +26050,7 @@ var _chatTargetId    = null;
 var _chatTargetName  = '';
 var _chatTargetSlime = null;
 var _msgStudentTarget = null;
+var _chatPeerCache = {}; // 대화탭 peer 캐시
 var DB_msgInbox = null;
 var DB_msgSent  = null;
 
@@ -25942,17 +26120,30 @@ function _renderStudentSlime(student, size) {
 async function renderMessages() {
   const isTeacher = currentUser?.role === 'teacher';
   const tabbar = document.getElementById('msg-tabbar');
-  if (tabbar) tabbar.style.display = isTeacher ? 'flex' : 'none';
+  if (tabbar) tabbar.style.display = 'flex'; // 선생님·학생 모두 탭바 표시
 
-  if (!isTeacher) {
-    // 학생: 대화목록만
+  // 탭 레이블 조정
+  const friendsLabel = document.getElementById('msgtab-friends-label');
+  if (friendsLabel) friendsLabel.textContent = isTeacher ? '학생' : '친구';
+
+  // 학생: 친구 추가 버튼 표시
+  const addFriendBtn = document.getElementById('msg-add-friend-btn');
+  if (addFriendBtn) addFriendBtn.style.display = isTeacher ? 'none' : 'block';
+
+  // 검색 placeholder 조정
+  const searchInput = document.getElementById('msg-friends-search');
+  if (searchInput) searchInput.placeholder = isTeacher ? '학생 이름 검색…' : '친구 이름 검색…';
+
+  // 현재 탭에 따라 패널 표시
+  if (_msgMainTab === 'chats') {
     document.getElementById('msg-panel-friends').style.display = 'none';
     document.getElementById('msg-panel-chats').style.display  = 'flex';
     renderChatsPanel();
   } else {
     document.getElementById('msg-panel-friends').style.display = 'flex';
     document.getElementById('msg-panel-chats').style.display  = 'none';
-    renderFriendsList();
+    if (isTeacher) renderFriendsList();
+    else renderStudentFriendsList();
   }
   updateUnreadBadge();
 }
@@ -25963,6 +26154,7 @@ async function renderMessages() {
 function switchMsgMainTab(tab) {
   _msgMainTab = tab;
   const isFriends = tab === 'friends';
+  const isTeacher = currentUser?.role === 'teacher';
   document.getElementById('msg-panel-friends').style.display = isFriends ? 'flex' : 'none';
   document.getElementById('msg-panel-chats').style.display  = isFriends ? 'none'  : 'flex';
   document.getElementById('msgtab-friends').classList.toggle('active', isFriends);
@@ -25971,7 +26163,14 @@ function switchMsgMainTab(tab) {
   const track = document.getElementById('msg-tab-track');
   if (track) track.classList.toggle('on-chats', !isFriends);
   if (!isFriends) renderChatsPanel();
-  else renderFriendsList();
+  else if (isTeacher) renderFriendsList();
+  else renderStudentFriendsList();
+}
+
+/* ── 친구 검색 핸들러 ── */
+function msgFriendsSearchHandler() {
+  if (currentUser?.role === 'teacher') renderFriendsList();
+  else renderStudentFriendsList();
 }
 
 /* ══════════════════════════════════════
@@ -26078,11 +26277,11 @@ async function renderFriendsList() {
         <div class="msg-friend-row" onclick="openMsgStudentPopup('${s.id}')" style="overflow:visible">
           <div class="msg-friend-avatar">
             ${svg}
-            <span class="msg-lv-badge stage-${Math.min(sd.stage || 0, 3)}">Lv.${sd.stage || 0}</span>
+            <span class="msg-lv-badge stage-${Math.min(sd.stage || 0, 3)}">Lv.${(sd.stage || 0) + 1}</span>
           </div>
           <div class="msg-friend-info">
             <div class="msg-friend-name">${_esc(s.name)}</div>
-            <div class="msg-friend-sub">Lv.${sd.stage || 0} ${stage.name}${grade ? ' · ' + grade : ''}</div>
+            <div class="msg-friend-sub">Lv.${(sd.stage || 0) + 1} ${stage.name}${grade ? ' · ' + grade : ''}</div>
           </div>
           ${taskBarHtml}
           <svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -26123,27 +26322,22 @@ async function renderChatsPanel() {
   if (isTeacher) {
     peers = (DB.users || []).filter(u => u.role === 'student');
   } else {
-    // 학생: 대화 상대(선생님)만
-    const teacherIds = new Set(
-      Object.keys(lastMap).filter(id => {
-        const m = lastMap[id];
-        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
-        return other?.role === 'teacher';
-      })
-    );
-    peers = (DB.users || []).filter(u => teacherIds.has(u.id));
-    // DB.users에 없으면 메시지에서 직접 추출
-    if (!peers.length) {
-      const seen = new Set();
-      peers = [];
-      (msgs || []).forEach(m => {
-        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
-        if (other?.role === 'teacher' && !seen.has(other.id)) {
-          seen.add(other.id);
-          peers.push({ ...other });
-        }
-      });
+    // 학생: 선생님 + 친구 (대화 기록 있는 사람들)
+    const peerIds = new Set(Object.keys(lastMap));
+    const seen = new Set();
+    peers = [];
+    for (const id of peerIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const m = lastMap[id];
+      const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
+      if (other) peers.push({ ...other });
     }
+    // DB.users에서 보완
+    peers = peers.map(p => {
+      const fromDB = (DB.users||[]).find(u => u.id === p.id);
+      return fromDB ? { ...fromDB, ...p } : p;
+    });
   }
 
   // 마지막 대화 기준 정렬
@@ -26174,16 +26368,27 @@ async function renderChatsPanel() {
         eyeStyle: sd.eyeStyle || 'round',
         accessory: sd.accessory || 'none',
       });
-      const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
       avatarHTML = `${svg}`;
     } else {
-      avatarHTML = `<span style="font-size:26px">👩‍🏫</span>`;
+      // 학생: 상대방 역할에 따라 아바타 표시
+      if (peer.role === 'teacher') {
+        const tsd = peer.slime_data ? (typeof peer.slime_data === 'string' ? JSON.parse(peer.slime_data) : peer.slime_data) : null;
+        if (tsd) {
+          avatarHTML = buildMiniSlimeSVG(tsd.stage || 0, 42, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' });
+        } else {
+          avatarHTML = `<span style="font-size:26px">👩‍🏫</span>`;
+        }
+      } else {
+        const sd  = peer.slime_data ? (typeof peer.slime_data === 'string' ? JSON.parse(peer.slime_data) : peer.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        avatarHTML = buildMiniSlimeSVG(sd.stage || 0, 42, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+      }
     }
 
-    const peerLabel = isTeacher ? _esc(peer.name) : _esc(peer.name) + ' 선생님';
+    const peerLabel = isTeacher ? _esc(peer.name) : (peer.role === 'teacher' ? _esc(peer.name) + ' 선생님' : _esc(peer.name));
+    _chatPeerCache[peer.id] = peer.name;
 
     html += `
-      <div class="msg-chat-row${unread ? ' msg-chat-row-unread' : ''}" onclick="openChatView('${peer.id}','${_esc(peer.name)}')">
+      <div class="msg-chat-row${unread ? ' msg-chat-row-unread' : ''}" onclick="openChatViewById('${peer.id}')">
         <div class="msg-chat-row-avatar" style="position:relative">${avatarHTML}</div>
         <div class="msg-chat-row-info">
           <div class="msg-chat-row-top">
@@ -26225,15 +26430,55 @@ async function openChatView(userId, userName) {
       avatarEl.innerHTML = svg;
       const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
       nameEl.textContent = userName;
-      subEl.textContent  = `Lv.${sd.stage || 0} ${stage.name}` + (student.grade ? '  ·  ' + student.grade : '');
+      subEl.textContent  = `Lv.${(sd.stage || 0) + 1} ${stage.name}` + (student.grade ? '  ·  ' + student.grade : '');
     }
   } else {
-    avatarEl.innerHTML = '<span style="font-size:22px">👩‍🏫</span>';
-    nameEl.textContent  = userName + ' 선생님';
-    subEl.textContent   = '';
+    // 학생: 일단 기본값으로 표시 후 fetch로 업데이트
+    avatarEl.innerHTML = '<span style="font-size:22px">👤</span>';
+    nameEl.textContent = userName;
+    subEl.textContent  = '';
+
+    // 슬라이드인 먼저 (fetch 결과 기다리지 않음)
+    const chatView = document.getElementById('msg-chat-view');
+    chatView.style.display = 'flex';
+    requestAnimationFrame(() => chatView.classList.add('open'));
+
+    await loadChatMessages(userId);
+    closeMsgStudentPopup();
+    closeMsgFriendPopup();
+
+    // 아바타/이름은 백그라운드에서 업데이트
+    try {
+      const res = await sb.from('profiles')
+        .select('id, name, role, slime_data, grade')
+        .eq('id', userId)
+        .single();
+      const peerProfile = res?.data;
+      if (peerProfile?.role === 'teacher') {
+        const tsd = peerProfile.slime_data ? (typeof peerProfile.slime_data === 'string' ? JSON.parse(peerProfile.slime_data) : peerProfile.slime_data) : null;
+        if (tsd) {
+          const tsvg = buildMiniSlimeSVG(tsd.stage || 0, 38, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' });
+          avatarEl.innerHTML = tsvg;
+          const tStage = SLIME_STAGES[Math.min(tsd.stage || 0, SLIME_STAGES.length - 1)];
+          subEl.textContent  = `Lv.${tsd.stage||0} ${tStage.name} · 담당 선생님`;
+        } else {
+          avatarEl.innerHTML = '<span style="font-size:22px">👩‍🏫</span>';
+          subEl.textContent   = '담당 선생님';
+        }
+        nameEl.textContent = (peerProfile.name || userName) + ' 선생님';
+      } else if (peerProfile) {
+        const sd  = peerProfile.slime_data ? (typeof peerProfile.slime_data === 'string' ? JSON.parse(peerProfile.slime_data) : peerProfile.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 38, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        avatarEl.innerHTML = svg;
+        const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+        nameEl.textContent = peerProfile.name || userName;
+        subEl.textContent  = `Lv.${(sd.stage || 0) + 1} ${stage.name}` + (peerProfile.grade ? '  ·  ' + peerProfile.grade : '');
+      }
+    } catch(e) { /* 아바타 업데이트 실패해도 채팅뷰는 유지 */ }
+    return;
   }
 
-  // 슬라이드인
+  // 슬라이드인 (선생님 경로)
   const chatView = document.getElementById('msg-chat-view');
   chatView.style.display = 'flex';
   requestAnimationFrame(() => chatView.classList.add('open'));
@@ -26243,10 +26488,109 @@ async function openChatView(userId, userName) {
 }
 
 function closeChatView() {
+  exitMsgSelectMode();
   const chatView = document.getElementById('msg-chat-view');
   chatView.classList.remove('open');
   setTimeout(() => { chatView.style.display = 'none'; }, 260);
   _chatTargetId = null;
+}
+
+function deleteChatConfirm() {
+  if (!_chatTargetId) return;
+  const name = document.getElementById('msg-chat-name')?.textContent || '상대방';
+  showModal(`
+    <div class="modal-title" style="color:#ef4444">대화 삭제</div>
+    <p style="font-size:14px;color:var(--text-muted);margin:12px 0 20px">
+      <b>${name}</b>와의 대화를 모두 삭제할까요?<br>
+      <span style="font-size:12px;opacity:0.7">삭제된 메시지는 복구할 수 없습니다.</span>
+    </p>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" style="flex:1;background:#ef4444;color:#fff;border:none" onclick="deleteChat()">삭제</button>
+    </div>
+  `);
+}
+
+// ── 메시지 선택 삭제 ──────────────────────────────
+function enterMsgSelectMode() {
+  document.body.classList.add('msg-select-mode');
+  document.getElementById('msg-select-bar')?.classList.add('active');
+  _updateMsgSelCount();
+}
+
+function exitMsgSelectMode() {
+  document.body.classList.remove('msg-select-mode');
+  document.getElementById('msg-select-bar')?.classList.remove('active');
+  // 선택 해제
+  document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#msg-chat-messages .msg-bubble-checkbox').forEach(el => el.checked = false);
+  _updateMsgSelCount();
+}
+
+function toggleMsgSelect(wrapEl) {
+  if (!document.body.classList.contains('msg-select-mode')) return;
+  wrapEl.classList.toggle('selected');
+  const chk = wrapEl.querySelector('.msg-bubble-checkbox');
+  if (chk) chk.checked = wrapEl.classList.contains('selected');
+  _updateMsgSelCount();
+}
+
+function _updateMsgSelCount() {
+  const selected = document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected');
+  const countEl = document.getElementById('msg-sel-count');
+  const delBtn = document.getElementById('msg-sel-delete-btn');
+  if (countEl) countEl.textContent = `${selected.length}개 선택`;
+  if (delBtn) delBtn.disabled = selected.length === 0;
+}
+
+async function deleteSelectedMsgs() {
+  const selected = [...document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected')];
+  if (!selected.length) return;
+  const ids = selected.map(el => el.dataset.msgId).filter(Boolean);
+  const name = document.getElementById('msg-chat-name')?.textContent || '상대방';
+  showModal(`
+    <div class="modal-title" style="color:#ef4444">선택 메시지 삭제</div>
+    <p style="font-size:14px;color:var(--text-muted);margin:12px 0 20px">
+      선택한 <b style="color:#ef4444">${ids.length}개</b>의 메시지를 삭제할까요?<br>
+      <span style="font-size:12px;opacity:0.7">삭제된 메시지는 복구할 수 없습니다.</span>
+    </p>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" style="flex:1;background:#ef4444;color:#fff;border:none" onclick="_confirmDeleteSelectedMsgs(${JSON.stringify(ids).replace(/"/g, '&quot;')})">삭제</button>
+    </div>
+  `);
+}
+
+async function _confirmDeleteSelectedMsgs(ids) {
+  closeModal();
+  try {
+    const { error } = await sb.from('messages').delete().in('id', ids);
+    if (error) throw error;
+    exitMsgSelectMode();
+    showToast(`${ids.length}개 메시지가 삭제됐습니다.`, 'success');
+    await loadChatMessages(_chatTargetId);
+    DB_msgInbox = null; DB_msgSent = null;
+    renderChatsPanel();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+async function deleteChat() {
+  if (!_chatTargetId) return;
+  closeModal();
+  try {
+    const { error } = await sb.from('messages')
+      .delete()
+      .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${_chatTargetId}),and(sender_id.eq.${_chatTargetId},receiver_id.eq.${currentUser.id})`);
+    if (error) throw error;
+    closeChatView();
+    showToast('대화가 삭제됐습니다.', 'success');
+    // 대화목록 새로고침
+    renderChatsPanel();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
 }
 
 async function loadChatMessages(userId) {
@@ -26286,10 +26630,12 @@ async function loadChatMessages(userId) {
     }
 
     html += `
-      <div class="msg-bubble-wrap ${isMine ? 'mine' : 'theirs'}">
+      <div class="msg-bubble-wrap ${isMine ? 'mine' : 'theirs'}" data-msg-id="${m.id}" onclick="toggleMsgSelect(this)">
         <div class="msg-bubble-row ${isMine ? 'mine' : 'theirs'}">
+          ${isMine ? '' : '<input type="checkbox" class="msg-bubble-checkbox" onclick="event.stopPropagation()">'}
           <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${_esc(m.body)}</div>
           <span class="msg-bubble-time">${timeStr}</span>
+          ${isMine ? '<input type="checkbox" class="msg-bubble-checkbox" onclick="event.stopPropagation()">' : ''}
         </div>
       </div>`;
   });
@@ -26342,7 +26688,7 @@ function openMsgStudentPopup(studentId) {
   document.getElementById('msp-meta').textContent = [student.grade, student.email].filter(Boolean).join(' · ') || '학생';
   document.getElementById('msp-badge').innerHTML  = `
     <span class="msg-bs-stage-chip" style="background:${col.light};color:${col.dark}">
-      Lv.${sd.stage || 0} ${stage.name}
+      Lv.${(sd.stage || 0) + 1} ${stage.name}
     </span>`;
 
   // EXP 바
@@ -26368,6 +26714,410 @@ function closeMsgStudentPopup() {
   }, 300);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   학생 친구 시스템
+══════════════════════════════════════════════════════════════ */
+
+var _msgFriendTarget = null; // 현재 바텀시트에 열린 친구 데이터
+var _msgFriendCache  = {};   // id → profile 캐시 (onclick에 JSON 안 넘기기 위해)
+
+/* ── 친구목록 렌더 (학생용) ── */
+async function renderStudentFriendsList() {
+  const body = document.getElementById('msg-friends-body');
+  if (!body) return;
+  body.innerHTML = `<div class="msg-empty" style="padding:30px 20px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>불러오는 중…</div>`;
+
+  const q = (document.getElementById('msg-friends-search')?.value || '').trim().toLowerCase();
+
+  try {
+    // 친구 관계 fetch (수락된 것만)
+    const { data: friendRows } = await sb.from('friendships')
+      .select('id, requester_id, receiver_id, status, created_at')
+      .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+    const accepted = (friendRows || []).filter(f => f.status === 'accepted');
+    const pending  = (friendRows || []).filter(f => f.status === 'pending');
+
+    // 수락 대기 중인 요청 (내가 받은 것)
+    const incomingPending = pending.filter(f => f.receiver_id === currentUser.id);
+    // 내가 보낸 대기 중인 요청
+    const outgoingPending = pending.filter(f => f.requester_id === currentUser.id);
+
+    // 친구 프로필 fetch
+    const friendIds = accepted.map(f =>
+      f.requester_id === currentUser.id ? f.receiver_id : f.requester_id
+    );
+    const incomingIds  = incomingPending.map(f => f.requester_id);
+    const outgoingIds  = outgoingPending.map(f => f.receiver_id);
+    const allNeedIds   = [...new Set([...friendIds, ...incomingIds, ...outgoingIds])];
+
+    // 담당 선생님 ID (DB.users 또는 currentUser.teacherId)
+    const teacherId = currentUser.teacherId || null;
+    const teacherProfile = teacherId
+      ? (DB.users || []).find(u => u.id === teacherId) || null
+      : null;
+
+    // teacherId도 함께 fetch (slime_data 포함)
+    const allFetchIds = teacherId ? [...new Set([...allNeedIds, teacherId])] : allNeedIds;
+    let profiles = {};
+    if (allFetchIds.length) {
+      const { data: profs } = await sb.from('profiles')
+        .select('id, name, role, slime_data, grade')
+        .in('id', allFetchIds);
+      (profs || []).forEach(p => { profiles[p.id] = p; });
+    }
+
+    let html = '';
+
+    // ── 담당 선생님 (고정 상단) ──
+    {
+      // profiles 캐시에서 바로 가져오기 (이미 위에서 fetch됨)
+      let teacher = teacherId ? (profiles[teacherId] || teacherProfile) : null;
+      const teacherName = teacher?.name || '담당 선생님';
+      // 선생님 슬라임 렌더링
+      let teacherAvatarHTML;
+      let teacherSubText;
+      const tRawSd = teacher?.slime_data;
+      if (tRawSd) {
+        const tsd = typeof tRawSd === 'string' ? JSON.parse(tRawSd) : tRawSd;
+        const tStage = SLIME_STAGES[Math.min(tsd.stage || 0, SLIME_STAGES.length - 1)];
+        teacherAvatarHTML = buildMiniSlimeSVG(tsd.stage || 0, 40, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' })
+          + '<span class="msg-lv-badge stage-' + Math.min(tsd.stage||0,3) + '">Lv.' + (tsd.stage||0) + '</span>';
+        teacherSubText = 'Lv.' + (tsd.stage||0) + ' ' + tStage.name + ' · 담당 선생님';
+      } else {
+        teacherAvatarHTML = '<span style="font-size:26px;line-height:1">👩‍🏫</span>';
+        teacherSubText = '담당 선생님';
+      }
+      // 선생님 정보를 전역 캐시에 저장 → onclick에서 ID만 참조
+      // teacherId가 있으면 항상 클릭 가능 (teacher 객체 유무 무관)
+      window._teacherChatCache = teacherId ? { id: teacherId, name: teacherName } : null;
+      const _safeTeacherId = teacherId || '';
+      const _teacherStyle = _safeTeacherId ? 'overflow:visible;cursor:pointer' : 'overflow:visible;opacity:0.5;cursor:default';
+      const _teacherChevron = _safeTeacherId ? '<svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' : '';
+      const _teacherClick = _safeTeacherId ? 'openChatWithTeacher()' : '';
+      html += '<div class="msg-group-header">담당 선생님</div>'
+        + '<div class="msg-friend-row" onclick="' + _teacherClick + '" style="' + _teacherStyle + '">'
+        + '<div class="msg-friend-avatar">' + teacherAvatarHTML + '</div>'
+        + '<div class="msg-friend-info">'
+        + '<div class="msg-friend-name">' + _esc(teacherName) + ' 선생님</div>'
+        + '<div class="msg-friend-sub">' + teacherSubText + '</div>'
+        + '</div>'
+        + _teacherChevron
+        + '</div>';
+    }
+
+    // ── 수락 대기 중인 친구 요청 (내가 받은 것) ──
+    if (incomingPending.length) {
+      html += `<div class="msg-group-header">친구 요청 <span style="color:#ef4444;font-weight:900">${incomingPending.length}</span></div>`;
+      incomingPending.forEach(f => {
+        const p = profiles[f.requester_id];
+        if (!p) return;
+        if (q && !p.name?.toLowerCase().includes(q)) return;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" style="overflow:visible">
+            <div class="msg-friend-avatar">${svg}</div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">친구 요청을 보냈습니다</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onclick="acceptFriendRequest('${f.id}','${p.id}','${_esc(p.name)}')" style="padding:5px 11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">수락</button>
+              <button onclick="declineFriendRequest('${f.id}')" style="padding:5px 9px;border-radius:8px;border:1.5px solid var(--border2);background:none;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">거절</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    // ── 내가 보낸 대기 중인 요청 ──
+    if (outgoingPending.length) {
+      html += `<div class="msg-group-header">요청 보냄</div>`;
+      outgoingPending.forEach(f => {
+        const p = profiles[f.receiver_id];
+        if (!p) return;
+        if (q && !p.name?.toLowerCase().includes(q)) return;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" style="overflow:visible;opacity:0.75">
+            <div class="msg-friend-avatar">${svg}</div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">수락 대기 중…</div>
+            </div>
+            <button onclick="cancelFriendRequest('${f.id}')" style="padding:5px 9px;border-radius:8px;border:1.5px solid var(--border2);background:none;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0">취소</button>
+          </div>`;
+      });
+    }
+
+    // ── 친구 목록 ──
+    const filteredFriends = friendIds
+      .map(id => profiles[id])
+      .filter(Boolean)
+      .filter(p => !q || p.name?.toLowerCase().includes(q));
+
+    if (filteredFriends.length) {
+      html += `<div class="msg-group-header">친구 ${filteredFriends.length}명</div>`;
+      filteredFriends.forEach(p => {
+        _msgFriendCache[p.id] = p;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+        const svg   = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" onclick="openMsgFriendPopupById('${p.id}')" style="overflow:visible">
+            <div class="msg-friend-avatar">
+              ${svg}
+              <span class="msg-lv-badge stage-${Math.min(sd.stage||0,3)}">Lv.${(sd.stage||0)+1}</span>
+            </div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">Lv.${(sd.stage||0)+1} ${stage.name}${p.grade ? ' · ' + p.grade : ''}</div>
+            </div>
+            <svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`;
+      });
+    }
+
+    if (!incomingPending.length && !outgoingPending.length && !filteredFriends.length && !q) {
+      html += `<div class="msg-empty" style="margin-top:8px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        친구를 추가해보세요!
+      </div>`;
+    } else if (!incomingPending.length && !outgoingPending.length && !filteredFriends.length && q) {
+      html += `<div class="msg-empty" style="margin-top:8px">검색 결과가 없습니다</div>`;
+    }
+
+    body.innerHTML = html;
+  } catch(e) {
+    console.warn('renderStudentFriendsList 오류', e);
+    body.innerHTML = `<div class="msg-empty">불러오기 실패</div>`;
+  }
+}
+
+/* ── 친구 추가 모달 ── */
+function openAddFriendModal() {
+  showModal(`
+    <div class="modal-title">친구 추가</div>
+    <div style="font-size:13.5px;color:var(--t2);margin-bottom:14px">추가할 친구의 이름을 입력하세요</div>
+    <input id="add-friend-name-input" type="text" placeholder="친구 이름 입력…"
+      style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;color:var(--t1);background:var(--surface);box-sizing:border-box"
+      oninput="searchFriendByName()"
+      onkeydown="if(event.key==='Enter') document.getElementById('add-friend-search-btn')?.click()">
+    <button id="add-friend-search-btn" onclick="searchFriendByName(true)"
+      style="width:100%;margin-top:9px;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+      검색
+    </button>
+    <div id="add-friend-results" style="margin-top:10px"></div>
+    <div class="modal-actions" style="margin-top:4px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+    </div>`);
+  setTimeout(() => document.getElementById('add-friend-name-input')?.focus(), 80);
+}
+
+async function searchFriendByName(force) {
+  const inp = document.getElementById('add-friend-name-input');
+  const q = inp?.value.trim();
+  if (!q || (!force && q.length < 2)) return;
+  const resultsEl = document.getElementById('add-friend-results');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = `<div style="text-align:center;color:var(--t3);font-size:13px;padding:8px">검색 중…</div>`;
+
+  try {
+    // 이름으로 학생 검색 (본인 제외)
+    const { data: users } = await sb.from('profiles')
+      .select('id, name, role, slime_data, grade')
+      .eq('role', 'student')
+      .ilike('name', `%${q}%`)
+      .limit(10);
+
+    const candidates = (users || []).filter(u => u.id !== currentUser.id);
+
+    if (!candidates.length) {
+      resultsEl.innerHTML = `<div style="text-align:center;color:var(--t3);font-size:13px;padding:8px">검색 결과가 없습니다</div>`;
+      return;
+    }
+
+    // 기존 친구 관계 확인
+    const { data: existing } = await sb.from('friendships')
+      .select('requester_id, receiver_id, status')
+      .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+    const existingMap = {};
+    (existing || []).forEach(f => {
+      const otherId = f.requester_id === currentUser.id ? f.receiver_id : f.requester_id;
+      existingMap[otherId] = f.status;
+    });
+
+    let html = '';
+    candidates.forEach(u => {
+      const sd = u.slime_data ? (typeof u.slime_data === 'string' ? JSON.parse(u.slime_data) : u.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+      const svg = buildMiniSlimeSVG(sd.stage || 0, 36, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+      const rel = existingMap[u.id];
+      let actionBtn = '';
+      if (rel === 'accepted') {
+        actionBtn = `<span style="font-size:12px;color:#22c55e;font-weight:700">✓ 친구</span>`;
+      } else if (rel === 'pending') {
+        actionBtn = `<span style="font-size:12px;color:var(--t3)">대기 중</span>`;
+      } else {
+        actionBtn = `<button onclick="sendFriendRequest('${u.id}','${_esc(u.name)}',this)"
+          style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">
+          친구 추가</button>`;
+      }
+      html += `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+          <div style="width:40px;height:40px;border-radius:13px;overflow:hidden;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0">${svg}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:650;color:var(--t1)">${_esc(u.name)}</div>
+            ${u.grade ? `<div style="font-size:12px;color:var(--t3)">${_esc(u.grade)}</div>` : ''}
+          </div>
+          ${actionBtn}
+        </div>`;
+    });
+    resultsEl.innerHTML = html;
+  } catch(e) {
+    resultsEl.innerHTML = `<div style="text-align:center;color:#ef4444;font-size:13px;padding:8px">오류가 발생했습니다</div>`;
+  }
+}
+
+async function sendFriendRequest(receiverId, receiverName, btn) {
+  try {
+    btn.disabled = true;
+    btn.textContent = '요청 중…';
+    await sb.from('friendships').insert({
+      requester_id: currentUser.id,
+      receiver_id:  receiverId,
+      status:       'pending'
+    });
+    btn.textContent = '요청 완료!';
+    btn.style.background = '#22c55e';
+    showToast(`${receiverName}님께 친구 요청을 보냈습니다!`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '친구 추가';
+    showToast('요청 실패: ' + e.message, 'error');
+  }
+}
+
+async function acceptFriendRequest(friendshipId, requesterId, requesterName) {
+  try {
+    await sb.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
+    showToast(`${requesterName}님과 친구가 되었습니다! 🎉`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('수락 실패: ' + e.message, 'error');
+  }
+}
+
+async function declineFriendRequest(friendshipId) {
+  try {
+    await sb.from('friendships').delete().eq('id', friendshipId);
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('거절 실패: ' + e.message, 'error');
+  }
+}
+
+async function cancelFriendRequest(friendshipId) {
+  try {
+    await sb.from('friendships').delete().eq('id', friendshipId);
+    showToast('친구 요청을 취소했습니다.', 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('취소 실패: ' + e.message, 'error');
+  }
+}
+
+async function removeFriend() {
+  if (!_msgFriendTarget) return;
+  const name = _msgFriendTarget.name;
+  showModal(`
+    <div class="modal-title">친구 삭제</div>
+    <div style="font-size:14px;color:var(--t2);margin-bottom:20px">${_esc(name)}님을 친구 목록에서 삭제할까요?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" onclick="closeModal();_doRemoveFriend('${_msgFriendTarget.id}','${_esc(name)}')">삭제</button>
+    </div>`);
+  closeMsgFriendPopup();
+}
+
+async function _doRemoveFriend(friendId, friendName) {
+  try {
+    await sb.from('friendships')
+      .delete()
+      .or(`and(requester_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(requester_id.eq.${friendId},receiver_id.eq.${currentUser.id})`);
+    showToast(`${friendName}님과 친구를 끊었습니다.`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+/* ── 친구 바텀시트 팝업 ── */
+function openMsgFriendPopupById(id) {
+  const p = _msgFriendCache[id];
+  if (!p) return;
+  openMsgFriendPopup(p);
+}
+
+function openMsgFriendPopup(friendData) {
+  const p = typeof friendData === 'string' ? JSON.parse(friendData) : friendData;
+  _msgFriendTarget = p;
+
+  const sd    = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+  const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+  const prog  = _expProgress(sd);
+  const col   = getSlimeColor(sd.colorId || 'mint');
+
+  const svg = buildMiniSlimeSVG(sd.stage || 0, 64, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+  document.getElementById('mfp-avatar').innerHTML = svg;
+  document.getElementById('mfp-name').textContent = p.name;
+  document.getElementById('mfp-meta').textContent = p.grade || '학생';
+  document.getElementById('mfp-badge').innerHTML  = `
+    <span class="msg-bs-stage-chip" style="background:${col.light};color:${col.dark}">
+      Lv.${(sd.stage || 0) + 1} ${stage.name}
+    </span>`;
+
+  document.getElementById('mfp-stage-name').textContent = stage.badge + ' 단계';
+  document.getElementById('mfp-exp-val').textContent     = `EXP ${prog.cur}`;
+  document.getElementById('mfp-exp-fill').style.width    = prog.pct + '%';
+  document.getElementById('mfp-exp-fill').style.background = `linear-gradient(90deg, ${col.b}, ${col.a})`;
+
+  document.getElementById('msg-friend-bs-backdrop').style.display = 'block';
+  requestAnimationFrame(() => {
+    document.getElementById('msg-friend-bs-backdrop').style.opacity = '1';
+    document.getElementById('msg-friend-bs').classList.add('open');
+  });
+}
+
+function closeMsgFriendPopup(callback) {
+  const bs = document.getElementById('msg-friend-bs');
+  const bd = document.getElementById('msg-friend-bs-backdrop');
+  bs.classList.remove('open');
+  bd.style.opacity = '0';
+  setTimeout(() => {
+    bd.style.display = 'none';
+    if (callback) callback();
+  }, 320);
+}
+
+function openChatWithTeacher() {
+  const t = window._teacherChatCache;
+  if (!t || !t.id) return;
+  openChatView(t.id, t.name);
+}
+
+function openChatViewById(id) {
+  const name = _chatPeerCache[id] || '';
+  openChatView(id, name);
+}
+
+function openChatWithFriend() {
+  if (!_msgFriendTarget) return;
+  const target = { id: _msgFriendTarget.id, name: _msgFriendTarget.name };
+  closeMsgFriendPopup(() => openChatView(target.id, target.name));
+}
+
 function openStudentStatus() {
   if (!_msgStudentTarget) return;
   closeMsgStudentPopup();
@@ -26375,7 +27125,9 @@ function openStudentStatus() {
 }
 function openChatWithStudent() {
   if (!_msgStudentTarget) return;
-  openChatView(_msgStudentTarget.id, _msgStudentTarget.name);
+  const target = _msgStudentTarget;
+  closeMsgStudentPopup();
+  setTimeout(() => openChatView(target.id, target.name), 180);
 }
 
 /* ══════════════════════════════════════
@@ -26547,7 +27299,7 @@ async function openStudentProgressModal(studentId) {
     <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${col.light};border-radius:12px;margin-bottom:12px;border:1px solid ${col.a}22">
       <div style="width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center">${svg}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:${col.dark}">Lv.${sd.stage || 0} ${stage.name} · EXP ${sd.exp || 0}</div>
+        <div style="font-size:13px;font-weight:600;color:${col.dark}">Lv.${(sd.stage || 0) + 1} ${stage.name} · EXP ${sd.exp || 0}</div>
         <div style="margin-top:5px;height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${eprog.pct}%;background:${col.b};border-radius:3px;transition:width 0.5s"></div>
         </div>
@@ -26630,14 +27382,15 @@ function saveSlimeCustomize() {
     slime.accessory = window._cust.accessory;
     slime.effect    = window._cust.effect;
   }
-  saveSlimeData(slime);
+  saveSlimeData(slime, true); // immediate=true: 디바운스 없이 즉시 DB 저장
   closeModal();
-  renderSlimeHome();
   applySlimeTheme();
-  const av = document.getElementById('user-avatar');
-  if (av && currentUser?.role==='student') {
-    av.innerHTML = buildMiniSlimeSVG(slime.stage,28,{colorId:slime.colorId,bodyType:slime.bodyType,accessory:slime.accessory});
-    av.style.cssText = 'width:30px;height:30px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent;padding:0';
+  // topbar 슬라임 아이콘 즉시 업데이트 (buildStudentTopbar 전체 재빌드)
+  buildStudentTopbar();
+  // My Slime 페이지가 열려있으면 재렌더
+  const slimeHomePage = document.getElementById('pg-slime-home');
+  if (slimeHomePage && slimeHomePage.style.display !== 'none') {
+    renderSlimeHome();
   }
   showToast('슬라임이 꾸며졌어요! 🎉','success');
 }
@@ -26698,7 +27451,18 @@ function renderSlimeHome() {
     slime.exp = Math.max(slime.exp, 2000);
   }
   slime=checkBadges(slime);
-  saveSlimeData(slime);
+  // exp/stage/streak/badge만 캐시에 반영 — colorId/eyeStyle/accessory 등 커스텀은 건드리지 않음
+  const _prevStreak = _slimeCache?.streak;
+  const _prevBadges = JSON.stringify(_slimeCache?.badges || []);
+  _slimeCache = { ...(_slimeCache || {}), ...slime };
+  // streak이나 badge가 바뀐 경우에만 DB 저장 (커스텀 저장과 충돌 없이 안전하게)
+  if (_prevStreak !== slime.streak || _prevBadges !== JSON.stringify(slime.badges || [])) {
+    _saveSlimeDataToDB(_slimeCache, true);
+  }
+
+  // 사이드바 레벨 뱃지 동기화 (My Slime 재계산 결과와 일치)
+  const lvEl = document.getElementById('user-level-display');
+  if (lvEl) { lvEl.textContent = 'Lv.' + (slime.stage + 1); lvEl.style.display = 'inline'; }
 
   const stageData = SLIME_STAGES[slime.stage];
   const nextStage = SLIME_STAGES[Math.min(slime.stage+1, SLIME_STAGES.length-1)];
