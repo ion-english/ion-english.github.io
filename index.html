@@ -2136,13 +2136,7 @@ body.student-mode {
       <div id="pg-students" class="page">
 
         <!-- 통합 탭 헤더 -->
-        <div style="display:flex;gap:8px;margin-bottom:22px;">
-          <button class="mgmt-tab-btn active" id="mgmt-tab-students" onclick="mgmtSetTab('students')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            학생 현황
-          </button>
 
-        </div>
 
         <!-- ── 패널 1: 학생 현황 (반 관리 통합) ── -->
         <div id="mgmt-panel-students">
@@ -3142,6 +3136,8 @@ async function loadDB() {
     else renderMyBooks();
     // 읽지 않은 쪽지 배지
     setTimeout(updateUnreadBadge, 500);
+    // 과제 미수행 자동 감지 (선생님만, 데이터 로드 후)
+    if (currentUser.role === 'teacher') setTimeout(_autoDetectAndSuggestNotifications, 3000);
     // 대시보드 인삿말
     const greetEl = document.getElementById('dash-greeting');
     const dateEl  = document.getElementById('dash-date');
@@ -3233,7 +3229,8 @@ async function sbSaveCollection(coll) {
     owner_id: currentUser.id,
     name: coll.name,
     icon: coll.icon || '📁',
-    color: coll.color || '#1e4db7'
+    color: coll.color || '#1e4db7',
+    class_ids: coll.class_ids || null
   }, { onConflict: 'id' });
   if (error) throw error;
 }
@@ -6157,9 +6154,34 @@ function showPage(id, addHistory = true) {
     window._skipLibCollReset = false;
     if (!window._skipLibReset) closeLibEditor();
     window._skipLibReset = false;
-    renderLibrary();
+    loadClasses().then(() => renderLibrary()).catch(() => renderLibrary());
   }
-  if (id==='pg-students') { mgmtSetTab('students'); renderStudentsMgmt(); }
+  if (id==='pg-students') {
+    mgmtSetTab('students'); renderStudentsMgmt();
+    // 백그라운드 프리페치 — 학생별 캐시 채우기
+    if (currentUser?.role === 'teacher') {
+      setTimeout(() => {
+        const students = (DB.users||[]).filter(u => u.role === 'student');
+        students.forEach(u => {
+          if (window._sdmCache && window._sdmCache[u.id]) return; // 이미 캐시 있으면 스킵
+          Promise.all([
+            sb.from('quiz_logs')
+              .select('id, book_id, student_id, mode, direction, score, total, taken_at, force_submit, wrong_words_json, questions_json')
+              .eq('student_id', u.id).order('taken_at', { ascending: false }).limit(200),
+            sb.from('sentence_submissions')
+              .select('book_id, type, recorded_url, created_at, id, answer')
+              .eq('student_id', u.id).order('created_at', { ascending: false }).limit(200)
+          ]).then(([logsRes, subsRes]) => {
+            window._sdmCache = window._sdmCache || {};
+            window._sdmCache[u.id] = {
+              quizLogs: logsRes.data || [],
+              sentSubmissions: subsRes.data || []
+            };
+          }).catch(() => {});
+        });
+      }, 1500); // 페이지 렌더 후 1.5초 뒤 시작
+    }
+  }
   if (id==='pg-assign') { showPage('pg-students'); mgmtSetTab('assign-word'); return; }
   if (id==='pg-classes') { showPage('pg-students'); mgmtSetTab('classes'); return; }
   if (id==='pg-teachers') renderTeachersMgmt();
@@ -6169,6 +6191,8 @@ function showPage(id, addHistory = true) {
     window._skipSentCollReset = false;
     if (!window._skipSentReset) sentShowMgmtView();
     window._skipSentReset = false;
+    // 선생님이면 classes 미리 로드 (담당반 dot 즉시 표시)
+    if (currentUser?.role === 'teacher') loadClasses().then(() => renderSentMgmt()).catch(()=>{});
     // 핵심단어/문법 컬럼 존재 여부 1회 체크 (선생님만)
     if (currentUser?.role === 'teacher' && !window._sentKwColChecked) {
       window._sentKwColChecked = true;
@@ -7091,7 +7115,38 @@ async function openBookStatusModal(bookId) {
 async function openBookAssignModal(bookId) {
   const b = (DB.books||[]).find(x=>x.id===bookId);
   if (!b) return;
-  const students = (DB.users||[]).filter(u=>u.role==='student');
+  const allStudents = (DB.users||[]).filter(u=>u.role==='student');
+
+  // 최신 class_ids + classes 동시 fetch
+  await loadClasses();
+  if (b.collectionId) {
+    try {
+      const { data: freshColl } = await sb.from('collections')
+        .select('id, class_ids').eq('id', b.collectionId).single();
+      if (freshColl) {
+        const existing = (DB.collections||[]).find(c => c.id === b.collectionId);
+        if (existing) existing.class_ids = freshColl.class_ids;
+      }
+    } catch(e) {}
+  }
+
+  // 컬렉션 담당 반 필터
+  const coll = b.collectionId ? (DB.collections||[]).find(c=>c.id===b.collectionId) : null;
+  const collClassIds = (coll && Array.isArray(coll.class_ids) && coll.class_ids.length) ? coll.class_ids : null;
+  const allClasses = DB_classes || [];
+  const filteredClasses = collClassIds ? allClasses.filter(c => collClassIds.includes(c.id)) : allClasses;
+  const allowedStudentIds = collClassIds
+    ? new Set(filteredClasses.flatMap(c => c.memberIds||[]))
+    : null;
+  const students = allowedStudentIds
+    ? allStudents.filter(s => allowedStudentIds.has(s.id))
+    : allStudents;
+
+  const collNotice = collClassIds
+    ? `<div style="font-size:12px;color:#185FA5;background:#E6F1FB;border-radius:7px;padding:7px 12px;margin-bottom:12px">
+        담당 반: ${filteredClasses.map(c=>c.name).join(', ')} 학생만 표시됩니다
+       </div>`
+    : '';
 
   let existingAssigns = [];
   try {
@@ -7121,7 +7176,7 @@ async function openBookAssignModal(bookId) {
       : '<span style="font-size:11px;color:var(--t3)">과제 없음 (자유학습)</span>';
   }
 
-  const classes = DB_classes || [];
+  const classes = filteredClasses;
   const unassignedStudents = students.filter(s => !classes.some(c => c.memberIds && c.memberIds.includes(s.id)));
 
   function memberRow(s, isChecked) {
@@ -7154,7 +7209,8 @@ async function openBookAssignModal(bookId) {
         <input type="checkbox" class="bam-class-chk" data-cid="${cls.id}"
           style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;flex-shrink:0" ${allChk?'checked':''} ${(!allChk&&anyChk)?'data-indeterminate="true"':''}
           onchange="_bamClassChkChange('${cls.id}',this.checked,'${bookId}')">
-        <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">🏫 ${cls.name}</span>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>
+        <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">${cls.name}</span>
         <span style="font-size:12px;color:var(--t3)">${members.length}명</span>
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 배포됨</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부 배포됨</span>':''}
         <button onclick="event.stopPropagation();_bamBulkTaskModal('${bookId}','${cls.id}')"
@@ -7185,22 +7241,313 @@ async function openBookAssignModal(bookId) {
       </div>
     </div>` : '';
 
+  // 배포된 학생 탭 HTML 생성
+  const assignedStudents = students.filter(s => assignedIds.has(s.id));
+  const assignedListHtml = assignedStudents.length
+    ? assignedStudents.map(s => {
+        const opts = existingOpts[s.id];
+        const label = wordOptsLabel(opts);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;transition:background 0.12s"
+          onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name||s.email}${s.grade?` <span style="font-size:11px;color:var(--t3);font-weight:400">${s.grade}</span>`:''}</div>
+            <div style="margin-top:2px">${label}</div>
+          </div>
+          <button onclick="revokeBookAssign('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
+            style="flex-shrink:0;padding:4px 11px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:12px;font-weight:600;color:#dc2626;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
+            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            ✕ 해제
+          </button>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;padding:24px 0;color:var(--t3);font-size:13px">배포된 학생이 없습니다</div>';
+
+  const assignedCount = assignedStudents.length;
+
   showModal(`
     <div class="modal-title">📤 배포 — ${b.name}</div>
-    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">${b.wordCount||b.words?.length||0}개 단어 · 학생을 선택하고 과제를 설정하세요</div>
-    <div style="font-size:12px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">① 학생 선택 및 과제 설정</div>
-    <div style="max-height:340px;overflow-y:auto;margin-bottom:4px">
+    <div style="font-size:13px;color:var(--t2);margin-bottom:12px">${b.wordCount||b.words?.length||0}개 단어</div>
+    ${collNotice}
+    <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1.5px solid var(--border);padding-bottom:0">
+      <button id="bam-tab-all" onclick="_bamSwitchTab('all')"
+        style="padding:7px 14px;font-size:13px;font-weight:700;border:none;border-bottom:2.5px solid var(--blue);margin-bottom:-1.5px;background:transparent;color:var(--blue);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        전체 학생 배포
+      </button>
+      <button id="bam-tab-assigned" onclick="_bamSwitchTab('assigned')"
+        style="padding:7px 14px;font-size:13px;font-weight:700;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;background:transparent;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        배포된 학생 <span id="bam-assigned-badge" style="background:var(--t3);color:white;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:3px">${assignedCount}</span>
+      </button>
+    </div>
+    <div id="bam-panel-all" style="max-height:340px;overflow-y:auto;margin-bottom:4px">
       ${classesHtml}
       ${unassignedHtml}
     </div>
-    <div class="modal-actions">
+    <div id="bam-panel-assigned" style="display:none;max-height:340px;overflow-y:auto;margin-bottom:4px">
+      ${assignedListHtml}
+    </div>
+    <div id="bam-footer-all" class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="doBookAssignFromModal('${bookId}')">배포 저장</button>
+    </div>
+    <div id="bam-footer-assigned" class="modal-actions" style="display:none">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      ${assignedCount > 0 ? `<button class="btn btn-ghost" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" onclick="revokeAllBookAssign('${bookId}',${assignedCount})"
+        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''">전체 해제</button>` : ''}
     </div>
   `);
 
   // indeterminate 처리
   document.querySelectorAll('.bam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+}
+
+function _bamSwitchTab(tab) {
+  const isAll = tab === 'all';
+  const tA = document.getElementById('bam-tab-all');
+  const tB = document.getElementById('bam-tab-assigned');
+  const pA = document.getElementById('bam-panel-all');
+  const pB = document.getElementById('bam-panel-assigned');
+  const fA = document.getElementById('bam-footer-all');
+  const fB = document.getElementById('bam-footer-assigned');
+  if (tA) { tA.style.color = isAll ? 'var(--blue)' : 'var(--t2)'; tA.style.borderBottomColor = isAll ? 'var(--blue)' : 'transparent'; }
+  if (tB) { tB.style.color = isAll ? 'var(--t2)' : 'var(--blue)'; tB.style.borderBottomColor = isAll ? 'transparent' : 'var(--blue)';
+    const badge = document.getElementById('bam-assigned-badge');
+    if (badge) badge.style.background = isAll ? 'var(--t3)' : 'var(--blue)';
+  }
+  if (pA) pA.style.display = isAll ? '' : 'none';
+  if (pB) pB.style.display = isAll ? 'none' : '';
+  if (fA) fA.style.display = isAll ? '' : 'none';
+  if (fB) fB.style.display = isAll ? 'none' : '';
+  if (isAll) document.querySelectorAll('.bam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+}
+
+async function revokeBookAssign(bookId, studentId, studentName) {
+  if (!confirm(`"${studentName}"의 단어장 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`"${studentName}" 과제 해제 완료`, 'success');
+    closeModal();
+    await loadDB();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+async function revokeAllBookAssign(bookId, count) {
+  if (!confirm(`이 단어장에 배포된 학생 ${count}명의 과제를 모두 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('assignments').delete().eq('book_id', bookId);
+    showToast(`전체 ${count}명 과제 해제 완료`, 'success');
+    closeModal();
+    await loadDB();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+// ── 반 통합 과제 관리 모달 (현황 + 단어장배포 + 문장집배포) ────
+async function openClassAssignStatusModal(classId) {
+  const cls = (DB_classes||[]).find(c => c.id === classId);
+  if (!cls) return;
+  const members = (DB.users||[]).filter(u => u.role === 'student' && (cls.memberIds||[]).includes(u.id));
+
+  // ── 데이터 fetch: quiz_logs + sentence_submissions ──
+  const sids = members.map(s => s.id);
+  let quizLogs = [], sentSubs = [];
+  try {
+    const [qlRes, ssRes] = await Promise.all([
+      sids.length ? sb.from('quiz_logs').select('student_id,book_id,mode,direction').in('student_id', sids) : Promise.resolve({data:[]}),
+      sids.length ? sb.from('sentence_submissions').select('student_id,book_id,type').in('student_id', sids) : Promise.resolve({data:[]})
+    ]);
+    quizLogs = qlRes.data || [];
+    sentSubs = ssRes.data || [];
+  } catch(e) { console.warn('cas fetch 실패', e); }
+
+  // ── 유형별 완료 카운트 헬퍼 ──
+  // 단어: quiz_logs에서 (sid, bid, mode, direction) 조합별 횟수 집계
+  // 문장: sentence_submissions에서 (sid, bid, type) 조합별 횟수 집계
+  function qlCount(sid, bid, mode, dir) {
+    return quizLogs.filter(l => l.student_id===sid && l.book_id===bid && l.mode===mode && l.direction===dir).length;
+  }
+  function ssCount(sid, bid, type) {
+    return sentSubs.filter(s => s.student_id===sid && s.book_id===bid && s.type===type).length;
+  }
+
+  // ── 과제 토큰 렌더 (유형 하나씩) ──
+  // done: true면 빨간 취소선, false면 회색 일반
+  function token(label, done) {
+    return done
+      ? `<span style="color:var(--t3);text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:1px">${label}</span>`
+      : `<span style="color:var(--t3)">${label}</span>`;
+  }
+
+  // ── 과제 행 ──
+  function bookLine(b, type, sid) {
+    const typeLabel = type === 'word' ? '단어' : '문장';
+    const prog = DB.progress[sid+'_'+b.id] || {};
+    const rounds = prog.rounds || 0;
+    const scores = prog.quizScores || [];
+
+    // 컬렉션 이름
+    const collName = type === 'word'
+      ? (b.collectionName || (DB.collections||[]).find(c=>c.id===b.collectionId)?.name || null)
+      : (b.collectionName || (DB_sentColls||[]).find(c=>c.id===b.collection_id)?.name || null);
+
+    const opts = type === 'word'
+      ? ((DB.taskOptions||{})[sid+'_'+b.id] || null)
+      : (() => {
+          const sa = (DB_sentAssigns||[]).find(a=>a.student_id===sid&&a.book_id===b.id);
+          if (!sa||!sa.task_options) return null;
+          try { return typeof sa.task_options==='string'?JSON.parse(sa.task_options):sa.task_options; } catch(e){ return null; }
+        })();
+
+    // 토큰 생성 (완료 여부 각각 판단)
+    let tokens = [];
+    if (type === 'word') {
+      if (opts && opts.flashcard > 0)        tokens.push(token(`암기 ${opts.flashcard}회`, rounds >= opts.flashcard));
+      if (opts && opts.quiz_choice_en2ko > 0) tokens.push(token(`객관식 영→한 ${opts.quiz_choice_en2ko}회`, qlCount(sid, b.id, 'choice', 'en2ko') >= opts.quiz_choice_en2ko));
+      if (opts && opts.quiz_choice_ko2en > 0) tokens.push(token(`객관식 한→영 ${opts.quiz_choice_ko2en}회`, qlCount(sid, b.id, 'choice', 'ko2en') >= opts.quiz_choice_ko2en));
+      if (opts && opts.quiz_input_en2ko > 0)  tokens.push(token(`주관식 영→한 ${opts.quiz_input_en2ko}회`, qlCount(sid, b.id, 'input', 'en2ko') >= opts.quiz_input_en2ko));
+      if (opts && opts.quiz_input_ko2en > 0)  tokens.push(token(`주관식 한→영 ${opts.quiz_input_ko2en}회`, qlCount(sid, b.id, 'input', 'ko2en') >= opts.quiz_input_ko2en));
+      if (opts && opts.test > 0)             tokens.push(token(`테스트 ${opts.test}회`, false));
+      if (!opts) tokens.push(token('자유학습', rounds > 0 || scores.length > 0));
+    } else {
+      if (opts && opts.unscramble > 0) tokens.push(token(`배열 ${opts.unscramble}회`, ssCount(sid, b.id, 'unscramble') >= opts.unscramble));
+      if (opts && opts.dictation > 0)  tokens.push(token(`빈칸 ${opts.dictation}회`,  ssCount(sid, b.id, 'dictation')  >= opts.dictation));
+      if (opts && opts.record > 0)     tokens.push(token(`낭독 ${opts.record}회`,     ssCount(sid, b.id, 'record')     >= opts.record));
+      if (!opts) tokens.push(token('자유학습', sentSubs.some(s => s.student_id===sid && s.book_id===b.id)));
+    }
+
+    // 퀴즈 정답률 바
+    let barHtml = '';
+    if (type === 'word' && scores.length > 0) {
+      const pct = Math.round(scores.reduce((a,v)=>a+v,0)/scores.length);
+      const barColor = pct>=80?'#22c55e':pct>=50?'#f59e0b':'#ef4444';
+      const txtColor = pct>=80?'#16a34a':pct>=50?'#d97706':'#dc2626';
+      barHtml = `<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div style="width:52px;height:4px;border-radius:2px;background:var(--border);overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px"></div>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:${txtColor};min-width:34px;text-align:right">${pct}%</span>
+      </div>`;
+    }
+
+    const revokeCall = type === 'word'
+      ? `revokeBookAssignFromStatus('${b.id}','${sid}','${(b.name||'').replace(/'/g,"\\'")}','${classId}')`
+      : `revokeSentAssignFromStatus('${b.id}','${sid}','${(b.name||'').replace(/'/g,"\\'")}','${classId}')`;
+
+    const tokensHtml = tokens.length
+      ? `<div style="margin-top:4px;font-size:13px">${tokens.join('<span style="color:var(--border2);margin:0 5px">·</span>')}</div>`
+      : '';
+
+    const collHtml = collName
+      ? `<span style="font-size:13px;color:#1e40af;font-weight:600;margin-right:4px">${collName} /</span>`
+      : '';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border)">
+      <span style="flex-shrink:0;font-size:12px;font-weight:600;color:var(--t3);width:30px;text-align:center">${typeLabel}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;color:var(--t1)">${collHtml}${b.name}</div>
+        ${tokensHtml}
+      </div>
+      ${barHtml}
+      <button onclick="${revokeCall}"
+        style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
+        onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+    </div>`;
+  }
+
+  // ── 학생 행 ──
+  function studentRow(s) {
+    const wordBooks = (s.assigned||[]).map(bid => DB.books.find(b=>b.id===bid)).filter(Boolean);
+    const sentBooks = (DB_sentAssigns||[]).filter(a=>a.student_id===s.id).map(a=>(DB_sentBooks||[]).find(b=>b.id===a.book_id)).filter(Boolean);
+    const total = wordBooks.length + sentBooks.length;
+
+    const anyWordStarted = wordBooks.some(b => {
+      const prog = DB.progress[s.id+'_'+b.id]||{};
+      return (prog.rounds||0)>0 || (prog.quizScores||[]).length>0 || quizLogs.some(l=>l.student_id===s.id&&l.book_id===b.id);
+    });
+    const anySentStarted = sentBooks.some(b => sentSubs.some(ss=>ss.student_id===s.id&&ss.book_id===b.id));
+    const notStarted = total > 0 && !anyWordStarted && !anySentStarted;
+
+    const badge = notStarted
+      ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;margin-left:6px">미시작</span>`
+      : '';
+
+    const lines = [
+      ...wordBooks.map(b => bookLine(b, 'word', s.id)),
+      ...sentBooks.map(b => bookLine(b, 'sent', s.id))
+    ].join('');
+
+    return `<div style="margin-bottom:2px">
+      <div style="display:flex;align-items:center;gap:6px;padding:14px 0 8px">
+        <span style="font-size:17px;font-weight:700;color:var(--t1)">${s.name||s.email}</span>
+        ${s.grade?`<span style="font-size:13px;color:var(--t3)">${s.grade}</span>`:''}
+        ${badge}
+        <span style="font-size:13px;color:var(--t3);margin-left:auto">${total?total+'건':'과제 없음'}</span>
+      </div>
+      ${total
+        ? `<div style="padding-left:4px;padding-bottom:10px;border-bottom:1.5px solid var(--border)">${lines}</div>`
+        : '<div style="border-bottom:1.5px solid var(--border)"></div>'}
+    </div>`;
+  }
+
+  // ── 미시작 학생 상단 정렬 ──
+  function isNotStarted(s) {
+    const wBooks = (s.assigned||[]).map(bid=>DB.books.find(b=>b.id===bid)).filter(Boolean);
+    const sBooks = (DB_sentAssigns||[]).filter(a=>a.student_id===s.id).map(a=>(DB_sentBooks||[]).find(b=>b.id===a.book_id)).filter(Boolean);
+    const total = wBooks.length + sBooks.length;
+    const wStarted = wBooks.some(b=>{const p=DB.progress[s.id+'_'+b.id]||{};return (p.rounds||0)>0||(p.quizScores||[]).length>0||quizLogs.some(l=>l.student_id===s.id&&l.book_id===b.id);});
+    const sStarted = sBooks.some(b=>sentSubs.some(ss=>ss.student_id===s.id&&ss.book_id===b.id));
+    return total > 0 && !wStarted && !sStarted;
+  }
+
+  const sortedMembers = members.slice().sort((a, b) => {
+    const an = isNotStarted(a), bn = isNotStarted(b);
+    return an===bn ? 0 : an ? -1 : 1;
+  });
+
+  const totalAssigns = members.reduce((sum,s) => sum+(s.assigned||[]).length+(DB_sentAssigns||[]).filter(a=>a.student_id===s.id).length, 0);
+  const notStartedCount = sortedMembers.filter(isNotStarted).length;
+
+  const subLabel = [
+    `학생 ${members.length}명`,
+    `배포 ${totalAssigns}건`,
+    notStartedCount > 0 ? `<span style="color:#dc2626;font-weight:700">미시작 ${notStartedCount}명</span>` : ''
+  ].filter(Boolean).join(' · ');
+
+  const statusHtml = sortedMembers.length
+    ? sortedMembers.map(studentRow).join('')
+    : '<div style="text-align:center;padding:32px 0;color:var(--t3);font-size:13px">반원이 없습니다.</div>';
+
+  showModal(`
+    <div class="modal-title" style="margin-bottom:4px">${cls.name} — 과제 현황</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:16px">${subLabel}</div>
+    <div style="max-height:440px;overflow-y:auto">
+      ${statusHtml}
+    </div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+    </div>
+  `);
+}
+
+async function revokeBookAssignFromStatus(bookId, studentId, studentName, classId) {
+  if (!confirm(`"${studentName}" 단어장 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`단어장 과제 해제 완료`, 'success');
+    await loadDB();
+    closeModal();
+    openClassAssignStatusModal(classId);
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+async function revokeSentAssignFromStatus(bookId, studentId, studentName, classId) {
+  if (!confirm(`"${studentName}" 문장집 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('sentence_assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`문장집 과제 해제 완료`, 'success');
+    await loadSentenceBooks();
+    closeModal();
+    openClassAssignStatusModal(classId);
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
 }
 
 function _bamChkChange(sid, checked) {
@@ -7523,10 +7870,11 @@ async function loadSentenceBooks() {
   try {
     let books = [];
     if (currentUser.role === 'teacher') {
-      // sentence_books + sentence_items count 동시 조회
-      const [{ data, error: sbErr }, { data: countData }] = await Promise.all([
+      // sentence_books + sentence_items count + sentence_assignments 동시 조회
+      const [{ data, error: sbErr }, { data: countData }, { data: assignData }] = await Promise.all([
         sb.from('sentence_books').select('*').order('created_at', {ascending:false}),
-        sb.from('sentence_items').select('book_id')
+        sb.from('sentence_items').select('book_id'),
+        sb.from('sentence_assignments').select('student_id, book_id, task_options')
       ]);
       if (sbErr) console.error('🔴 sentence_books 조회 에러:', sbErr.message, sbErr.code);
       books = data || [];
@@ -7534,6 +7882,8 @@ async function loadSentenceBooks() {
       const countMap = {};
       (countData || []).forEach(r => { countMap[r.book_id] = (countMap[r.book_id] || 0) + 1; });
       DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0 }));
+      // 선생님용 sentence_assignments 캐시
+      DB_sentAssigns = assignData || [];
     } else {
       const { data: assigns, error: aErr } = await sb.from('sentence_assignments').select('book_id, task_options').eq('student_id', currentUser.id);
       if (aErr) console.error('🔴 sentence_assignments 에러:', aErr.message);
@@ -7561,8 +7911,13 @@ async function loadSentenceBooks() {
       const sentCollIds = [...new Set(books.map(b => b.collection_id).filter(Boolean))];
       let sentCollMap = {};
       if (sentCollIds.length) {
-        const { data: scData } = await sb.from('sentence_collections').select('id, name').in('id', sentCollIds);
-        (scData || []).forEach(c => { sentCollMap[c.id] = c.name; });
+        const { data: scData } = await sb.from('sentence_collections').select('id, name, class_ids').in('id', sentCollIds);
+        (scData || []).forEach(c => {
+          sentCollMap[c.id] = c.name;
+          // DB_sentColls에 class_ids 동기화
+          const existing = DB_sentColls.find(sc => sc.id === c.id);
+          if (existing) existing.class_ids = c.class_ids;
+        });
       }
       DB_sentBooks = books.map(b => ({ ...b, item_count: countMap[b.id] || 0, collectionName: sentCollMap[b.collection_id] || (DB_sentColls.find(c=>c.id===b.collection_id)?.name) || null }));
     }
@@ -7613,7 +7968,6 @@ function sentRefreshBookSel() {
 
 async function loadSentColls() {
   try {
-    // 모든 선생님의 문장 컬렉션 공유
     const { data } = await sb.from('sentence_collections').select('*').order('created_at');
     DB_sentColls = data || [];
   } catch(e) { DB_sentColls = []; }
@@ -7621,7 +7975,7 @@ async function loadSentColls() {
 
 async function loadColls() {
   try {
-    const { data } = await sb.from('collections').select('id, name').order('created_at', { ascending: false });
+    const { data } = await sb.from('collections').select('id, name, icon, color, class_ids').order('created_at', { ascending: false });
     if (data && data.length) DB.collections = data;
   } catch(e) {}
 }
@@ -7758,6 +8112,18 @@ function renderSentMgmt() {
         ${sortedColls.map(c=>{
           const cnt = DB_sentBooks.filter(b=>b.collection_id===c.id).length;
           const editBorder = _sentCollEditMode ? '1.5px solid var(--blue)' : '1.5px solid var(--border)';
+
+          // 담당 반 dot
+          const sClassIds = Array.isArray(c.class_ids) ? c.class_ids : [];
+          const sAssignedClasses = (DB_classes||[]).filter(cls => sClassIds.includes(cls.id));
+          const sDotsHtml = sAssignedClasses.length
+            ? `<div style="display:flex;gap:4px;margin-bottom:5px;align-items:center">
+                ${sAssignedClasses.map(cls =>
+                  `<span title="${cls.name}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>`
+                ).join('')}
+               </div>`
+            : '';
+
           return `<div data-collid="${c.id}"
             onclick="${_sentCollEditMode ? '' : `sentFilterColl('${c.id}')`}"
             style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#fff;
@@ -7783,11 +8149,15 @@ function renderSentMgmt() {
                     onclick="event.stopPropagation()"
                     onmousedown="event.stopPropagation()"
                     onblur="sentCollRename('${c.id}',this.value)">`
-                : `<div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>`
+                : `<div>${sDotsHtml}<div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div></div>`
               }
               <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:500">${cnt} Collection${cnt!==1?'s':''}</div>
             </div>
-            ${!_sentCollEditMode ? `${_favToggleHTML('sent',c.id,'toggleFavSentColl')}` : ''}
+            ${_sentCollEditMode
+              ? `<button onclick="event.stopPropagation();openSentCollClassModal('${c.id}')"
+                  style="flex-shrink:0;padding:3px 9px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
+                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">담당 반${sClassIds.length?' ✓':''}</button>`
+              : `${_favToggleHTML('sent',c.id,'toggleFavSentColl')}`}
           </div>`;
         }).join('')}
       </div>
@@ -9358,7 +9728,39 @@ async function openSentStatusModal(bookId) {
 
 async function openSentAssignModal(bookId) {
   const b = DB_sentBooks.find(b => b.id === bookId);
-  const students = DB.users.filter(u => u.role === 'student');
+  const allStudents = DB.users.filter(u => u.role === 'student');
+
+  // 최신 class_ids + classes 동시 fetch
+  await loadClasses();
+  if (b?.collection_id) {
+    try {
+      const { data: freshColl } = await sb.from('sentence_collections')
+        .select('id, class_ids').eq('id', b.collection_id).single();
+      if (freshColl) {
+        const existing = (DB_sentColls||[]).find(c => c.id === b.collection_id);
+        if (existing) existing.class_ids = freshColl.class_ids;
+      }
+    } catch(e) {}
+  }
+
+  // 컬렉션 담당 반 필터
+  const sentColl = b?.collection_id ? (DB_sentColls||[]).find(c => c.id === b.collection_id) : null;
+  const sentCollClassIds = (sentColl && Array.isArray(sentColl.class_ids) && sentColl.class_ids.length) ? sentColl.class_ids : null;
+  const allClasses = DB_classes || [];
+  const filteredSentClasses = sentCollClassIds ? allClasses.filter(c => sentCollClassIds.includes(c.id)) : allClasses;
+  const allowedSentStudentIds = sentCollClassIds
+    ? new Set(filteredSentClasses.flatMap(c => c.memberIds||[]))
+    : null;
+  const students = allowedSentStudentIds
+    ? allStudents.filter(s => allowedSentStudentIds.has(s.id))
+    : allStudents;
+
+  const sentCollNotice = sentCollClassIds
+    ? `<div style="font-size:12px;color:#185FA5;background:#E6F1FB;border-radius:7px;padding:7px 12px;margin-bottom:12px">
+        담당 반: ${filteredSentClasses.map(c=>c.name).join(', ')} 학생만 표시됩니다
+       </div>`
+    : '';
+
   let existingAssigns = [];
   try {
     const { data } = await sb.from('sentence_assignments').select('student_id, task_options').eq('book_id', bookId);
@@ -9384,7 +9786,7 @@ async function openSentAssignModal(bookId) {
       : '<span style="font-size:11px;color:var(--t3)">과제 없음 (자유학습)</span>';
   }
 
-  const classes = DB_classes || [];
+  const classes = filteredSentClasses;
   const unassignedStudents = students.filter(s => !classes.some(c => c.memberIds && c.memberIds.includes(s.id)));
 
   function memberRow(s, isChecked) {
@@ -9417,7 +9819,8 @@ async function openSentAssignModal(bookId) {
         <input type="checkbox" class="sam-class-chk" data-cid="${cls.id}"
           style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer;flex-shrink:0" ${allChk?'checked':''} ${(!allChk&&anyChk)?'data-indeterminate="true"':''}
           onchange="_samClassChkChange('${cls.id}',this.checked)">
-        <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">🏫 ${cls.name}</span>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>
+        <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">${cls.name}</span>
         <span style="font-size:12px;color:var(--t3)">${members.length}명</span>
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 배포됨</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부 배포됨</span>':''}
         <button onclick="event.stopPropagation();_samBulkTaskModal('${bookId}','${cls.id}')"
@@ -9448,21 +9851,146 @@ async function openSentAssignModal(bookId) {
       </div>
     </div>` : '';
 
+  // 배포된 학생 목록 탭
+  const assignedStudentsSent = students.filter(s => assignedIds.has(s.id));
+  const assignedSentListHtml = assignedStudentsSent.length
+    ? assignedStudentsSent.map(s => {
+        const opts = existingOpts[s.id];
+        const label = sentOptsLabel(opts);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;transition:background 0.12s"
+          onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name||s.email}${s.grade?` <span style="font-size:11px;color:var(--t3);font-weight:400">${s.grade}</span>`:''}</div>
+            <div style="margin-top:2px">${label}</div>
+          </div>
+          <button onclick="revokeSentAssign('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
+            style="flex-shrink:0;padding:4px 11px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:12px;font-weight:600;color:#dc2626;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
+            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            ✕ 해제
+          </button>
+        </div>`;
+      }).join('')
+    : '<div style="text-align:center;padding:24px 0;color:var(--t3);font-size:13px">배포된 학생이 없습니다</div>';
+
+  const assignedSentCount = assignedStudentsSent.length;
+
   showModal(`
     <div class="modal-title">📤 배포 — ${b?.name}</div>
-    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">학생을 선택하고 과제를 설정하세요</div>
-    <div style="font-size:12px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">① 학생 선택 및 과제 설정</div>
-    <div style="max-height:340px;overflow-y:auto;margin-bottom:4px">
+    <div style="font-size:13px;color:var(--t2);margin-bottom:12px">문장집</div>
+    ${sentCollNotice}
+    <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1.5px solid var(--border);padding-bottom:0">
+      <button id="sam-tab-all" onclick="_samSwitchTab('all')"
+        style="padding:7px 14px;font-size:13px;font-weight:700;border:none;border-bottom:2.5px solid var(--blue);margin-bottom:-1.5px;background:transparent;color:var(--blue);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        전체 학생 배포
+      </button>
+      <button id="sam-tab-assigned" onclick="_samSwitchTab('assigned')"
+        style="padding:7px 14px;font-size:13px;font-weight:700;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;background:transparent;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        배포된 학생 <span id="sam-assigned-badge" style="background:var(--t3);color:white;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:3px">${assignedSentCount}</span>
+      </button>
+    </div>
+    <div id="sam-panel-all" style="max-height:340px;overflow-y:auto;margin-bottom:4px">
       ${classesHtml}
       ${unassignedHtml}
     </div>
-    <div class="modal-actions">
+    <div id="sam-panel-assigned" style="display:none;max-height:340px;overflow-y:auto;margin-bottom:4px">
+      ${assignedSentListHtml}
+    </div>
+    <div id="sam-footer-all" class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="saveSentAssign('${bookId}')">저장</button>
+    </div>
+    <div id="sam-footer-assigned" class="modal-actions" style="display:none">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      ${assignedSentCount > 0 ? `<button class="btn btn-ghost" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" onclick="revokeAllSentAssign('${bookId}',${assignedSentCount})"
+        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''">전체 해제</button>` : ''}
     </div>
   `);
 
   document.querySelectorAll('.sam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+}
+
+function _samSwitchTab(tab) {
+  const isAll = tab === 'all';
+  const tA = document.getElementById('sam-tab-all');
+  const tB = document.getElementById('sam-tab-assigned');
+  const pA = document.getElementById('sam-panel-all');
+  const pB = document.getElementById('sam-panel-assigned');
+  const fA = document.getElementById('sam-footer-all');
+  const fB = document.getElementById('sam-footer-assigned');
+  if (tA) { tA.style.color = isAll ? 'var(--blue)' : 'var(--t2)'; tA.style.borderBottomColor = isAll ? 'var(--blue)' : 'transparent'; }
+  if (tB) { tB.style.color = isAll ? 'var(--t2)' : 'var(--blue)'; tB.style.borderBottomColor = isAll ? 'transparent' : 'var(--blue)';
+    const badge = document.getElementById('sam-assigned-badge');
+    if (badge) badge.style.background = isAll ? 'var(--t3)' : 'var(--blue)';
+  }
+  if (pA) pA.style.display = isAll ? '' : 'none';
+  if (pB) pB.style.display = isAll ? 'none' : '';
+  if (fA) fA.style.display = isAll ? '' : 'none';
+  if (fB) fB.style.display = isAll ? 'none' : '';
+  if (isAll) document.querySelectorAll('.sam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+}
+
+async function revokeSentAssign(bookId, studentId, studentName) {
+  if (!confirm(`"${studentName}"의 문장집 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('sentence_assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`"${studentName}" 문장집 과제 해제 완료`, 'success');
+    closeModal();
+    await loadSentenceBooks();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+async function revokeAllSentAssign(bookId, count) {
+  if (!confirm(`이 문장집에 배포된 학생 ${count}명의 과제를 모두 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('sentence_assignments').delete().eq('book_id', bookId);
+    showToast(`전체 ${count}명 문장집 과제 해제 완료`, 'success');
+    closeModal();
+    await loadSentenceBooks();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+function openSentCollClassModal(collId) {
+  const c = (DB_sentColls||[]).find(c => c.id === collId);
+  if (!c) return;
+  loadClasses().then(() => {
+  const classes = DB_classes || [];
+  window._sentCollSelClassIds = Array.isArray(c.class_ids) ? [...c.class_ids] : [];
+
+  const classHtml = classes.length
+    ? classes.map(cls => {
+        const checked = window._sentCollSelClassIds.includes(cls.id);
+        return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--surface2)">
+          <input type="checkbox" value="${cls.id}" style="accent-color:var(--accent);width:15px;height:15px" ${checked?'checked':''}
+            onchange="if(this.checked)window._sentCollSelClassIds.push(this.value);else window._sentCollSelClassIds=window._sentCollSelClassIds.filter(x=>x!==this.value)">
+          <span style="font-size:14px;font-weight:600;color:var(--t1)">${cls.name}</span>
+        </label>`;
+      }).join('')
+    : '<span style="font-size:13px;color:var(--t3)">등록된 반이 없습니다</span>';
+
+  showModal(`
+    <div class="modal-title">🏫 담당 반 설정 — ${c.name}</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">지정한 반의 학생만 배포 목록에 표시됩니다</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">${classHtml}</div>
+    ${classes.length ? '<div style="font-size:11px;color:var(--t3);margin-bottom:4px">미선택 시 전체 학생 표시</div>' : ''}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveSentCollClasses('${collId}')">저장</button>
+    </div>`);
+  });
+}
+
+async function saveSentCollClasses(collId) {
+  const c = (DB_sentColls||[]).find(c => c.id === collId);
+  if (!c) return;
+  const ids = (window._sentCollSelClassIds||[]).length > 0 ? [...window._sentCollSelClassIds] : null;
+  try {
+    await sb.from('sentence_collections').update({ class_ids: ids }).eq('id', collId);
+    c.class_ids = ids;
+    closeModal();
+    showToast('담당 반 저장됐습니다', 'success');
+    await loadSentColls();
+    renderSentMgmt();
+  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
 }
 
 function _samClassChkChange(cid, checked) {
@@ -12232,6 +12760,18 @@ function renderLibrary() {
           const cnt = allBooks.filter(b=>b.collectionId===c.id).length;
           const wc  = allBooks.filter(b=>b.collectionId===c.id).reduce((s,b)=>s+(b.wordCount??b.words?.length??0),0);
           const editBorder = _libCollEditMode ? '1.5px solid var(--blue)' : '1.5px solid var(--border)';
+
+          // 담당 반 dot (평상시 표시)
+          const classIds = Array.isArray(c.class_ids) ? c.class_ids : [];
+          const assignedClasses = (DB_classes||[]).filter(cls => classIds.includes(cls.id));
+          const dotsHtml = assignedClasses.length
+            ? `<div style="display:flex;gap:4px;margin-bottom:5px;align-items:center">
+                ${assignedClasses.map(cls =>
+                  `<span title="${cls.name}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>`
+                ).join('')}
+               </div>`
+            : '';
+
           return `<div data-collid="${c.id}"
             onclick="${_libCollEditMode ? '' : `libSetColl('${c.id}')`}"
             style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#fff;
@@ -12257,11 +12797,15 @@ function renderLibrary() {
                     onclick="event.stopPropagation()"
                     onmousedown="event.stopPropagation()"
                     onblur="libCollRename('${c.id}',this.value)">`
-                : `<div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>`
+                : `<div>${dotsHtml}<div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div></div>`
               }
               <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:500">${cnt} Collection${cnt!==1?'s':''}</div>
             </div>
-            ${!_libCollEditMode ? `${_favToggleHTML('word',c.id,'toggleFavWordColl')}` : ''}
+            ${_libCollEditMode
+              ? `<button onclick="event.stopPropagation();openWordCollClassModal('${c.id}')"
+                  style="flex-shrink:0;padding:3px 9px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
+                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">담당 반${classIds.length?' ✓':''}</button>`
+              : `${_favToggleHTML('word',c.id,'toggleFavWordColl')}`}
           </div>`;
         }).join('')}
       </div>
@@ -12654,6 +13198,51 @@ async function saveNewCollection() {
     closeModal(); showToast(`"${name}" 컬렉션이 만들어졌습니다`, 'success');
     renderLibrary(); renderDashboard();
   } catch(e){ showToast('저장 실패: '+e.message,'error'); }
+}
+
+// ── 단어장 컬렉션 담당 반 설정 모달 ──
+function openWordCollClassModal(collId) {
+  const c = (DB.collections||[]).find(c => c.id === collId);
+  if (!c) return;
+  loadClasses().then(() => {
+  const classes = DB_classes || [];
+  window._wordCollSelClassIds = Array.isArray(c.class_ids) ? [...c.class_ids] : [];
+
+  const classHtml = classes.length
+    ? classes.map(cls => {
+        const checked = window._wordCollSelClassIds.includes(cls.id);
+        return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--surface2)">
+          <input type="checkbox" value="${cls.id}" style="accent-color:var(--accent);width:15px;height:15px" ${checked?'checked':''}
+            onchange="if(this.checked)window._wordCollSelClassIds.push(this.value);else window._wordCollSelClassIds=window._wordCollSelClassIds.filter(x=>x!==this.value)">
+          <span style="font-size:14px;font-weight:600;color:var(--t1)">${cls.name}</span>
+        </label>`;
+      }).join('')
+    : '<span style="font-size:13px;color:var(--t3)">등록된 반이 없습니다</span>';
+
+  showModal(`
+    <div class="modal-title">🏫 담당 반 설정 — ${c.name}</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">지정한 반의 학생만 배포 목록에 표시됩니다</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">${classHtml}</div>
+    ${classes.length ? '<div style="font-size:11px;color:var(--t3);margin-bottom:4px">미선택 시 전체 학생 표시</div>' : ''}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveWordCollClasses('${collId}')">저장</button>
+    </div>`);
+  });
+}
+
+async function saveWordCollClasses(collId) {
+  const c = (DB.collections||[]).find(c => c.id === collId);
+  if (!c) return;
+  const ids = (window._wordCollSelClassIds||[]).length > 0 ? [...window._wordCollSelClassIds] : null;
+  try {
+    await sb.from('collections').update({ class_ids: ids }).eq('id', collId);
+    c.class_ids = ids;
+    closeModal();
+    showToast('담당 반 저장됐습니다', 'success');
+    await loadColls();
+    renderLibrary();
+  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
 }
 
 // ── 컬렉션 편집 ──
@@ -14094,6 +14683,218 @@ function _renderStudentsMgmtInner(body) {
   _renderClassListView();
 }
 
+// ── 학생 카드 과제 팝오버 (전역) ─────────────────────────────
+function _toggleHwPopover(btn, sid) {
+  // 같은 팝오버 다시 누르면 닫기
+  const existing = document.getElementById('hw-popover-' + sid);
+  if (existing) { existing.remove(); return; }
+  // 다른 팝오버 닫기
+  document.querySelectorAll('[id^="hw-popover-"]').forEach(el => el.remove());
+
+  const raw = btn.getAttribute('data-hwpop');
+  if (!raw) return;
+  const data = JSON.parse(raw.replace(/&quot;/g, '"'));
+  const wordList = data.word || [];
+  const sentList = data.sent || [];
+
+  const pop = document.createElement('div');
+  pop.id = 'hw-popover-' + sid;
+  pop.style.cssText = 'position:fixed;z-index:99999;background:white;border:1px solid #e2e8f0;border-radius:14px;' +
+    'box-shadow:0 12px 36px rgba(0,0,0,0.16);padding:16px 18px;min-width:260px;max-width:320px;text-align:left;' +
+    "font-family:'Outfit',sans-serif";
+
+  function chipHTML(bg, color, text) {
+    return `<span style="display:inline-block;background:${bg};color:${color};border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;margin-right:3px;margin-top:3px">${text}</span>`;
+  }
+
+  const noHw = wordList.length === 0 && sentList.length === 0;
+  let html = '<div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase">배포된 과제</div>';
+  if (noHw) {
+    html += '<div style="font-size:13px;color:#94a3b8">배포된 과제가 없습니다.</div>';
+  } else {
+    if (wordList.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:8px;letter-spacing:0.03em">📖 단어장</div>';
+      html += wordList.map(item => {
+        const n = item.name || item;
+        const opts = item.opts || null;
+        const coll = item.collName || null;
+        let tags = '';
+        if (opts) {
+          if (opts.flashcard > 0)         tags += chipHTML('#eff6ff','#2563eb',`암기 ${opts.flashcard}회`);
+          if (opts.quiz_choice_en2ko > 0)  tags += chipHTML('#f0fdf4','#16a34a',`객관식 영→한 ${opts.quiz_choice_en2ko}회`);
+          if (opts.quiz_choice_ko2en > 0)  tags += chipHTML('#f0fdf4','#16a34a',`객관식 한→영 ${opts.quiz_choice_ko2en}회`);
+          if (opts.quiz_input_en2ko > 0)   tags += chipHTML('#fdf4ff','#9333ea',`주관식 영→한 ${opts.quiz_input_en2ko}회`);
+          if (opts.quiz_input_ko2en > 0)   tags += chipHTML('#fdf4ff','#9333ea',`주관식 한→영 ${opts.quiz_input_ko2en}회`);
+          if (opts.test > 0)              tags += chipHTML('#fff7ed','#c2410c',`테스트 ${opts.test}회`);
+        }
+        return `<div style="padding:9px 0;border-bottom:1px solid #f1f5f9">`
+          + (coll ? `<div style="font-size:10px;font-weight:600;color:#a5b4fc;margin-bottom:3px">${coll}</div>` : '')
+          + `<div style="font-size:13px;font-weight:700;color:#0f172a">${n}</div>`
+          + (tags ? `<div style="margin-top:5px;flex-wrap:wrap;display:flex">${tags}</div>` : '')
+          + `</div>`;
+      }).join('');
+    }
+    if (sentList.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:#0891b2;margin:${wordList.length ? '14px' : '0'}px 0 8px;letter-spacing:0.03em">💬 문장집</div>`;
+      html += sentList.map(item => {
+        const n = item.name || item;
+        const opts = item.opts || null;
+        const coll = item.collName || null;
+        let tags = '';
+        if (opts) {
+          if (opts.dictation > 0) tags += chipHTML('#ecfeff','#0e7490',`빈칸 ${opts.dictation}회독`);
+          if (opts.record > 0)    tags += chipHTML('#f0f9ff','#0369a1',`낭독 ${opts.record}회독`);
+        }
+        return `<div style="padding:9px 0;border-bottom:1px solid #f1f5f9">`
+          + (coll ? `<div style="font-size:10px;font-weight:600;color:#67e8f9;margin-bottom:3px">${coll}</div>` : '')
+          + `<div style="font-size:13px;font-weight:700;color:#0f172a">${n}</div>`
+          + (tags ? `<div style="margin-top:5px;flex-wrap:wrap;display:flex">${tags}</div>` : '')
+          + `</div>`;
+      }).join('');
+    }
+  }
+  pop.innerHTML = html;
+  document.body.appendChild(pop);
+
+  // 버튼 아래 위치 계산
+  const rect = btn.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  // 화면 오른쪽 넘침 방지
+  if (left + 320 > window.innerWidth) left = rect.right - 320;
+  // 화면 아래 넘침 방지
+  if (top + 240 > window.innerHeight) top = rect.top - 240 - 6;
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+
+  // 바깥 클릭 시 닫기
+  setTimeout(() => {
+    function _close(e) {
+      if (!pop.contains(e.target) && e.target !== btn) {
+        pop.remove();
+        document.removeEventListener('click', _close);
+      }
+    }
+    document.addEventListener('click', _close);
+  }, 0);
+}
+
+// ── 학생 정렬 설정 Supabase 저장/로드 ──
+async function _sdmSaveSortPref(val) {
+  localStorage.setItem('sdm-sort', val);
+  if (!currentUser) return;
+  try {
+    await sb.from('app_settings').upsert(
+      { key: 'sdm_sort_' + currentUser.id, value: val },
+      { onConflict: 'key' }
+    );
+  } catch(e) { console.warn('정렬 설정 저장 실패', e); }
+}
+
+async function _sdmLoadSortPref() {
+  if (!currentUser) return;
+  try {
+    const { data } = await sb.from('app_settings')
+      .select('value').eq('key', 'sdm_sort_' + currentUser.id).single();
+    if (data?.value) {
+      localStorage.setItem('sdm-sort', data.value);
+      const sel = document.getElementById('sdm-sort');
+      if (sel && sel.value !== data.value) {
+        sel.value = data.value;
+        _applyStudentFilter();
+      }
+    }
+  } catch(e) { /* 없으면 무시 */ }
+}
+
+function _applyStudentFilter() {
+  const sort = document.getElementById('sdm-sort')?.value || localStorage.getItem('sdm-sort') || 'name';
+
+  function studentStats(s) {
+    const assigned = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
+    const sentAssigned = (DB_sentAssigns||[]).filter(a => a.student_id === s.id);
+    const totalHw = assigned.length + sentAssigned.length;
+    const allScores = assigned.flatMap(b => DB.progress[s.id+'_'+b.id]?.quizScores || []);
+    const pct = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+    return { totalHw, pct };
+  }
+
+  function sortStudents(arr) {
+    return arr.slice().sort((a, b) => {
+      if (sort === 'name')     return (a.name||'').localeCompare(b.name||'', 'ko');
+      if (sort === 'hw_desc')  return studentStats(b).totalHw - studentStats(a).totalHw;
+      if (sort === 'pct_asc')  return studentStats(a).pct - studentStats(b).pct;
+      if (sort === 'pct_desc') return studentStats(b).pct - studentStats(a).pct;
+      return 0;
+    });
+  }
+
+  const classes  = DB_classes || [];
+  const students = DB.users.filter(u => u.role === 'student');
+
+  for (const cls of classes) {
+    const container = document.getElementById('cls-members-' + cls.id);
+    if (!container) continue;
+    const grid = container.querySelector('[style*="grid-template-columns"]');
+    if (!grid) continue;
+
+    const members = students.filter(s => (cls.memberIds||[]).includes(s.id));
+    const cards = Array.from(grid.children);
+
+    const visible = [];
+    cards.forEach(card => {
+      const m = (card.getAttribute('onclick')||'').match(/openStudentDetailInline\('([^']+)'\)/);
+      if (!m) return;
+      const s = members.find(s => s.id === m[1]);
+      if (!s) return;
+      card.style.display = '';
+      visible.push({ card, s });
+    });
+
+    sortStudents(visible.map(v => v.s)).forEach(s => {
+      const v = visible.find(v => v.s.id === s.id);
+      if (v) grid.appendChild(v.card);
+    });
+  }
+
+  // 미배정 학생도 처리
+  const unassignedGrid = document.querySelector('#sdm-list-view [style*="dashed"] [style*="grid-template-columns"]');
+  if (unassignedGrid) {
+    const assignedIds = new Set(classes.flatMap(c => c.memberIds||[]));
+    const unassigned  = students.filter(s => !assignedIds.has(s.id));
+    const cards = Array.from(unassignedGrid.children);
+    const visible = [];
+    cards.forEach(card => {
+      const m = (card.getAttribute('onclick')||'').match(/openStudentDetailInline\('([^']+)'\)/);
+      if (!m) return;
+      const s = unassigned.find(s => s.id === m[1]);
+      if (!s) return;
+      card.style.display = '';
+      visible.push({ card, s });
+    });
+    sortStudents(visible.map(v => v.s)).forEach(s => {
+      const v = visible.find(v => v.s.id === s.id);
+      if (v) unassignedGrid.appendChild(v.card);
+    });
+  }
+}
+
+// ── 반 이름 → 색상 dot 헬퍼 (전역) ──
+function _getClassDotColor(name) {
+  const map = {
+    green:'#4ade80', yellow:'#facc15', navy:'#6366f1', blue:'#60a5fa',
+    red:'#f87171', pink:'#f472b6', purple:'#a78bfa', teal:'#2dd4bf', coral:'#fb923c'
+  };
+  const fallbacks = Object.values(map);
+  const n = (name||'').toLowerCase();
+  for (const key of Object.keys(map)) { if (n.includes(key)) return map[key]; }
+  if (/1/.test(n)) return '#94a3b8';
+  if (/2/.test(n)) return '#475569';
+  if (/3/.test(n)) return '#1e293b';
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) & 0xffff;
+  return fallbacks[h % fallbacks.length];
+}
+
 function _renderClassListView() {
   const listView = document.getElementById('sdm-list-view');
   if (!listView) return;
@@ -14117,12 +14918,21 @@ function _renderClassListView() {
     teal:   { dot:'#2dd4bf', fill:'#E1F5EE', text:'#0F6E56', bar:'#1D9E75' },
     coral:  { dot:'#fb923c', fill:'#FAECE7', text:'#993C1D', bar:'#D85A30' },
   };
+  const GRADE_COLOR_MAP = {
+    '1': { dot:'#94a3b8', fill:'#F1F5F9', text:'#475569', bar:'#94a3b8' },
+    '2': { dot:'#475569', fill:'#E2E8F0', text:'#1e293b', bar:'#475569' },
+    '3': { dot:'#1e293b', fill:'#CBD5E1', text:'#0f172a', bar:'#1e293b' },
+  };
   const CLASS_COLOR_FALLBACKS = Object.values(CLASS_COLOR_MAP);
   function getClassPalette(name) {
     const n = (name||'').toLowerCase();
     for (const key of Object.keys(CLASS_COLOR_MAP)) {
       if (n.includes(key)) return CLASS_COLOR_MAP[key];
     }
+    // 학년 숫자 감지 (키워드 없을 때만)
+    if (/1/.test(n)) return GRADE_COLOR_MAP['1'];
+    if (/2/.test(n)) return GRADE_COLOR_MAP['2'];
+    if (/3/.test(n)) return GRADE_COLOR_MAP['3'];
     let h = 0; for (let c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
     return CLASS_COLOR_FALLBACKS[h % CLASS_COLOR_FALLBACKS.length];
   }
@@ -14138,26 +14948,49 @@ function _renderClassListView() {
     const allScores = assigned.flatMap(b => DB.progress[s.id+'_'+b.id]?.quizScores || []);
     const pct       = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
     const pal       = palette || { fill:'#F1EFE8', text:'#5F5E5A', bar:'#888780' };
-    const wordNames = assigned.slice(0,2).map(b => b.name);
-    const sentAssigned = (s.assignedSent || []).map(bid => (DB_sentBooks||[]).find(b => b.id === bid)).filter(Boolean);
-    const sentNames = sentAssigned.slice(0,2).map(b => b.name);
-    const bookChips = [
-      ...wordNames.map(n => `<div style="font-size:9.5px;color:var(--accent);background:rgba(99,102,241,0.08);border-radius:4px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">📖 ${n}</div>`),
-      ...sentNames.map(n => `<div style="font-size:9.5px;color:#0891b2;background:rgba(8,145,178,0.08);border-radius:4px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">💬 ${n}</div>`)
-    ].join('');
+    // 문장집 배포 현황 — DB_sentAssigns에서 동적 계산
+    const sentAssigned = (DB_sentAssigns||[])
+      .filter(a => a.student_id === s.id)
+      .map(a => (DB_sentBooks||[]).find(b => b.id === a.book_id))
+      .filter(Boolean);
+    const totalHw = assigned.length + sentAssigned.length;
+    // 팝오버 내용 (JSON으로 인코딩해서 data attribute에)
+    const popData = JSON.stringify({
+      word: assigned.map(b => {
+        const opts = (DB.taskOptions||{})[s.id + '_' + b.id] || null;
+        const collName = b.collectionName || null;
+        return { name: b.name, opts, collName };
+      }),
+      sent: sentAssigned.map(b => {
+        const sa = (DB_sentAssigns||[]).find(a => a.student_id === s.id && a.book_id === b.id);
+        let opts = null;
+        if (sa && sa.task_options) {
+          try { opts = typeof sa.task_options === 'string' ? JSON.parse(sa.task_options) : sa.task_options; } catch(e) {}
+        }
+        const collName = b.collectionName || null;
+        return { name: b.name, opts, collName };
+      })
+    }).replace(/"/g, '&quot;');
+    const hwBadge = totalHw > 0
+      ? `<div data-hwpop="${popData}" onclick="event.stopPropagation();_toggleHwPopover(this,'${s.id}')" style="position:absolute;top:7px;right:7px;font-size:10px;font-weight:700;background:var(--accent);color:white;border-radius:10px;padding:2px 7px;line-height:1.5;cursor:pointer;transition:opacity 0.12s" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'">${totalHw}</div>`
+      : '';
+    // 미완료 강조: 과제 있는데 수행률 낮은 경우 → 프로그레스바 색상으로 표시
+    const hasIncomplete = totalHw > 0 && pct < 50;
+    const barColor = hasIncomplete ? '#f87171' : pal.bar;
+    const pctColor = hasIncomplete ? '#ef4444' : 'var(--t1)';
     return `
-      <div style="background:transparent;border:0.5px solid var(--border);border-radius:10px;padding:10px 8px 9px;cursor:pointer;transition:border-color 0.15s,background 0.15s;text-align:center"
+      <div style="background:transparent;border:0.5px solid var(--border);border-radius:12px;padding:14px 10px 12px;cursor:pointer;transition:border-color 0.15s,background 0.15s;text-align:center;position:relative"
         onmouseenter="this.style.borderColor='var(--accent)';this.style.background='var(--surface)'"
         onmouseleave="this.style.borderColor='var(--border)';this.style.background='transparent'"
         onclick="openStudentDetailInline('${s.id}')">
-        <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-        <div style="font-size:11px;color:var(--t3);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.grade||'미설정'}</div>
-        ${bookChips ? `<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:6px;align-items:center">${bookChips}</div>` : `<div style="font-size:10px;color:var(--t3);margin-bottom:6px">배포 없음</div>`}
-        <div style="padding-top:6px;border-top:0.5px solid var(--border)">
-          <div style="width:100%;height:3px;border-radius:2px;background:var(--border);overflow:hidden;margin-bottom:3px">
-            <div style="height:100%;border-radius:2px;width:${pct}%;background:${pal.bar}"></div>
+        ${hwBadge}
+        <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        
+        <div style="padding-top:7px;border-top:0.5px solid var(--border)">
+          <div style="width:100%;height:5px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:5px">
+            <div style="height:100%;border-radius:3px;width:${pct}%;background:${barColor}"></div>
           </div>
-          <span style="font-size:12px;font-weight:700;color:var(--t1)">${pct}%</span><span style="font-size:10px;color:var(--t3);margin-left:2px">수행</span>
+          <span style="font-size:14px;font-weight:700;color:${pctColor}">${pct}%</span><span style="font-size:11px;color:var(--t3);margin-left:2px">수행</span>
         </div>
       </div>`;
   }
@@ -14203,17 +15036,17 @@ function _renderClassListView() {
             onmousedown="event.stopPropagation()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>학생 추가
           </button>
-          <button onclick="event.stopPropagation();clsOpenWordAssignModal('${cls.id}')"
+          <button onclick="event.stopPropagation();openClassAssignStatusModal('${cid}')"
             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif"
             onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
             onmousedown="event.stopPropagation()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>단어장 배포
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>과제 관리
           </button>
-          <button onclick="event.stopPropagation();clsOpenSentAssignModal('${cls.id}')"
-            style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif"
-            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+          <button onclick="event.stopPropagation();openClassTaskReminderModal('${cid}')"
+            style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:#1e4db7;cursor:pointer;font-family:'Outfit',sans-serif"
+            onmouseover="this.style.borderColor='#1e4db7'" onmouseout="this.style.borderColor='var(--border)'"
             onmousedown="event.stopPropagation()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg>문장집 배포
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>과제 알림
           </button>
         </div>
 
@@ -14241,13 +15074,22 @@ function _renderClassListView() {
     </div>`;
 
   const noStudents = students.length === 0;
+  const savedSort = localStorage.getItem('sdm-sort') || 'name';
   listView.innerHTML = `
     <!-- 상단 액션 바 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="font-size:14px;color:var(--text-muted)">
         학생 ${students.length}명 · 반 ${classes.length}개
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <!-- 정렬 -->
+        <select id="sdm-sort" onchange="_sdmSaveSortPref(this.value);_applyStudentFilter()"
+          style="padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t2);font-family:'Outfit',sans-serif;outline:none;cursor:pointer">
+          <option value="name" ${savedSort==='name'?'selected':''}>이름순</option>
+          <option value="hw_desc" ${savedSort==='hw_desc'?'selected':''}>과제 많은 순</option>
+          <option value="pct_asc" ${savedSort==='pct_asc'?'selected':''}>수행률 낮은 순</option>
+          <option value="pct_desc" ${savedSort==='pct_desc'?'selected':''}>수행률 높은 순</option>
+        </select>
         <button class="btn btn-secondary btn-sm" onclick="openNewClassModal()">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           새 반 만들기
@@ -14257,12 +15099,14 @@ function _renderClassListView() {
           기존 학생 연결
         </button>
         <button class="btn btn-primary btn-sm" onclick="openInviteStudentModal()">+ 새 학생 초대</button>
-
       </div>
     </div>
     ${noStudents
       ? '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">등록된 학생이 없습니다</div><div class="empty-sub">+ 새 학생 초대 또는 기존 학생 연결을 눌러보세요</div></div>'
       : classesHTML + unassignedHTML}`;
+
+  // app_settings에서 저장된 정렬값 로드 후 적용
+  _sdmLoadSortPref();
 }
 
 // ── 반 카드 롱프레스 (수정 모드) ──────────────────────────────
@@ -14374,28 +15218,72 @@ async function openStudentDetailInline(studentId) {
   const s = DB.users.find(u => u.id === studentId);
   if (!s) return;
 
+  const assigned = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
+  const studentClasses = (DB_classes||[]).filter(c => (c.memberIds||[]).includes(s.id));
+  const classBadgesEarly = studentClasses.map(c => {
+    const dotColor = _getClassDotColor(c.name);
+    return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:10px;background:var(--surface2);color:var(--t2);border:0.5px solid var(--border)">
+      <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>${c.name}
+    </span>`;
+  }).join('');
+
   listView.style.display = 'none';
   detailView.style.display = '';
-  detailView.innerHTML = `<div style="padding:40px;text-align:center;color:var(--t3)">학습 기록 불러오는 중...</div>`;
 
-  const assigned = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
+  // 헤더 먼저 즉시 렌더
+  detailView.innerHTML = `
+    <button onclick="sdmBackToList()"
+      style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px;font-family:'Outfit',sans-serif"
+      onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t3)'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      목록으로
+    </button>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px">
+      <div style="width:52px;height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center">${getStudentSlimeSVG(s.id, 52)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-size:18px;font-weight:700;color:var(--t1)">${s.name}</span>
+          ${classBadgesEarly}
+        </div>
+        <div data-sdm-meta style="font-size:12px;color:var(--t3)">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개</div>
+      </div>
+      <div style="display:flex;gap:7px;flex-shrink:0">
+        <button class="btn btn-secondary btn-sm" onclick="openJellyGiveModal('${s.id}','${esc(s.name)}')">🍬 지급</button>
+        <button class="btn btn-secondary btn-sm" onclick="openTaskReminderModal('${s.id}')" title="과제 알림 보내기">📋 알림</button>
+        <button class="btn btn-danger btn-sm" onclick="sdmBackToList();deleteStudent('${s.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          삭제
+        </button>
+      </div>
+    </div>
+    <div id="sdm2-loading" style="padding:32px;text-align:center;color:var(--t3);font-size:14px">학습 기록 불러오는 중...</div>`;
 
   let quizLogs = [];
-  try {
-    const { data: logs } = await sb.from('quiz_logs')
-      .select('*').eq('student_id', studentId)
-      .order('taken_at', { ascending: false });
-    quizLogs = logs || [];
-  } catch(e) { console.warn('quiz_logs 로드 실패:', e); }
-
   let sentSubmissions = [];
-  try {
-    const { data: subs } = await sb.from('sentence_submissions')
-      .select('book_id, type, recorded_url, created_at, id, answer')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false });
-    sentSubmissions = subs || [];
-  } catch(e) { console.warn('sentence_submissions 로드 실패:', e); }
+  // 캐시 확인 — 같은 학생 재진입 시 즉시 사용
+  const _cache = window._sdmCache = window._sdmCache || {};
+  if (_cache[studentId]) {
+    quizLogs       = _cache[studentId].quizLogs;
+    sentSubmissions = _cache[studentId].sentSubmissions;
+  } else {
+    try {
+      const [logsRes, subsRes] = await Promise.all([
+        sb.from('quiz_logs')
+          .select('id, book_id, student_id, mode, direction, score, total, taken_at, force_submit, wrong_words_json, questions_json')
+          .eq('student_id', studentId)
+          .order('taken_at', { ascending: false })
+          .limit(200),
+        sb.from('sentence_submissions')
+          .select('book_id, type, recorded_url, created_at, id, answer')
+          .eq('student_id', studentId)
+          .order('created_at', { ascending: false })
+          .limit(200)
+      ]);
+      quizLogs       = logsRes.data || [];
+      sentSubmissions = subsRes.data || [];
+      _cache[studentId] = { quizLogs, sentSubmissions };
+    } catch(e) { console.warn('학습 기록 로드 실패:', e); }
+  }
 
   const modeLabel = { choice:'4지선다', input:'단답형', essay:'주관식' };
   const dirLabel  = { en2ko:'영→한', ko2en:'한→영' };
@@ -14405,109 +15293,91 @@ async function openStudentDetailInline(studentId) {
   const overallAvg  = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : null;
   const overallBest = allScores.length ? Math.max(...allScores) : null;
 
-  // 소속 반 표시
-  const studentClasses = (DB_classes||[]).filter(c => (c.memberIds||[]).includes(s.id));
-
-  const summaryStatItems = [
-    { icon:'📖', label:'총 회독',   val: totalRounds,                                color:'#818cf8' },
-    { icon:'📊', label:'전체 평균', val: overallAvg  !== null ? overallAvg+'%'  : '-', color:'#1e4db7' },
-    { icon:'🏆', label:'최고 점수', val: overallBest !== null ? overallBest+'%' : '-', color:'#d97706' },
-    { icon:'📝', label:'퀴즈 횟수', val: quizLogs.length,                              color:'#059669' },
-  ];
-  const summaryGrid = `
-    <div class="slime-study-section" style="margin-bottom:14px">
-      <div class="slime-study-section-head" style="margin-bottom:12px">
-        <div class="slime-study-section-title">
-          <div class="slime-section-dot" style="background:#1e4db7"></div>
-          단어 학습 요약
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-        ${summaryStatItems.map(st=>`
-          <div class="slime-stat-box">
-            <div class="slime-stat-val" style="color:${st.color}">${st.val}</div>
-            <div class="slime-stat-lbl">${st.icon} ${st.label}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-
-  const wordSections = assigned.length === 0
-    ? '<div style="color:var(--t3);text-align:center;padding:24px">배포된 단어장이 없습니다</div>'
+  const wordCards = assigned.length === 0
+    ? '<div style="color:var(--t3);text-align:center;padding:32px">배포된 단어장이 없습니다</div>'
     : assigned.map(b => {
         const key  = s.id+'_'+b.id;
         const prog = DB.progress[key] || { rounds:0, quizScores:[], wrongWords:[] };
-        const scores    = prog.quizScores || [];
-        const rounds    = prog.rounds || 0;
+        const scores     = prog.quizScores || [];
+        const rounds     = prog.rounds || 0;
         const wrongWords = (prog.wrongWords || []).sort((a,c) => (c.count||1)-(a.count||1));
-        const best = scores.length ? Math.max(...scores) : null;
-        const bestC = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-        const progPct = best !== null ? best : 0;
+        const best   = scores.length ? Math.max(...scores) : null;
+        const bestC  = best===null?'#94a3b8':best>=80?'#1e4db7':best>=60?'#1e4db7':'#ef4444';
         const bookLogs = quizLogs.filter(l => l.book_id === b.id);
 
-        const modeDirRows = ['choice','input','essay'].flatMap(m => {
-          return ['en2ko','ko2en'].map(d => {
-            const ml = bookLogs.filter(l => l.mode===m && l.direction===d);
+        const modeDirRows = [
+          ...['choice','input'].flatMap(m =>
+            ['en2ko','ko2en'].map(d => {
+              const ml = bookLogs.filter(l => l.mode===m && l.direction===d);
+              if (!ml.length) return null;
+              const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
+              const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
+              const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+              return { m, d, mAvg, mBest, scoreC, cnt: ml.length };
+            })
+          ),
+          // 테스트 (essay + mixed)
+          (() => {
+            const ml = bookLogs.filter(l => l.mode==='essay' && l.direction==='mixed');
             if (!ml.length) return null;
-            const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
-            const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
-            const scoreC = mBest>=80?'#059669':mBest>=60?'#d97706':'#ef4444';
-            return { m, d, mAvg, mBest, scoreC, cnt: ml.length };
-          });
-        }).filter(Boolean);
+            const nonAbandoned = ml.filter(l => !l.force_submit);
+            if (!nonAbandoned.length) return null;
+            const mAvg  = Math.round(nonAbandoned.reduce((a,l)=>a+(l.score/l.total*100),0)/nonAbandoned.length);
+            const mBest = Math.max(...nonAbandoned.map(l=>Math.round(l.score/l.total*100)));
+            const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+            return { m:'test', d:'', mAvg, mBest, scoreC, cnt: ml.length, label:'테스트' };
+          })()
+        ].filter(Boolean);
 
-        const quizBreakdown = modeDirRows.length ? (() => {
+        const modeStats = modeDirRows.length ? (() => {
           const rows = modeDirRows.map(r=>`
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:14px">
-              <span style="font-weight:600;color:#334155">${modeLabel[r.m]}</span>
-              <span style="color:#64748b">${dirLabel[r.d]}</span>
+              <span style="font-weight:600;color:#334155">${r.label || modeLabel[r.m] || r.m}</span>
+              <span style="color:#64748b">${r.d ? (dirLabel[r.d]||r.d) : '-'}</span>
               <span style="font-weight:700;color:${r.scoreC};text-align:center">${r.mBest}%</span>
               <span style="color:#94a3b8;text-align:right">평균 ${r.mAvg}% · ${r.cnt}회</span>
             </div>`).join('');
-          return `
-            <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-                <span style="font-size:12px;font-weight:700;color:#64748b">유형</span>
-                <span style="font-size:12px;font-weight:700;color:#64748b">방향</span>
-                <span style="font-size:12px;font-weight:700;color:#64748b;text-align:center">최고</span>
-                <span style="font-size:12px;font-weight:700;color:#64748b;text-align:right">통계</span>
-              </div>
-              ${rows}
-            </div>`;
+          return `<div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
+              <span style="font-size:12px;font-weight:700;color:#64748b">유형</span>
+              <span style="font-size:12px;font-weight:700;color:#64748b">방향</span>
+              <span style="font-size:12px;font-weight:700;color:#64748b;text-align:center">최고</span>
+              <span style="font-size:12px;font-weight:700;color:#64748b;text-align:right">통계</span>
+            </div>
+            ${rows}
+          </div>`;
         })() : '';
 
         const recentLogs = bookLogs.slice(0,5).map(l => {
-          const isWordTest  = (l.mode === 'essay' && l.direction === 'mixed');
+          const isWordTest  = l.mode==='essay' && l.direction==='mixed';
           const isAbandoned = isWordTest && l.force_submit;
           const pct  = Math.round(l.score/l.total*100);
-          const c    = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
+          const c    = isAbandoned?'#64748b':pct>=80?'#1e4db7':pct>=60?'#1e4db7':'#ef4444';
           const date = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-          const wrongW = l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
+          const wrongW = l.wrong_words_json ? (() => { try { return JSON.parse(l.wrong_words_json); } catch { return []; } })() : [];
           const hasSnapshot = !!(l.questions_json);
           const _logId = l.id || (l.student_id+'_'+(l.taken_at||''));
           if (hasSnapshot) window._gradedLogMap[_logId] = l;
           const _sName = (s.name||'').replace(/\\/g,'').replace(/'/g,"\\'");
-          return `
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
-              <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned ? '-' : pct+'%'}</span>
-              <span style="color:#64748b">${l.score}/${l.total}문제</span>
-              ${isWordTest
-                ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
-                : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-                   <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
-              }
-              ${isAbandoned
-                ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
-                : wrongW.length
-                  ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-                  : `<span style="color:#059669;font-size:13px;font-weight:600">✓ 전부 정답</span>`
-              }
-              <span style="margin-left:auto;color:#94a3b8;font-size:13px">${date}</span>
-              ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId}','${_sName}')" style="padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
-            </div>`;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
+            <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned?'-':pct+'%'}</span>
+            <span style="color:#64748b">${l.score}/${l.total}문제</span>
+            ${isWordTest
+              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
+              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`}
+            ${isAbandoned
+              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+              : wrongW.length
+                ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+                : `<span style="color:#1e4db7;font-size:13px;font-weight:600">✓ 전부 정답</span>`}
+            ${hasSnapshot?`<button onclick="openGradedTestView('${_logId}','${_sName}')" style="margin-left:auto;padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>`:``}
+            <span style="${hasSnapshot?'':'margin-left:auto;'}color:#94a3b8;font-size:13px">${date}</span>
+          </div>`;
         }).join('');
 
         const wrongSection = wrongWords.length === 0
-          ? '<span style="font-size:13px;color:#10b981;font-weight:600">누적 오답 없음 ✓</span>'
+          ? '<span style="font-size:13px;color:#1e4db7;font-weight:600">누적 오답 없음 ✓</span>'
           : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
               ${wrongWords.slice(0,20).map(w=>`
                 <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:5px 12px;font-size:14px">
@@ -14519,13 +15389,68 @@ async function openStudentDetailInline(studentId) {
               ${wrongWords.length>20?`<span style="font-size:14px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
             </div>`;
 
+        // 과제 현황 섹션
+        const taskOpts = (DB.taskOptions||{})[s.id+'_'+b.id] || null;
+        const taskDefs = taskOpts ? [
+          { key:'flashcard',         label:'암기',        done: rounds,                                                                  goal: taskOpts.flashcard||0 },
+          { key:'quiz_choice_en2ko', label:'객관식 영→한', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='en2ko').length,     goal: taskOpts.quiz_choice_en2ko||0 },
+          { key:'quiz_choice_ko2en', label:'객관식 한→영', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='ko2en').length,     goal: taskOpts.quiz_choice_ko2en||0 },
+          { key:'quiz_input_en2ko',  label:'주관식 영→한', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='en2ko').length,      goal: taskOpts.quiz_input_en2ko||0 },
+          { key:'quiz_input_ko2en',  label:'주관식 한→영', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='ko2en').length,      goal: taskOpts.quiz_input_ko2en||0 },
+          { key:'test',              label:'단어 테스트',  done: bookLogs.filter(l=>l.mode==='essay'&&l.direction==='mixed').length,      goal: taskOpts.test||0 },
+        ].filter(t => t.goal > 0) : [];
+
+        // 카드 상단 진행 바: 과제 이행률 (과제 있으면), 없으면 최고 점수
+        const taskTotalGoal = taskDefs.reduce((s,t) => s + t.goal, 0);
+        const taskTotalDone = taskDefs.reduce((s,t) => s + Math.min(t.done, t.goal), 0);
+        const progPct = taskDefs.length
+          ? Math.round(taskTotalDone / taskTotalGoal * 100)
+          : (best !== null ? best : 0);
+
+        const taskSectionHtml = taskDefs.length ? (() => {
+          const allDone = taskDefs.every(t => t.done >= t.goal);
+          const rows = taskDefs.map(t => {            const pct   = Math.min(100, Math.round(t.done / t.goal * 100));
+            const done  = t.done >= t.goal;
+            const textC = done ? '#1e4db7' : pct > 0 ? '#1e4db7' : '#94a3b8';
+            const status = done
+              ? `<span style="font-size:12px;font-weight:700;color:#1e4db7;white-space:nowrap">✓ 완료</span>`
+              : t.done > 0
+                ? `<span style="font-size:12px;color:#1e4db7;white-space:nowrap">${t.done}/${t.goal}회</span>`
+                : `<span style="font-size:12px;color:#94a3b8;white-space:nowrap">0/${t.goal}회</span>`;
+            return `<div style="display:grid;grid-template-columns:90px 1fr 56px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+              <span style="font-size:13px;font-weight:600;color:${textC}">${t.label}</span>
+              <div class="slime-book-prog-wrap">
+                <div class="slime-book-prog" style="width:${pct}%;background:${done?'linear-gradient(90deg,#334155 0%,#475569 50%,#64748b 100%)':'linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#cbd5e1 100%)'};transition:width 0.6s ease;box-shadow:0 0 4px ${done?'rgba(51,65,85,0.35)':'rgba(100,116,139,0.3)'}"></div>
+              </div>
+              ${status}
+            </div>`;
+          }).join('');
+          return `<div style="font-size:13px;font-weight:700;color:${allDone?'#1e4db7':'#475569'};margin-bottom:10px">${allDone?'✓ 과제 완료':'과제 현황'}</div>${rows}`;
+        })() : '';
+
+        const bid_ = b.id.replace(/-/g,'');
+        const hasTasks = !!taskSectionHtml;
+        const hasQuiz  = !!modeStats;
+        const hasLogs  = !!recentLogs;
+        const defaultPill = hasTasks ? 'task' : hasQuiz ? 'quiz' : hasLogs ? 'recent' : 'wrong';
+
+        const pillBtn = (key, label, hasContent) => {
+          if (!hasContent && key !== 'wrong') return '';
+          return `<button onclick="_sdmPill('${bid_}','${key}',this)"
+            id="pill_${bid_}_${key}"
+            style="padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid ${key===defaultPill?'#1e4db7':'var(--border)'};background:${key===defaultPill?'#1e4db7':'var(--surface)'};color:${key===defaultPill?'#fff':'var(--t2)'};cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+            ${label}
+          </button>`;
+        };
+
         return `
           <div class="slime-study-section" style="margin-bottom:14px">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
-                  <div class="slime-section-dot" style="background:#1e4db7;flex-shrink:0"></div>
+                  <span style="font-size:11px;color:#1e4db7;flex-shrink:0">■</span>
                   <div style="font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+                  ${b.collectionName?`<span style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.collectionName}</span>`:''}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
@@ -14539,118 +15464,132 @@ async function openStudentDetailInline(studentId) {
                 </button>
               </div>
             </div>
-            <div style="margin-bottom:${quizBreakdown||recentLogs?'20px':'0'}">
+            <div style="margin-bottom:16px">
               <div class="slime-book-prog-wrap">
                 <div class="slime-book-prog" style="width:${progPct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(30,77,183,0.35)"></div>
               </div>
             </div>
-            ${quizBreakdown?`<div style="margin-bottom:20px;padding-top:6px"><div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:10px">퀴즈 세부 기록</div>${quizBreakdown}</div>`:''}
-            ${recentLogs?`<div style="margin-bottom:20px;padding-top:6px"><div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:10px">최근 퀴즈 기록</div><div>${recentLogs}</div></div>`:''}
-            <div style="padding-top:6px">
-              <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:10px">누적 오답 단어</div>
-              ${wrongSection}
+            <!-- pill nav -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+              ${pillBtn('task','과제 현황', hasTasks)}
+              ${pillBtn('quiz','퀴즈 세부 기록', hasQuiz)}
+              ${pillBtn('recent','최근 퀴즈 기록', hasLogs)}
+              ${pillBtn('wrong','누적 오답 단어', true)}
             </div>
+            <!-- sections -->
+            <div id="sec_${bid_}_task" style="display:${defaultPill==='task'?'block':'none'}">${taskSectionHtml}</div>
+            <div id="sec_${bid_}_quiz" style="display:${defaultPill==='quiz'?'block':'none'}">${modeStats||''}</div>
+            <div id="sec_${bid_}_recent" style="display:${defaultPill==='recent'?'block':'none'}">${recentLogs||''}</div>
+            <div id="sec_${bid_}_wrong" style="display:${defaultPill==='wrong'?'block':'none'}">${wrongSection}</div>
           </div>`;
       }).join('');
 
-  // 문장 섹션
+  // 문장 섹션 2열
   const sentBooksMap = {};
   DB_sentBooks.forEach(b => { sentBooksMap[b.id] = b.name; });
-  let sentSectionsHTML = '';
+  let sentCardsHtml = '';
   if (sentSubmissions.length === 0) {
-    sentSectionsHTML = '<div style="color:var(--t3);text-align:center;padding:20px">문장 학습 기록이 없습니다</div>';
+    sentCardsHtml = '<div style="color:var(--t3);text-align:center;padding:32px;grid-column:1/-1">문장 학습 기록이 없습니다</div>';
   } else {
     const byBook = {};
     sentSubmissions.forEach(sub => {
       if (!byBook[sub.book_id]) byBook[sub.book_id] = [];
       byBook[sub.book_id].push(sub);
     });
-    sentSectionsHTML = Object.entries(byBook).map(([bookId, subs]) => {
+    sentCardsHtml = Object.entries(byBook).map(([bookId, subs]) => {
       const bookName   = sentBooksMap[bookId] || '삭제된 문장집';
       const recSubs    = subs.filter(s => s.type === 'record_full' || s.type === 'record');
       const unscramble = subs.filter(s => s.type === 'unscramble');
       const dictation  = subs.filter(s => s.type === 'dictation');
       function miniStat(typeSubs, label) {
-        if (!typeSubs.length) return '';
+        if (!typeSubs.length) return `<div style="flex:1;background:var(--surface2);border:0.5px solid var(--border);border-radius:10px;padding:10px;text-align:center"><div style="font-size:12px;color:var(--t3)">${label}</div><div style="font-size:17px;font-weight:500;color:var(--t3)">-</div></div>`;
         const pcts = typeSubs.map(sub => {
           try { const d = JSON.parse(sub.answer||'{}'); return d.total ? Math.round(d.correct/d.total*100) : null; } catch { return null; }
         }).filter(v => v !== null);
         const best = pcts.length ? Math.max(...pcts) : null;
         const avg  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
-        const c = best >= 80 ? 'var(--green)' : best >= 60 ? '#f59e0b' : 'var(--red)';
-        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;text-align:center;flex:1">
-          <div style="font-size:12px;color:var(--t3)">${label}</div>
-          <div style="font-size:16px;font-weight:700;color:${c}">${best !== null ? best+'%' : '-'}</div>
-          <div style="font-size:12px;color:var(--t3)">평균 ${avg !== null ? avg+'%' : '-'} · ${typeSubs.length}회</div>
+        const c = best===null?'var(--t3)':best>=80?'#16a34a':best>=60?'#d97706':'#ef4444';
+        return `<div style="flex:1;background:var(--surface2);border:0.5px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:12px;color:var(--t3);margin-bottom:3px">${label}</div>
+          <div style="font-size:17px;font-weight:600;color:${c}">${best !== null ? best+'%' : '-'}</div>
+          <div style="font-size:11px;color:var(--t3)">${avg !== null ? '평균 '+avg+'%' : ''} · ${typeSubs.length}회</div>
         </div>`;
       }
-      return `<div class="slime-study-section" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:7px">
-            <div class="slime-section-dot" style="background:#059669"></div>
-            <span style="font-size:16px;font-weight:700;color:#0f172a">${bookName}</span>
-          </div>
-          <span style="font-size:13px;color:var(--t3)">배열 ${unscramble.length}회 · 빈칸 ${dictation.length}회 · 낭독 ${recSubs.length}회</span>
+      // 모든 제출 최근순 리스트 (타입 무관)
+      const allSubs = subs.slice().sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+      const typeLabel = { unscramble:'배열', dictation:'빈칸', record:'낭독', record_full:'낭독' };
+      const recentSentHtml = allSubs.length ? `
+        <div style="margin-top:12px;border-top:0.5px solid var(--border);padding-top:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">최근 제출 기록</div>
+          ${allSubs.slice(0,4).map(sub => {
+            const tl = typeLabel[sub.type] || sub.type;
+            const date = new Date(sub.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            let scoreStr = '';
+            try { const d=JSON.parse(sub.answer||'{}'); if(d.total) scoreStr = Math.round(d.correct/d.total*100)+'%'; } catch{}
+            return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px">
+              ${scoreStr?`<span style="font-weight:700;color:#16a34a;min-width:36px">${scoreStr}</span>`:`<span style="min-width:36px"></span>`}
+              <span style="color:var(--t2);flex:1">${tl}</span>
+              <span style="color:var(--t3)">${date}</span>
+            </div>`;
+          }).join('')}
+        </div>` : '';
+
+      const sentCollName = (() => { const sc = (DB_sentColls||[]).find(c => (subs||[]).some && bookId ? c.id === (DB_sentBooks.find(sb=>sb.id===bookId)||{}).collection_id : false); return sc ? sc.name : null; })();
+      const sentCollName2 = (() => { const sb2 = DB_sentBooks.find(sb=>sb.id===bookId); return sb2 && sb2.collection_id ? ((DB_sentColls||[]).find(c=>c.id===sb2.collection_id)||{}).name || null : null; })();
+
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:11px;color:#059669;flex-shrink:0">■</span>
+          <span style="font-size:16px;font-weight:700;color:var(--t1)">${bookName}</span>
+          ${sentCollName2?`<span style="font-size:12px;color:#94a3b8;font-weight:500">${sentCollName2}</span>`:''}
         </div>
-        ${(unscramble.length || dictation.length) ? `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">${miniStat(unscramble,'문장 배열')}${miniStat(dictation,'빈칸 채우기')}</div>` : ''}
-        ${recSubs.length ? `
-        <div style="border-top:1px solid #e8eef8;padding-top:10px">
-          <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px">낭독 기록</div>
-          ${recSubs.slice(0,3).map((sub,i) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f8fafc;border-radius:8px;margin-bottom:4px;border:1px solid #e8eef8">
-              <span style="font-size:13px;color:var(--t3);min-width:20px">${i+1}.</span>
-              <span style="font-size:13px;color:var(--t3);flex:1">${new Date(sub.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-              ${sub.recorded_url ? `<audio src="${sub.recorded_url}" controls style="height:26px;flex:2;min-width:120px;border-radius:6px"></audio>` : `<span style="font-size:13px;color:var(--t3)">완료 기록</span>`}
-              <button onclick="adminDeleteSentRecOne('${sub.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;padding:0 4px"
+        <div style="font-size:13px;color:var(--t3);margin-bottom:14px">배열 ${unscramble.length}회 · 빈칸 ${dictation.length}회 · 낭독 ${recSubs.length}회</div>
+        <div style="display:flex;gap:8px;margin-bottom:${recSubs.length?'14px':'0'}">
+          ${miniStat(unscramble,'배열')}${miniStat(dictation,'빈칸')}
+          <div style="flex:1;background:var(--surface2);border:0.5px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:12px;color:var(--t3);margin-bottom:3px">낭독</div>
+            <div style="font-size:17px;font-weight:600;color:${recSubs.length?'#185FA5':'var(--t3)'})">${recSubs.length}회</div>
+          </div>
+        </div>
+        ${recSubs.length ? `<div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">낭독 기록</div>
+          ${recSubs.slice(0,2).map((sub,i) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)">
+              <span style="font-size:13px;color:var(--t3);min-width:18px">${i+1}.</span>
+              <span style="font-size:13px;color:var(--t3)">${new Date(sub.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+              ${sub.recorded_url ? `<audio src="${sub.recorded_url}" controls style="height:24px;flex:1;min-width:80px"></audio>` : `<span style="font-size:13px;color:var(--t3)">기록 없음</span>`}
+              <button onclick="adminDeleteSentRecOne('${sub.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;padding:0 2px"
                 onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
             </div>`).join('')}
         </div>` : ''}
+        ${recentSentHtml}
       </div>`;
     }).join('');
   }
 
-  detailView.innerHTML = `
-    <!-- 상단 헤더 -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-      <button onclick="sdmBackToList()"
-        style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f1f5f9;border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:700;color:#475569;cursor:pointer;font-family:'Outfit',sans-serif"
-        onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        목록으로
-      </button>
-      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-        <div style="width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-          ${getStudentSlimeSVG(s.id, 48)}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#0f172a">${s.name}</div>
-            ${studentClasses.map(c=>`<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:${c.color||'#1e4db7'}1a;color:${c.color||'#1e4db7'};border:1px solid ${c.color||'#1e4db7'}33">${c.name}</span>`).join('')}
-          </div>
-          <div style="font-size:13px;color:var(--t3);margin-top:2px">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개 · 퀴즈 ${quizLogs.length}회</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0">
-        <button class="btn btn-secondary btn-sm" onclick="openJellyGiveModal('${s.id}','${esc(s.name)}')">🍬 지급</button>
-        <button class="btn btn-danger btn-sm" onclick="sdmBackToList();deleteStudent('${s.id}')">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          삭제
-        </button>
-      </div>
-    </div>
-    <!-- 탭 -->
-    <div style="display:flex;gap:6px;margin-bottom:16px">
+  // 로딩 영역만 탭+본문으로 교체
+  const loadingEl = document.getElementById('sdm2-loading');
+  if (loadingEl) {
+    loadingEl.outerHTML = `
+    <!-- 탭 (언더라인, 이모지 없음) -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px">
       <button id="sdm2-tab-word" onclick="sdm2SetTab('word')"
-        style="padding:6px 16px;border-radius:20px;border:1.5px solid #1e4db7;background:#1e4db7;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
-        📘 단어 학습
+        style="padding:8px 18px;font-size:13px;font-weight:700;border:none;border-bottom:2px solid var(--accent);margin-bottom:-1px;background:transparent;color:var(--accent);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        단어 학습
       </button>
       <button id="sdm2-tab-sent" onclick="sdm2SetTab('sent')"
-        style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">
-        📄 문장 학습
+        style="padding:8px 18px;font-size:13px;font-weight:700;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+        문장 학습
       </button>
     </div>
-    <div id="sdm2-word-body">${summaryGrid}${wordSections}</div>
-    <div id="sdm2-sent-body" style="display:none">${sentSectionsHTML}</div>`;
+    <!-- 단어 학습: 1열 -->
+    <div id="sdm2-word-body">${wordCards}</div>
+    <!-- 문장 학습: 1열 -->
+    <div id="sdm2-sent-body" style="display:none">${sentCardsHtml}</div>`;
+  }
+  // 헤더의 퀴즈 횟수 업데이트
+  const metaEl = detailView.querySelector('[data-sdm-meta]');
+  if (metaEl) metaEl.textContent = `${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개 · 퀴즈 ${quizLogs.length}회`;
 }
 
 // 상세 → 목록 복귀
@@ -14661,17 +15600,30 @@ function sdmBackToList() {
   if (detailView) detailView.style.display = 'none';
 }
 
-// 상세 뷰 탭 전환
 function sdm2SetTab(tab) {
   const isWord = tab === 'word';
-  const wb = document.getElementById('sdm2-word-body');
-  const sb_ = document.getElementById('sdm2-sent-body');
+  const wb   = document.getElementById('sdm2-word-body');
+  const sb_  = document.getElementById('sdm2-sent-body');
   const wBtn = document.getElementById('sdm2-tab-word');
   const sBtn = document.getElementById('sdm2-tab-sent');
   if (wb)  wb.style.display  = isWord ? '' : 'none';
   if (sb_) sb_.style.display = isWord ? 'none' : '';
-  if (wBtn) { wBtn.style.background = isWord?'#1e4db7':'white'; wBtn.style.color = isWord?'white':'var(--t2)'; wBtn.style.borderColor = isWord?'#1e4db7':'var(--border)'; }
-  if (sBtn) { sBtn.style.background = isWord?'white':'#1e4db7'; sBtn.style.color = isWord?'var(--t2)':'white'; sBtn.style.borderColor = isWord?'var(--border)':'#1e4db7'; }
+  if (wBtn) { wBtn.style.color = isWord?'var(--accent)':'var(--t3)'; wBtn.style.borderBottomColor = isWord?'var(--accent)':'transparent'; }
+  if (sBtn) { sBtn.style.color = isWord?'var(--t3)':'var(--accent)'; sBtn.style.borderBottomColor = isWord?'transparent':'var(--accent)'; }
+}
+
+function _sdmPill(bid_, key, el) {
+  const keys = ['task','quiz','recent','wrong'];
+  keys.forEach(k => {
+    const sec = document.getElementById('sec_'+bid_+'_'+k);
+    const pill = document.getElementById('pill_'+bid_+'_'+k);
+    if (sec) sec.style.display = k===key ? 'block' : 'none';
+    if (pill) {
+      pill.style.background = k===key ? '#1e4db7' : 'var(--surface)';
+      pill.style.color = k===key ? '#fff' : 'var(--t2)';
+      pill.style.borderColor = k===key ? '#1e4db7' : 'var(--border)';
+    }
+  });
 }
 
 // 하위 호환
@@ -18322,6 +19274,8 @@ async function doResetStudentProgress(studentId, bookId, studentName) {
 
     closeModal();
     showToast(`${studentName} 학생의 학습 현황이 초기화되었습니다.`, 'success');
+    // 캐시 무효화
+    if (window._sdmCache) delete window._sdmCache[studentId];
     // 세부 모달 다시 열기
     setTimeout(() => openStudentDetailModal(studentId), 300);
   } catch(e) {
@@ -24759,6 +25713,173 @@ async function updateUnreadBadge() {
   } else {
     if (existing) existing.remove();
   }
+}
+
+// ═══════════════════════════════════════════════
+//  과제 미수행 알림 시스템
+// ═══════════════════════════════════════════════
+
+// 미수행 학생 감지 (과제 있고 N일 이상 미수행)
+function _detectUnfinishedStudents(dayThreshold = 3) {
+  const now = Date.now();
+  const results = [];
+  (DB.users||[]).filter(u => u.role==='student').forEach(s => {
+    const assigned = (s.assigned||[]).map(bid => DB.books.find(b=>b.id===bid)).filter(Boolean);
+    assigned.forEach(b => {
+      const taskOpts = (DB.taskOptions||{})[s.id+'_'+b.id];
+      if (!taskOpts) return;
+      const taskDefs = [
+        { key:'flashcard',         done:(DB.progress[s.id+'_'+b.id]?.rounds||0),                        goal:taskOpts.flashcard||0 },
+        { key:'quiz_choice_en2ko', done:0, goal:taskOpts.quiz_choice_en2ko||0 },
+        { key:'quiz_choice_ko2en', done:0, goal:taskOpts.quiz_choice_ko2en||0 },
+        { key:'quiz_input_en2ko',  done:0, goal:taskOpts.quiz_input_en2ko||0 },
+        { key:'quiz_input_ko2en',  done:0, goal:taskOpts.quiz_input_ko2en||0 },
+        { key:'test',              done:0, goal:taskOpts.test||0 },
+      ].filter(t => t.goal > 0);
+      if (!taskDefs.length) return;
+      const allDone = taskDefs.every(t => t.done >= t.goal);
+      if (allDone) return;
+      results.push({ student: s, book: b, taskDefs });
+    });
+  });
+  return results;
+}
+
+// 자동 감지 — 선생님 로그인 시 호출
+async function _autoDetectAndSuggestNotifications() {
+  if (currentUser?.role !== 'teacher') return;
+  const key = 'ion_notif_lastcheck_' + currentUser.id;
+  const last = parseInt(localStorage.getItem(key)||'0');
+  const now = Date.now();
+  if (now - last < 12 * 60 * 60 * 1000) return; // 12시간에 한 번만 체크
+  localStorage.setItem(key, now);
+
+  const unfinished = _detectUnfinishedStudents(3);
+  if (!unfinished.length) return;
+
+  // 학생별로 그룹핑
+  const byStudent = {};
+  unfinished.forEach(({student, book}) => {
+    if (!byStudent[student.id]) byStudent[student.id] = { student, books: [] };
+    byStudent[student.id].books.push(book);
+  });
+  const count = Object.keys(byStudent).length;
+
+  showModal(`
+    <div class="modal-title">📋 과제 미수행 알림</div>
+    <div style="font-size:14px;color:var(--t2);margin-bottom:20px">과제를 수행하지 않은 학생이 <strong style="color:#1e4db7">${count}명</strong> 있습니다.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">나중에</button>
+      <button class="btn btn-primary" onclick="closeModal();openTaskReminderModal()">알림 보내기</button>
+    </div>`);
+}
+
+// 과제 미수행 알림 모달
+function openTaskReminderModal(preStudentId) {
+  const unfinished = _detectUnfinishedStudents();
+  const byStudent = {};
+  unfinished.forEach(({student, book, taskDefs}) => {
+    if (!byStudent[student.id]) byStudent[student.id] = { student, books: [] };
+    byStudent[student.id].books.push(book);
+  });
+
+  if (!Object.keys(byStudent).length) {
+    showToast('미수행 과제가 있는 학생이 없습니다.', 'success'); return;
+  }
+
+  const studentRows = Object.values(byStudent).map(({student, books}) => {
+    const cls = (DB_classes||[]).find(c=>(c.memberIds||[]).includes(student.id));
+    const preChecked = !preStudentId || preStudentId === student.id;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);margin-bottom:5px">
+      <input type="checkbox" class="notif-chk" value="${student.id}" ${preChecked?'checked':''} style="accent-color:#1e4db7;width:15px;height:15px;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--t1)">${student.name} <span style="font-size:12px;font-weight:400;color:var(--t3)">${cls?cls.name:''}</span></div>
+        <div style="font-size:12px;color:var(--t3);margin-top:1px">${books.map(b=>b.name).join(', ')}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  showModal(`
+    <div class="modal-title">📋 과제 미수행 알림</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:12px">선택한 학생에게 과제 독려 메시지를 보냅니다</div>
+    <div style="max-height:40vh;overflow-y:auto;margin-bottom:14px">${studentRows}</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px">메시지 내용</div>
+      <textarea id="notif-msg-body" rows="3"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:10px;font-family:'Outfit',sans-serif;font-size:13px;resize:vertical;color:var(--t1);background:var(--surface)"
+        placeholder="내용을 입력하세요">미완료된 과제가 있어요! 확인하고 완료해주세요 😊</textarea>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t2);cursor:pointer">
+        <input type="checkbox" id="notif-select-all" checked onchange="document.querySelectorAll('.notif-chk').forEach(c=>c.checked=this.checked)" style="accent-color:#1e4db7">
+        전체 선택
+      </label>
+      <span style="font-size:12px;color:var(--t3)">${Object.keys(byStudent).length}명</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="sendTaskReminderNotifs()">알림 보내기</button>
+    </div>`);
+}
+
+function openClassTaskReminderModal(classId) {
+  const cls = (DB_classes||[]).find(c => c.id === classId);
+  if (!cls) return;
+  const unfinished = _detectUnfinishedStudents().filter(({student}) =>
+    (cls.memberIds||[]).includes(student.id)
+  );
+  if (!unfinished.length) {
+    showToast(`${cls.name} 반에 미수행 과제가 없습니다 ✓`, 'success'); return;
+  }
+  const byStudent = {};
+  unfinished.forEach(({student, book}) => {
+    if (!byStudent[student.id]) byStudent[student.id] = { student, books: [] };
+    byStudent[student.id].books.push(book);
+  });
+  const studentRows = Object.values(byStudent).map(({student, books}) =>
+    `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);margin-bottom:5px">
+      <input type="checkbox" class="notif-chk" value="${student.id}" checked style="accent-color:#1e4db7;width:15px;height:15px;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--t1)">${student.name}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:1px">${books.map(b=>b.name).join(', ')}</div>
+      </div>
+    </label>`
+  ).join('');
+  showModal(`
+    <div class="modal-title">📋 ${cls.name} 과제 알림</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:12px">미수행 학생 ${Object.keys(byStudent).length}명</div>
+    <div style="max-height:35vh;overflow-y:auto;margin-bottom:14px">${studentRows}</div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px">메시지 내용</div>
+      <textarea id="notif-msg-body" rows="3"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:10px;font-family:'Outfit',sans-serif;font-size:13px;resize:vertical;color:var(--t1);background:var(--surface)"
+        >미완료된 과제가 있어요! 확인하고 완료해주세요 😊</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="sendTaskReminderNotifs()">알림 보내기</button>
+    </div>`);
+}
+
+async function sendTaskReminderNotifs() {
+  const checked = [...document.querySelectorAll('.notif-chk:checked')].map(c=>c.value);
+  const body = document.getElementById('notif-msg-body')?.value.trim();
+  if (!checked.length) { showToast('학생을 선택하세요.', 'error'); return;  }
+  if (!body) { showToast('메시지 내용을 입력하세요.', 'error'); return; }
+  try {
+    await sb.from('messages').insert(
+      checked.map(rid => ({
+        sender_id: currentUser.id,
+        receiver_id: rid,
+        title: '📋 과제 알림',
+        body
+      }))
+    );
+    closeModal();
+    showToast(`${checked.length}명에게 과제 알림을 보냈습니다!`, 'success');
+    // 캐시 무효화
+    DB_msgSent = null;
+  } catch(e) { showToast('전송 실패: ' + e.message, 'error'); }
 }
 
 </script>
