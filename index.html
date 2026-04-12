@@ -9,6 +9,737 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
+/* ════════════════════════════════════════
+   메신저 탭 — 글래스모피즘 프리미엄 UI
+════════════════════════════════════════ */
+
+
+#pg-messages {
+  padding: 0 !important;
+  margin: -20px -32px -36px !important;
+}
+#msg-root {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 65% 45% at 15% 8%, rgba(110,231,183,0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 55% at 85% 85%, rgba(99,102,241,0.11) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 35% at 65% 15%, rgba(251,191,36,0.07) 0%, transparent 60%),
+    var(--bg);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── 탭바 — 아웃라인 pill 스타일 (사진 기준) ── */
+#msg-tabbar {
+  display: flex;
+  flex-shrink: 0;
+  padding: 10px 14px 8px;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+}
+.msg-tab-track {
+  display: flex;
+  width: 100%;
+  background: rgba(255,255,255,0.60);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.80);
+  border-radius: 14px;
+  padding: 4px;
+  position: relative;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95);
+}
+[data-theme="dark"] .msg-tab-track {
+  background: rgba(28,32,42,0.70);
+  border-color: rgba(255,255,255,0.09);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+/* 슬라이딩 indicator — 전환 효과 유지 */
+.msg-tab-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  background: rgba(255,255,255,0.95);
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.09), 0 0 0 1px rgba(99,102,241,0.10);
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+  z-index: 0;
+  pointer-events: none;
+}
+[data-theme="dark"] .msg-tab-indicator {
+  background: rgba(50,56,76,0.95);
+  box-shadow: 0 1px 10px rgba(0,0,0,0.38), 0 0 0 1px rgba(110,231,183,0.15);
+}
+.msg-tab-track.on-chats .msg-tab-indicator {
+  transform: translateX(100%);
+}
+/* 가운데 separator — 글래스 스타일에선 숨김 */
+.msg-tab-track::after { display: none; }
+.msg-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  border-radius: 10px;
+  transition: color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.15s;
+  position: relative;
+  z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.msg-tab:active { transform: scale(0.97); }
+.msg-tab.active {
+  color: var(--accent, #6366f1);
+  font-weight: 700;
+  background: transparent;
+}
+[data-theme="dark"] .msg-tab.active { color: #60a5fa; }
+.msg-tab svg { flex-shrink: 0; opacity: 0.55; transition: opacity 0.2s; }
+.msg-tab.active svg { opacity: 1; }
+.msg-unread-pill {
+  position: absolute;
+  top: 3px;
+  right: calc(50% - 34px);
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 99px;
+  font-size: 9.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(239,68,68,0.45);
+}
+
+/* 패널 공통 */
+.msg-panel {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+  position: relative;
+  z-index: 1;
+}
+.msg-panel::-webkit-scrollbar { width: 4px; }
+.msg-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* 검색바 — 글래스 */
+.msg-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 14px;
+  padding: 9px 13px;
+  background: rgba(255,255,255,0.60);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+  transition: box-shadow 0.15s;
+}
+[data-theme="dark"] .msg-search-bar {
+  background: rgba(30,34,48,0.65);
+  border-color: rgba(255,255,255,0.09);
+}
+.msg-search-bar:focus-within {
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.18), 0 2px 12px rgba(0,0,0,0.08);
+}
+.msg-search-bar svg { color: var(--text-dim); flex-shrink: 0; }
+.msg-search-bar input {
+  border: none; background: none; outline: none;
+  font-family: 'Outfit', sans-serif; font-size: 13.5px;
+  color: var(--text); width: 100%;
+}
+.msg-search-bar input::placeholder { color: var(--text-dim); }
+.msg-list-body { flex: 1; padding-bottom: 8px; }
+
+/* 그룹 헤더 */
+.msg-group-header {
+  padding: 12px 16px 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-dim);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* ── 친구 행 — 글래스 카드 ── */
+.msg-friend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px 14px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+  position: relative;
+  margin: 1px 10px;
+  border-radius: 14px;
+  overflow: visible;
+}
+.msg-friend-row:hover {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+[data-theme="dark"] .msg-friend-row:hover {
+  background: rgba(255,255,255,0.06);
+}
+.msg-friend-row:active { transform: scale(0.985); }
+
+/* 아바타 */
+.msg-friend-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  overflow: visible;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+/* Lv. 뱃지 */
+.msg-lv-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -5px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 14px;
+  white-space: nowrap;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  letter-spacing: -0.2px;
+  z-index: 2;
+}
+.msg-lv-badge.stage-0 { background: #d1fae5; color: #065f46; }
+.msg-lv-badge.stage-1 { background: #fef3c7; color: #92400e; }
+.msg-lv-badge.stage-2 { background: #ede9fe; color: #5b21b6; }
+.msg-lv-badge.stage-3 {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #78350f;
+  box-shadow: 0 1px 5px rgba(251,191,36,0.35);
+}
+.msg-friend-info { flex: 1; min-width: 0; }
+.msg-friend-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-friend-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-friend-chevron {
+  color: var(--border2);
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.msg-friend-row:hover .msg-friend-chevron { opacity: 1; transform: translateX(2px); }
+
+/* ── 대화 행 — 글래스 카드 ── */
+.msg-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px 12px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+  margin: 1px 10px;
+  border-radius: 14px;
+}
+.msg-chat-row:hover {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+[data-theme="dark"] .msg-chat-row:hover { background: rgba(255,255,255,0.06); }
+.msg-chat-row:active { transform: scale(0.985); }
+.msg-chat-row-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  overflow: visible;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.msg-chat-row-info { flex: 1; min-width: 0; }
+.msg-chat-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.msg-chat-row-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-chat-row-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.msg-chat-row-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.msg-chat-row-preview {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-chat-row-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--accent);
+  color: white;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.4);
+}
+
+/* ── 채팅뷰 — 글래스 헤더 ── */
+.msg-chat-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(.32,0,.18,1);
+}
+.msg-chat-view.open { transform: translateX(0); }
+
+.msg-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 8px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255,255,255,0.60);
+  flex-shrink: 0;
+  box-shadow: 0 1px 12px rgba(0,0,0,0.05);
+}
+[data-theme="dark"] .msg-chat-header {
+  background: rgba(22,26,38,0.80);
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+.msg-back-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.msg-back-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+[data-theme="dark"] .msg-back-btn:hover { background: rgba(255,255,255,0.08); }
+.msg-chat-avatar-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+.msg-chat-header-info { flex: 1; min-width: 0; }
+.msg-chat-hname { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.msg-chat-hsub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* 채팅 바디 — 배경 패턴 */
+.msg-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 20%, rgba(110,231,183,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 90% 80%, rgba(99,102,241,0.07) 0%, transparent 60%),
+    var(--surface2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.msg-chat-body::-webkit-scrollbar { width: 4px; }
+.msg-chat-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* 날짜 구분선 — 글래스 pill */
+.msg-date-divider {
+  text-align: center;
+  margin: 8px 0;
+  position: relative;
+}
+.msg-date-divider span {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 3px 14px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+[data-theme="dark"] .msg-date-divider span {
+  background: rgba(40,45,60,0.70);
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* 말풍선 */
+.msg-bubble-wrap { display: flex; flex-direction: column; }
+.msg-bubble-wrap.mine { align-items: flex-end; }
+.msg-bubble-wrap.theirs { align-items: flex-start; }
+.msg-bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+.msg-bubble-row.mine { flex-direction: row-reverse; }
+.msg-bubble {
+  max-width: 68%;
+  padding: 9px 13px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: msgPop 0.18s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes msgPop {
+  from { opacity: 0; transform: scale(0.88) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.msg-bubble.mine {
+  background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+  color: white;
+  border-radius: 18px 5px 18px 18px;
+  box-shadow: 0 2px 10px rgba(99,102,241,0.30);
+}
+.msg-bubble.theirs {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.90);
+  border-radius: 5px 18px 18px 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+[data-theme="dark"] .msg-bubble.theirs {
+  background: rgba(42,48,65,0.85);
+  border-color: rgba(255,255,255,0.10);
+}
+.msg-bubble-time {
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+/* 입력바 — 글래스 */
+.msg-chat-inputbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(255,255,255,0.60);
+  flex-shrink: 0;
+}
+[data-theme="dark"] .msg-chat-inputbar {
+  background: rgba(22,26,38,0.80);
+  border-top-color: rgba(255,255,255,0.07);
+}
+.msg-chat-textarea {
+  flex: 1;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 20px;
+  padding: 9px 15px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  background: rgba(255,255,255,0.85);
+  color: var(--text);
+  line-height: 1.45;
+  max-height: 96px;
+  overflow-y: auto;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+[data-theme="dark"] .msg-chat-textarea {
+  background: rgba(36,42,58,0.85);
+  border-color: rgba(255,255,255,0.09);
+}
+.msg-chat-textarea:focus {
+  border-color: rgba(99,102,241,0.4);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.msg-chat-textarea::placeholder { color: var(--text-dim); }
+.msg-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 2px 10px rgba(99,102,241,0.35);
+}
+.msg-send-btn:hover { opacity: .88; box-shadow: 0 4px 16px rgba(99,102,241,0.45); }
+.msg-send-btn:active { transform: scale(.91); }
+
+/* ── 바텀시트 — 글래스 ── */
+.msg-bs-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.38);
+  z-index: 400;
+  backdrop-filter: blur(4px) saturate(120%);
+  -webkit-backdrop-filter: blur(4px) saturate(120%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.msg-bs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 540px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid rgba(255,255,255,0.90);
+  padding: 0 0 env(safe-area-inset-bottom,0);
+  z-index: 401;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(.2,.9,.4,1);
+  box-shadow: 0 -12px 48px rgba(0,0,0,.14), 0 -2px 0 rgba(255,255,255,0.6) inset;
+}
+[data-theme="dark"] .msg-bs {
+  background: rgba(24,28,42,0.90);
+  border-top-color: rgba(255,255,255,0.10);
+  box-shadow: 0 -12px 48px rgba(0,0,0,.45);
+}
+.msg-bs.open { transform: translateY(0); }
+.msg-bs-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 2px;
+  margin: 14px auto 0;
+}
+[data-theme="dark"] .msg-bs-handle { background: rgba(255,255,255,0.18); }
+.msg-bs-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 12px;
+}
+.msg-bs-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255,255,255,0.75);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.msg-bs-info { flex: 1; min-width: 0; }
+.msg-bs-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.msg-bs-meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.msg-bs-badge-wrap { margin-top: 6px; display: flex; gap: 5px; flex-wrap: wrap; }
+.msg-bs-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.msg-bs-exp-wrap {
+  padding: 0 20px 14px;
+}
+.msg-bs-exp-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+.msg-bs-exp-track {
+  height: 7px;
+  background: rgba(0,0,0,0.07);
+  border-radius: 4px;
+  overflow: hidden;
+}
+[data-theme="dark"] .msg-bs-exp-track { background: rgba(255,255,255,0.10); }
+.msg-bs-exp-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #6ee7b7, var(--accent));
+  transition: width 0.65s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 8px rgba(110,231,183,0.5);
+}
+.msg-bs-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 20px 24px;
+}
+.msg-bs-btn {
+  padding: 13px 0;
+  border-radius: 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.15s;
+}
+.msg-bs-btn.ghost {
+  border: 1.5px solid rgba(0,0,0,0.09);
+  background: rgba(255,255,255,0.60);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text);
+}
+[data-theme="dark"] .msg-bs-btn.ghost {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+}
+.msg-bs-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+.msg-bs-btn.primary {
+  border: none;
+  background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+  color: white;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.35);
+}
+.msg-bs-btn.primary:hover { opacity: .87; box-shadow: 0 4px 18px rgba(99,102,241,0.45); }
+.msg-bs-btn:active { transform: scale(.97); }
+
+/* 빈 상태 */
+.msg-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  flex: 1;
+}
+.msg-empty svg { opacity: .3; margin-bottom: 4px; }
+
+/* 반응형 */
+@media (max-width: 768px) {
+  #pg-messages { margin: -18px -14px -20px !important; }
+}
+@media (max-width: 600px) {
+  #pg-messages { margin: -10px -12px -16px !important; }
+  .msg-bubble { max-width: 80%; }
+  .msg-bs-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
 /* ── 대시보드 최근 항목 2열 반응형 ── */
 @media(max-width:760px){
   #recent-books > div[style*="grid-template-columns:1fr 1fr"]{
@@ -2893,23 +3624,97 @@ body.student-mode {
       <!-- pg-classes는 pg-students로 통합됨 (하위 호환 빈 div) -->
       <div id="pg-classes" class="page" style="display:none!important"></div>
 
-      <!-- ===== 쪽지함 (선생님 + 학생 공통) ===== -->
+      <!-- ===== 메신저 탭 ===== -->
       <div id="pg-messages" class="page">
-        <!-- 탭 + 액션 한 행 -->
-        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);margin-bottom:20px">
-          <div style="display:flex;gap:4px">
-            <button id="msg-tab-inbox" onclick="switchMsgTab('inbox')"
-              style="padding:8px 18px;border:none;background:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-1px">
-              📥 받은 쪽지
+
+        <div id="msg-root">
+
+          <!-- ══ 탭바 ══ -->
+          <div id="msg-tabbar">
+            <div class="msg-tab-track" id="msg-tab-track">
+              <div class="msg-tab-indicator"></div>
+              <button id="msgtab-friends" class="msg-tab active" onclick="switchMsgMainTab('friends')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>학생</span>
+              </button>
+              <button id="msgtab-chats" class="msg-tab" onclick="switchMsgMainTab('chats')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>대화</span>
+                <span id="msg-unread-pill" class="msg-unread-pill" style="display:none"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ══ 친구목록 패널 ══ -->
+          <div id="msg-panel-friends" class="msg-panel">
+            <div class="msg-search-bar">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="msg-friends-search" oninput="renderFriendsList()" placeholder="학생 이름 검색…">
+            </div>
+            <div id="msg-friends-body" class="msg-list-body"></div>
+          </div>
+
+          <!-- ══ 대화목록 패널 ══ -->
+          <div id="msg-panel-chats" class="msg-panel" style="display:none">
+            <div id="msg-chats-body" class="msg-list-body"></div>
+          </div>
+
+          <!-- ══ 채팅뷰 (슬라이드인) ══ -->
+          <div id="msg-chat-view" class="msg-chat-view" style="display:none">
+            <div class="msg-chat-header">
+              <button class="msg-back-btn" onclick="closeChatView()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div id="msg-chat-avatar" class="msg-chat-avatar-wrap"></div>
+              <div class="msg-chat-header-info">
+                <div id="msg-chat-name" class="msg-chat-hname"></div>
+                <div id="msg-chat-sub" class="msg-chat-hsub"></div>
+              </div>
+            </div>
+            <div id="msg-chat-messages" class="msg-chat-body"></div>
+            <div class="msg-chat-inputbar">
+              <textarea id="msg-chat-input" class="msg-chat-textarea" rows="1" placeholder="메시지를 입력하세요…"
+                oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px'"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"></textarea>
+              <button class="msg-send-btn" onclick="sendChatMessage()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- #msg-root -->
+
+        <!-- ══ 학생 바텀시트 팝업 ══ -->
+        <div id="msg-bs-backdrop" class="msg-bs-backdrop" onclick="closeMsgStudentPopup()"></div>
+        <div id="msg-bs" class="msg-bs">
+          <div class="msg-bs-handle"></div>
+          <div class="msg-bs-profile">
+            <div id="msp-avatar" class="msg-bs-avatar"></div>
+            <div class="msg-bs-info">
+              <div id="msp-name" class="msg-bs-name"></div>
+              <div id="msp-meta" class="msg-bs-meta"></div>
+              <div id="msp-badge" class="msg-bs-badge-wrap"></div>
+            </div>
+          </div>
+          <div id="msp-exp-bar-wrap" class="msg-bs-exp-wrap">
+            <div class="msg-bs-exp-labels">
+              <span id="msp-stage-name"></span>
+              <span id="msp-exp-val"></span>
+            </div>
+            <div class="msg-bs-exp-track"><div id="msp-exp-fill" class="msg-bs-exp-fill"></div></div>
+          </div>
+          <div class="msg-bs-actions">
+            <button class="msg-bs-btn ghost" onclick="openStudentStatus()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              학습 현황
             </button>
-            <button id="msg-tab-sent" onclick="switchMsgTab('sent')"
-              style="padding:8px 18px;border:none;background:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;font-weight:400;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px">
-              📤 보낸 쪽지
+            <button class="msg-bs-btn primary" onclick="openChatWithStudent()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              쪽지 보내기
             </button>
           </div>
-          <div style="display:flex;gap:8px;padding-bottom:4px" id="messages-actions"></div>
         </div>
-        <div id="messages-body"></div>
+
       </div>
 
     </div>
@@ -3647,6 +4452,7 @@ async function doLogout() {
   DB_quizLogs = null;
   DB_msgInbox = null; DB_msgSent = null;
   _slimeChatHistory = []; // 챗봇 히스토리 초기화
+  _slimeCache = null;    // 슬라임 캐시 초기화
   // 민감 캐시 정리 (API 키는 유지, 로그인 관련만)
   clearLoginFailures();
   document.getElementById('login-screen').style.display = 'flex';
@@ -3658,40 +4464,30 @@ async function doLogout() {
 //  SLIME SYSTEM — 슬라임 육성 게임 시스템
 // =========================================================
 
-// 슬라임 데이터 (로컬스토리지 + Supabase profiles.slime_data)
+// 슬라임 데이터 — DB 단일 소스, 메모리 캐시만 사용
+let _slimeCache = null; // 로그인 후 loadSlimeFromDB()로 채워짐
+
+const _slimeDef = {
+  stage: 0, exp: 0,
+  colorId: 'mint', eyeStyle: 'round', accessory: 'none', bodyType: 'Blob', effect: 'none',
+  slimeName: '내 슬라임', name: '내 슬라임',
+  int: 0, str: 0, affinity: 0, streak: 0, lastVisit: '',
+  badges: [], totalVoca: 0, totalFlash: 0, totalQuiz: 0, missions: {}, jelly: 10,
+};
+
 function getSlimeData() {
-  const key = 'ion_slime_' + (currentUser?.id || 'anon');
-  const def = {
-    stage: 0, exp: 0,
-    colorId: 'mint', eyeStyle: 'round', accessory: 'none', bodyType: 'Blob', effect: 'none',
-    slimeName: '내 슬라임',
-    name: '내 슬라임',
-    int: 0, str: 0, affinity: 0, streak: 0,
-    lastVisit: '',
-    badges: [], totalVoca: 0, totalFlash: 0, totalQuiz: 0,
-    missions: {},
-    jelly: 10,
-  };
-  try {
-    const raw = localStorage.getItem(key);
-    const data = raw ? { ...def, ...JSON.parse(raw) } : def;
-    // 선생님은 항상 가디언 슬라임 (stage 3)
-    if (currentUser?.role === 'teacher') {
-      data.stage = 3;
-      data.exp = Math.max(data.exp, 2000);
-      if (!data.slimeName || data.slimeName === '내 슬라임' || data.slimeName === '마스터 슬라임') data.slimeName = '가디언 슬라임';
-    }
-    return data;
-  } catch(e) { return def; }
+  const data = { ..._slimeDef, ...(_slimeCache || {}) };
+  if (currentUser?.role === 'teacher') {
+    data.stage = 3;
+    data.exp = Math.max(data.exp, 2000);
+    if (!data.slimeName || data.slimeName === '내 슬라임' || data.slimeName === '마스터 슬라임') data.slimeName = '가디언 슬라임';
+  }
+  return data;
 }
 
 function saveSlimeData(data) {
-  const key = 'ion_slime_' + (currentUser?.id || 'anon');
-  localStorage.setItem(key, JSON.stringify(data));
-  // 슬라임 전체 데이터를 Supabase에 debounce 저장 (브라우저 간 공유)
-  if (currentUser?.id) {
-    _saveSlimeDataToDB(data);
-  }
+  _slimeCache = { ...data };
+  if (currentUser?.id) _saveSlimeDataToDB(data);
 }
 
 let _slimeDBTimer = null;
@@ -3703,65 +4499,87 @@ function _saveSlimeDataToDB(data) {
       if (typeof data.jelly === 'number') update.jelly = data.jelly;
       await sb.from('profiles').update(update).eq('id', currentUser.id);
     } catch(e) {}
-  }, 800);
+  }, 300);
 }
+
+// 탭 닫힘 직전 즉시 저장
+window.addEventListener('beforeunload', () => {
+  if (!currentUser?.id || !_slimeCache) return;
+  try {
+    const update = { slime_data: JSON.stringify(_slimeCache) };
+    if (typeof _slimeCache.jelly === 'number') update.jelly = _slimeCache.jelly;
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${currentUser.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(update),
+      keepalive: true
+    }).catch(() => {});
+  } catch(e) {}
+});
 
 async function loadSlimeFromDB() {
   if (!currentUser?.id) return;
   try {
     const { data } = await sb.from('profiles').select('slime_data, jelly').eq('id', currentUser.id).single();
     if (data?.slime_data) {
-      const key = 'ion_slime_' + currentUser.id;
       const fromDB = JSON.parse(data.slime_data);
-      // jelly는 기존 로직대로 별도 컬럼 우선
-      if (data && typeof data.jelly === 'number') fromDB.jelly = data.jelly;
-      localStorage.setItem(key, JSON.stringify(fromDB));
-    } else if (data?.jelly != null) {
-      // slime_data 없으면 기존 jelly 로직만
-      const key = 'ion_slime_' + currentUser.id;
-      const raw = localStorage.getItem(key);
-      const slime = raw ? JSON.parse(raw) : {};
-      if (typeof slime.jelly !== 'number' || data.jelly >= slime.jelly) {
-        slime.jelly = data.jelly;
-        localStorage.setItem(key, JSON.stringify(slime));
+      if (typeof data.jelly === 'number') fromDB.jelly = data.jelly;
+      _slimeCache = fromDB;
+    } else {
+      // DB에 slime_data 없음 — localStorage 마이그레이션 시도 (1회)
+      const lsKey = 'ion_slime_' + currentUser.id;
+      const lsRaw = localStorage.getItem(lsKey);
+      if (lsRaw) {
+        try {
+          const lsData = JSON.parse(lsRaw);
+          _slimeCache = { ..._slimeDef, ...lsData };
+          if (typeof data?.jelly === 'number') _slimeCache.jelly = data.jelly;
+          // 즉시 DB에 저장 (마이그레이션)
+          await sb.from('profiles').update({
+            slime_data: JSON.stringify(_slimeCache),
+            ...(typeof _slimeCache.jelly === 'number' ? { jelly: _slimeCache.jelly } : {})
+          }).eq('id', currentUser.id);
+          localStorage.removeItem(lsKey); // 마이그레이션 완료 후 제거
+        } catch(e) {
+          _slimeCache = { ..._slimeDef };
+        }
+      } else {
+        _slimeCache = { ..._slimeDef };
+        if (typeof data?.jelly === 'number') _slimeCache.jelly = data.jelly;
       }
     }
-  } catch(e) {}
+  } catch(e) {
+    _slimeCache = { ..._slimeDef };
+  }
 }
 
-// ── 젤리 DB 동기화 ──
+// ── 젤리 DB 동기화 — slime_data에 통합 저장 ──
 let _jellyDBTimer = null;
 function _saveJellyToDB(amount) {
+  if (_slimeCache) _slimeCache.jelly = amount;
   clearTimeout(_jellyDBTimer);
   _jellyDBTimer = setTimeout(async () => {
     try {
       await sb.from('profiles').update({ jelly: amount }).eq('id', currentUser.id);
     } catch(e) {}
-  }, 800); // 800ms debounce
+  }, 800);
 }
 
 async function loadJellyFromDB() {
+  // loadSlimeFromDB에서 jelly도 같이 처리하므로 별도 로드 불필요
+  // 하위 호환: _slimeCache에 jelly가 없으면 DB에서 보완
   if (!currentUser?.id) return;
   try {
-    const { data } = await sb.from('profiles')
-      .select('jelly')
-      .eq('id', currentUser.id)
-      .single();
-    if (data && typeof data.jelly === 'number') {
-      // DB 값을 localStorage 슬라임 데이터에 반영
-      const key = 'ion_slime_' + currentUser.id;
-      const raw = localStorage.getItem(key);
-      const slime = raw ? JSON.parse(raw) : {};
-      // DB 값이 더 크거나 같을 때만 덮어씀 (선생님 지급분 보호)
-      if (typeof slime.jelly !== 'number' || data.jelly >= slime.jelly) {
-        slime.jelly = data.jelly;
-        localStorage.setItem(key, JSON.stringify(slime));
-      } else {
-        // localStorage가 더 크면 DB를 localStorage 기준으로 업데이트
-        await sb.from('profiles').update({ jelly: slime.jelly }).eq('id', currentUser.id);
-      }
+    const { data } = await sb.from('profiles').select('jelly').eq('id', currentUser.id).single();
+    if (data && typeof data.jelly === 'number' && _slimeCache) {
+      _slimeCache.jelly = data.jelly;
     }
-  } catch(e) { /* jelly 컬럼 없으면 무시 */ }
+  } catch(e) {}
 }
 
 /* ══════════════════════════════════════════════════
@@ -6544,27 +7362,19 @@ async function renderDashboard() {
 
 
 
-  // ── 최근 열람 순서로 단어장 / 문장집 정렬 ──
+  // ── 배포된 단어장 / 문장집 필터링 ──
   const recentWordIds = _getRecentIds('word');
   const recentSentIds = _getRecentIds('sent');
 
-  // 최근 열람 순 → 나머지는 생성 역순으로 보완
-  function sortByRecent(items, ids, idKey) {
-    const ranked  = [];
-    const rest    = [];
-    ids.forEach(rid => {
-      const found = items.find(x => (idKey ? x[idKey] : x.id) === rid);
-      if (found) ranked.push(found);
-    });
-    items.forEach(x => {
-      const xid = idKey ? x[idKey] : x.id;
-      if (!ids.includes(xid)) rest.push(x);
-    });
-    return [...ranked, ...rest];
-  }
+  // 배포된 단어장 id 집합 (students.assigned 합산)
+  const allStudents_d = (DB.users||[]).filter(u => u.role === 'student');
+  const assignedWordIdSet = new Set(allStudents_d.flatMap(s => s.assigned || []));
+  // 배포된 문장집 id 집합 (DB_sentAssigns)
+  const assignedSentIdSet = new Set((DB_sentAssigns || []).map(a => a.book_id));
 
-  const allWordBooks  = sortByRecent([...DB.books].reverse(), recentWordIds, 'id');
-  const allSentBooks  = sortByRecent((DB_sentBooks||[]).slice().reverse(), recentSentIds, 'id');
+  // 배포된 책만 필터, 생성 역순 정렬
+  const allWordBooks  = [...DB.books].reverse().filter(b => assignedWordIdSet.has(b.id));
+  const allSentBooks  = (DB_sentBooks||[]).slice().reverse().filter(b => assignedSentIdSet.has(b.id));
 
   const shownW = allWordBooks.slice(0, q ? 30 : 10);
   const shownS = allSentBooks.slice(0, q ? 30 : 10);
@@ -6581,19 +7391,19 @@ async function renderDashboard() {
   if (!recentEl) return;
 
   document.getElementById('dash-book-sub').textContent =
-    q ? `"${q}" 검색 결과` : `단어장 ${filteredW.length}개 · 문장집 ${filteredS.length}개`;
+    q ? `"${q}" 검색 결과` : `배포 단어장 ${filteredW.length}개 · 배포 문장집 ${filteredS.length}개`;
 
   // ── 단어장 행 ──
   function wordRowHTML(b) {
     const wc  = b.wordCount ?? b.words?.length ?? 0;
     const coll = (DB.collections||[]).find(c => c.id === b.collectionId);
-    const isRecent = recentWordIds[0] === b.id;
+    const assignedCount_w = allStudents_d.filter(s => (s.assigned||[]).includes(b.id)).length;
     return `<div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #f1f5f9;transition:background 0.13s;cursor:pointer"
       onmouseenter="this.style.background='#f8fafd'" onmouseleave="this.style.background=''">
       <div style="flex:1;min-width:0;margin-right:12px" onclick="openTeacherWordView('${b.id}')">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span style="font-size:14px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</span>
-          ${isRecent ? '<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;letter-spacing:0.02em">RECENT</span>' : ''}
+          ${assignedCount_w > 0 ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:#eff3ff;color:#1e4db7;flex-shrink:0;letter-spacing:0.02em">${assignedCount_w}명</span>` : ''}
         </div>
         <div style="font-size:13px;color:#94a3b8;display:flex;align-items:center;gap:6px">
           <span>${wc} Words</span>
@@ -6619,6 +7429,18 @@ async function renderDashboard() {
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
+        <button onclick="event.stopPropagation();openBookAssignModal('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="배포"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button onclick="event.stopPropagation();openBookAssignModal('${b.id}','status')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="현황"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </button>
       </div>
     </div>`;
   }
@@ -6627,13 +7449,13 @@ async function renderDashboard() {
   function sentRowHTML(b) {
     const itemCount = b.item_count ?? (DB_sentItems?.[b.id]||[]).length;
     const coll = (DB_sentColls||[]).find(c => c.id === b.collection_id);
-    const isRecent = recentSentIds[0] === b.id;
+    const assignedCount_s = (DB_sentAssigns||[]).filter(a => a.book_id === b.id).length;
     return `<div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid #f1f5f9;transition:background 0.13s;cursor:pointer"
       onmouseenter="this.style.background='#f8fafd'" onmouseleave="this.style.background=''">
       <div style="flex:1;min-width:0;margin-right:12px" onclick="openTeacherSentView('${b.id}')">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span style="font-size:14px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</span>
-          ${isRecent ? '<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:#fef3c7;color:#b45309;flex-shrink:0;letter-spacing:0.02em">RECENT</span>' : ''}
+          ${assignedCount_s > 0 ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:#eff3ff;color:#1e4db7;flex-shrink:0;letter-spacing:0.02em">${assignedCount_s}명</span>` : ''}
         </div>
         <div style="font-size:13px;color:#94a3b8;display:flex;align-items:center;gap:6px">
           <span>${itemCount} Sentences</span>
@@ -6659,6 +7481,18 @@ async function renderDashboard() {
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
+        <button onclick="event.stopPropagation();openSentAssignModal('${b.id}')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="배포"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button onclick="event.stopPropagation();openSentAssignModal('${b.id}','status')"
+          style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
+          title="현황"
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </button>
       </div>
     </div>`;
   }
@@ -6672,7 +7506,7 @@ async function renderDashboard() {
 
   const allEmpty = !filteredW.length && !filteredS.length;
   if (allEmpty) {
-    recentEl.innerHTML = `<div class="empty"><div class="empty-icon">📚</div><div class="empty-title">${q ? '검색 결과가 없습니다' : '단어장을 추가해보세요'}</div></div>`;
+    recentEl.innerHTML = `<div class="empty"><div class="empty-icon">📤</div><div class="empty-title">${q ? '검색 결과가 없습니다' : '배포된 단어장/문장집이 없습니다'}</div></div>`;
   } else {
     const wordIconSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
     const sentIconSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 7H7c-.6 0-1 .4-1 1v4c0 .6.4 1 1 1h3l-1 3h3l1-3V8c0-.6-.4-1-1-1z"/><path d="M20 7h-4c-.6 0-1 .4-1 1v4c0 .6.4 1 1 1h3l-1 3h3l1-3V8c0-.6-.4-1-1-1z"/></svg>`;
@@ -6680,12 +7514,12 @@ async function renderDashboard() {
     recentEl.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start">
 
-        <!-- ── 최근 단어장 컬럼 ── -->
+        <!-- ── 배포 단어장 컬럼 ── -->
         <div style="display:flex;flex-direction:column;gap:0;min-width:0">
           <!-- 외부 타이틀 행 -->
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
             <span style="display:flex;align-items:center;color:#94a3b8">${wordIconSVG}</span>
-            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">최근 단어장</span>
+            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">배포 단어장</span>
             <span style="font-size:14px;font-weight:600;color:#94a3b8;letter-spacing:0.02em">${filteredW.length} Items</span>
             <button onclick="showPage('pg-library')"
               style="margin-left:auto;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
@@ -6697,16 +7531,16 @@ async function renderDashboard() {
           </div>
           <!-- 카드 박스 -->
           <div style="background:#fff;border:1.5px solid #e8eef6;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,0.06),0 1px 3px rgba(15,23,42,0.04)">
-            <div class="dash-recent-scroll">${panelBody(filteredW.map(wordRowHTML), '단어장이 없습니다')}</div>
+            <div class="dash-recent-scroll">${panelBody(filteredW.map(wordRowHTML), '배포된 단어장이 없습니다')}</div>
           </div>
         </div>
 
-        <!-- ── 최근 문장집 컬럼 ── -->
+        <!-- ── 배포 문장집 컬럼 ── -->
         <div style="display:flex;flex-direction:column;gap:0;min-width:0">
           <!-- 외부 타이틀 행 -->
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
             <span style="display:flex;align-items:center;color:#94a3b8">${sentIconSVG}</span>
-            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">최근 문장집</span>
+            <span style="font-size:17px;font-weight:700;color:#0f172a;letter-spacing:-0.4px">배포 문장집</span>
             <span style="font-size:14px;font-weight:600;color:#94a3b8;letter-spacing:0.02em">${filteredS.length} Items</span>
             <button onclick="showPage('pg-sentences')"
               style="margin-left:auto;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
@@ -6718,7 +7552,7 @@ async function renderDashboard() {
           </div>
           <!-- 카드 박스 -->
           <div style="background:#fff;border:1.5px solid #e8eef6;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,0.06),0 1px 3px rgba(15,23,42,0.04)">
-            <div class="dash-recent-scroll">${panelBody(filteredS.map(sentRowHTML), '문장집이 없습니다')}</div>
+            <div class="dash-recent-scroll">${panelBody(filteredS.map(sentRowHTML), '배포된 문장집이 없습니다')}</div>
           </div>
         </div>
 
@@ -7114,7 +7948,7 @@ async function openBookStatusModal(bookId) {
 }
 
 // ── 단어장 보관함: 단어장 배포 ──
-async function openBookAssignModal(bookId) {
+async function openBookAssignModal(bookId, initialTab) {
   const b = (DB.books||[]).find(x=>x.id===bookId);
   if (!b) return;
   const allStudents = (DB.users||[]).filter(u=>u.role==='student');
@@ -7300,6 +8134,7 @@ async function openBookAssignModal(bookId) {
 
   // indeterminate 처리
   document.querySelectorAll('.bam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+  if (initialTab === 'status') setTimeout(() => _bamSwitchTab('assigned'), 0);
 }
 
 function _bamSwitchTab(tab) {
@@ -9728,7 +10563,7 @@ async function openSentStatusModal(bookId) {
   `);
 }
 
-async function openSentAssignModal(bookId) {
+async function openSentAssignModal(bookId, initialTab) {
   const b = DB_sentBooks.find(b => b.id === bookId);
   const allStudents = DB.users.filter(u => u.role === 'student');
 
@@ -9909,6 +10744,7 @@ async function openSentAssignModal(bookId) {
   `);
 
   document.querySelectorAll('.sam-class-chk[data-indeterminate="true"]').forEach(c => { c.indeterminate = true; });
+  if (initialTab === 'status') setTimeout(() => _samSwitchTab('assigned'), 0);
 }
 
 function _samSwitchTab(tab) {
@@ -14649,21 +15485,16 @@ async function deleteStudent(uid) {
 
 // 학생 슬라임 표시용 — ID 해시로 색상/단계 일관되게 결정
 function getStudentSlimeSVG(studentId, size=44) {
-  // ID 문자열을 해시해서 색상과 단계 결정
-  let hash = 0;
-  for (let i = 0; i < studentId.length; i++) hash = studentId.charCodeAt(i) + ((hash << 5) - hash);
-  const colors = ['mint','blue','pink','gold','purple','red'];
-  const colorId = colors[Math.abs(hash) % colors.length];
-  // progress 기반으로 단계 결정
-  const allScores = Object.entries(DB.progress)
-    .filter(([k]) => k.startsWith(studentId))
-    .flatMap(([,v]) => v.quizScores||[]);
-  const totalRounds = Object.entries(DB.progress)
-    .filter(([k]) => k.startsWith(studentId))
-    .reduce((s,[,v]) => s+(v.rounds||0), 0);
-  const exp = totalRounds * 2 + allScores.reduce((s,sc) => s + (sc>=70?20:0), 0);
-  const stage = calcStage(exp);
-  return buildMiniSlimeSVG(stage, size, {colorId, eyeStyle:'round', accessory:'none'});
+  const student = (DB.users || []).find(u => u.id === studentId);
+  if (!student) {
+    return buildMiniSlimeSVG(0, size, { colorId: 'mint', eyeStyle: 'round', accessory: 'none' });
+  }
+  const sd = _getStudentSlimeData(student);
+  return buildMiniSlimeSVG(sd.stage || 0, size, {
+    colorId:   sd.colorId   || 'mint',
+    eyeStyle:  sd.eyeStyle  || 'round',
+    accessory: sd.accessory || 'none',
+  });
 }
 
 // ── 학생 현황 + 반 관리 통합 렌더 ──
@@ -14671,8 +15502,18 @@ function renderStudentsMgmt() {
   const body = document.getElementById('students-mgmt-body');
   if (!body) return;
 
-  // DB_classes 로드 후 렌더
-  loadClasses().then(() => _renderStudentsMgmtInner(body));
+  const sids = (DB.users || []).filter(u => u.role === 'student').map(u => u.id);
+  const fetchSlime = sids.length
+    ? sb.from('profiles').select('id,slime_data').in('id', sids)
+        .then(({ data }) => {
+          (data || []).forEach(p => {
+            const u = DB.users.find(u => u.id === p.id);
+            if (u) u.slime_data = p.slime_data;
+          });
+        }).catch(() => {})
+    : Promise.resolve();
+
+  Promise.all([loadClasses(), fetchSlime]).then(() => _renderStudentsMgmtInner(body));
 }
 
 function _renderStudentsMgmtInner(body) {
@@ -16574,8 +17415,7 @@ function renderMyBooks() {
         function lockBtn(label, icon, onclick, isLocked, isAssigned) {
           const lockedStyle = 'padding:11px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:13px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;position:relative;opacity:0.7';
           const activeStyle = 'padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px';
-          if (!isAssigned) return ''; // 과제에 없으면 아예 숨김
-          if (isLocked) {
+          if (isLocked || !isAssigned) {
             return `<button style="${lockedStyle}" disabled title="과제에 없는 학습 유형입니다">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               ${label}
@@ -25023,325 +25863,757 @@ async function deleteClass(classId) {
   showToast('반이 삭제됐습니다.');
 }
 
+
 // =========================================================
-//  쪽지 (MESSAGES)
+//  쪽지 (MESSAGES) — 메신저 v2
 // =========================================================
-var _msgTab = 'inbox';
-// 캐시: null=미로드, 배열=로드됨
+
+var _msgMainTab      = 'friends';
+var _chatTargetId    = null;
+var _chatTargetName  = '';
+var _chatTargetSlime = null;
+var _msgStudentTarget = null;
 var DB_msgInbox = null;
 var DB_msgSent  = null;
 
-// 메시지 목록 HTML 빌드 (캐시/신규 공용)
-function _buildMsgListHTML(msgs) {
-  if (!msgs.length) return emptyHTML(_msgTab === 'inbox' ? '받은 쪽지가 없습니다' : '보낸 쪽지가 없습니다');
-  return msgs.map(m => {
-    const who = _msgTab === 'inbox'
-      ? `<span style="font-size:13px;color:var(--text-muted)">보낸 사람: <strong>${m.sender?.name || '알 수 없음'}</strong></span>`
-      : `<span style="font-size:13px;color:var(--text-muted)">받는 사람: <strong>${m.receiver?.name || '알 수 없음'}</strong></span>`;
-    const unread = !m.is_read && _msgTab === 'inbox'
-      ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px;flex-shrink:0"></span>'
-      : '';
-    const date = new Date(m.created_at).toLocaleDateString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-    return `
-      <div style="background:var(--surface);border:1px solid ${!m.is_read && _msgTab==='inbox' ? 'var(--accent)' : 'var(--border)'};border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;transition:all 0.15s;display:flex;gap:10px;align-items:flex-start"
-        onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='${!m.is_read && _msgTab==='inbox' ? 'var(--accent)' : 'var(--border)'}'">
-        <div onclick="openMessageDetail('${m.id}')" style="flex:1;cursor:pointer;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            ${unread}
-            <div style="font-weight:${!m.is_read && _msgTab==='inbox' ? '700' : '500'};font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.title}</div>
-            <span style="font-size:13px;color:var(--text-dim);flex-shrink:0">${date}</span>
+/* ── 슬라임 데이터 추출 (profiles.slime_data 우선, localStorage 폴백) ── */
+function _getStudentSlimeData(student) {
+  // 1순위: Supabase profiles.slime_data
+  try {
+    const raw = student.slime_data;
+    if (raw) {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch(e) {}
+  // 2순위: 학생 자신의 로컬스토리지 (타 기기에서는 없음 → 기본값)
+  return {
+    stage: 0, exp: 0,
+    colorId: 'mint', eyeStyle: 'round', accessory: 'none', bodyType: 'Blob',
+    slimeName: '슬라임'
+  };
+}
+
+/* ── 스테이지 정보 ── */
+function _stageInfo(stage) {
+  return SLIME_STAGES[Math.min(stage, SLIME_STAGES.length - 1)] || SLIME_STAGES[0];
+}
+
+/* ── EXP 진행률 계산 ── */
+function _expProgress(slime) {
+  const stage = Math.min(slime.stage || 0, SLIME_STAGES.length - 1);
+  const exp   = slime.exp || 0;
+  const prevExp = stage > 0 ? SLIME_STAGES[stage - 1].expNeeded : 0;
+  const nextExp = SLIME_STAGES[stage]?.expNeeded || prevExp;
+  if (stage >= SLIME_STAGES.length - 1) return { pct: 100, cur: exp, next: nextExp };
+  const pct = Math.min(100, Math.round(((exp - prevExp) / Math.max(1, nextExp - prevExp)) * 100));
+  return { pct: Math.max(0, pct), cur: exp, next: nextExp };
+}
+
+/* ── 시간 라벨 ── */
+function _chatTimeLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date(), diff = now - d;
+  if (diff < 60000)    return '방금';
+  if (diff < 3600000)  return Math.floor(diff / 60000) + '분 전';
+  if (diff < 86400000) return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 604800000) return ['일','월','화','수','목','금','토'][d.getDay()] + '요일';
+  return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+/* ── HTML 이스케이프 ── */
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── 미니 슬라임 렌더 (학생 데이터 직접 받아서) ── */
+function _renderStudentSlime(student, size) {
+  const sd = _getStudentSlimeData(student);
+  return buildMiniSlimeSVG(sd.stage, size, {
+    colorId:   sd.colorId   || 'mint',
+    eyeStyle:  sd.eyeStyle  || 'round',
+    accessory: sd.accessory || 'none',
+  });
+}
+
+/* ══════════════════════════════════════
+   진입점: renderMessages()
+══════════════════════════════════════ */
+async function renderMessages() {
+  const isTeacher = currentUser?.role === 'teacher';
+  const tabbar = document.getElementById('msg-tabbar');
+  if (tabbar) tabbar.style.display = isTeacher ? 'flex' : 'none';
+
+  if (!isTeacher) {
+    // 학생: 대화목록만
+    document.getElementById('msg-panel-friends').style.display = 'none';
+    document.getElementById('msg-panel-chats').style.display  = 'flex';
+    renderChatsPanel();
+  } else {
+    document.getElementById('msg-panel-friends').style.display = 'flex';
+    document.getElementById('msg-panel-chats').style.display  = 'none';
+    renderFriendsList();
+  }
+  updateUnreadBadge();
+}
+
+/* ══════════════════════════════════════
+   탭 전환
+══════════════════════════════════════ */
+function switchMsgMainTab(tab) {
+  _msgMainTab = tab;
+  const isFriends = tab === 'friends';
+  document.getElementById('msg-panel-friends').style.display = isFriends ? 'flex' : 'none';
+  document.getElementById('msg-panel-chats').style.display  = isFriends ? 'none'  : 'flex';
+  document.getElementById('msgtab-friends').classList.toggle('active', isFriends);
+  document.getElementById('msgtab-chats').classList.toggle('active', !isFriends);
+  // 슬라이딩 indicator
+  const track = document.getElementById('msg-tab-track');
+  if (track) track.classList.toggle('on-chats', !isFriends);
+  if (!isFriends) renderChatsPanel();
+  else renderFriendsList();
+}
+
+/* ══════════════════════════════════════
+   친구목록
+══════════════════════════════════════ */
+async function renderFriendsList() {
+  const body = document.getElementById('msg-friends-body');
+  if (!body) return;
+  const q = (document.getElementById('msg-friends-search')?.value || '').trim().toLowerCase();
+  let students = (DB.users || []).filter(u => u.role === 'student');
+  if (q) students = students.filter(s => s.name?.toLowerCase().includes(q));
+
+  if (!students.length) {
+    body.innerHTML = `<div class="msg-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      ${q ? '검색 결과가 없습니다' : '등록된 학생이 없습니다'}
+    </div>`;
+    return;
+  }
+
+  // quiz_logs + sentence_submissions — Student & Class와 동일한 방식으로 학생별 fetch
+  const sids = students.map(s => s.id);
+  let quizLogs = [], sentSubs = [];
+  try {
+    const [qlRes, ssRes, slimeRes] = await Promise.all([
+      sids.length
+        ? sb.from('quiz_logs').select('student_id,book_id,mode,direction').in('student_id', sids).limit(2000)
+        : Promise.resolve({data:[]}),
+      sids.length
+        ? sb.from('sentence_submissions').select('student_id,book_id,type').in('student_id', sids).limit(2000)
+        : Promise.resolve({data:[]}),
+      sids.length
+        ? sb.from('profiles').select('id,slime_data').in('id', sids)
+        : Promise.resolve({data:[]})
+    ]);
+    quizLogs = qlRes.data || [];
+    sentSubs = ssRes.data || [];
+    // slime_data 최신값으로 DB.users 갱신
+    (slimeRes.data || []).forEach(p => {
+      const u = DB.users.find(u => u.id === p.id);
+      if (u) u.slime_data = p.slime_data;
+    });
+  } catch(e) { console.warn('renderFriendsList fetch 실패', e); }
+
+  // 반별 그룹핑
+  const groups = {};
+  students.forEach(s => {
+    const cls = (DB_classes || []).find(c => c.memberIds?.includes(s.id));
+    const g = cls ? cls.name : '미배정';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(s);
+  });
+
+  let html = '';
+  for (const [gName, members] of Object.entries(groups)) {
+    html += `<div class="msg-group-header">${_esc(gName)}</div>`;
+    members.forEach(s => {
+      const sd    = _getStudentSlimeData(s);
+      const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+      const svg   = buildMiniSlimeSVG(sd.stage || 0, 40, {
+        colorId:  sd.colorId  || 'mint',
+        eyeStyle: sd.eyeStyle || 'round',
+        accessory: sd.accessory || 'none',
+      });
+      const col   = getSlimeColor(sd.colorId || 'mint');
+      const grade = s.grade ? s.grade : '';
+
+      // 과제 수행도 계산 — Student & Class와 완전히 동일한 방식
+      const wordBooks = (DB.books || []).filter(b => (s.assigned || []).includes(b.id));
+      let taskGoalTotal = 0, taskDoneTotal = 0;
+      let hasAnyOpts = false;
+      wordBooks.forEach(b => {
+        const opts = (DB.taskOptions || {})[s.id + '_' + b.id];
+        if (!opts) return;
+        hasAnyOpts = true;
+        const p = (DB.progress || {})[s.id + '_' + b.id] || {};
+        const rounds = p.rounds || 0;
+        const ql = (mode, dir) => quizLogs.filter(l => l.student_id===s.id && l.book_id===b.id && l.mode===mode && l.direction===dir).length;
+        const taskDefs = [
+          { done: rounds,                goal: opts.flashcard         || 0 },
+          { done: ql('choice','en2ko'),  goal: opts.quiz_choice_en2ko || 0 },
+          { done: ql('choice','ko2en'),  goal: opts.quiz_choice_ko2en || 0 },
+          { done: ql('input','en2ko'),   goal: opts.quiz_input_en2ko  || 0 },
+          { done: ql('input','ko2en'),   goal: opts.quiz_input_ko2en  || 0 },
+          { done: 0,                     goal: opts.test              || 0 },
+        ].filter(d => d.goal > 0);
+        taskGoalTotal += taskDefs.reduce((acc, d) => acc + d.goal, 0);
+        taskDoneTotal += taskDefs.reduce((acc, d) => acc + Math.min(d.done, d.goal), 0);
+      });
+      const hasTasks = hasAnyOpts;
+      const taskPct  = (hasTasks && taskGoalTotal > 0) ? Math.round(taskDoneTotal / taskGoalTotal * 100) : 0;
+      const barColor = taskPct >= 100 ? '#22c55e' : taskPct >= 50 ? '#f59e0b' : '#ef4444';
+      const pctColor = taskPct >= 100 ? '#16a34a' : taskPct >= 50 ? '#d97706' : '#dc2626';
+
+      const taskBarHtml = hasTasks ? `
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+          <span style="font-size:11px;font-weight:700;color:${pctColor}">${taskPct}% 수행</span>
+          <div style="width:60px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
+            <div style="height:100%;width:${taskPct}%;background:${barColor};border-radius:2px"></div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            ${who}
-            <span style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${m.body.slice(0, 40)}${m.body.length > 40 ? '...' : ''}</span>
+        </div>` : '';
+
+      html += `
+        <div class="msg-friend-row" onclick="openMsgStudentPopup('${s.id}')" style="overflow:visible">
+          <div class="msg-friend-avatar">
+            ${svg}
+            <span class="msg-lv-badge stage-${Math.min(sd.stage || 0, 3)}">Lv.${sd.stage || 0}</span>
+          </div>
+          <div class="msg-friend-info">
+            <div class="msg-friend-name">${_esc(s.name)}</div>
+            <div class="msg-friend-sub">Lv.${sd.stage || 0} ${stage.name}${grade ? ' · ' + grade : ''}</div>
+          </div>
+          ${taskBarHtml}
+          <svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`;
+    });
+  }
+  body.innerHTML = html;
+}
+
+/* ══════════════════════════════════════
+   대화목록
+══════════════════════════════════════ */
+async function renderChatsPanel() {
+  const body = document.getElementById('msg-chats-body');
+  if (!body) return;
+  body.innerHTML = `<div class="msg-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>불러오는 중…</div>`;
+
+  const isTeacher = currentUser?.role === 'teacher';
+
+  const { data: msgs } = await sb.from('messages')
+    .select('*, sender:profiles!messages_sender_id_fkey(id,name,role,slime_data), receiver:profiles!messages_receiver_id_fkey(id,name,role,slime_data)')
+    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+    .order('created_at', { ascending: false });
+
+  const lastMap  = {};  // { otherId: message }
+  const unreadMap = {}; // { otherId: count }
+
+  (msgs || []).forEach(m => {
+    const otherId = m.sender_id === currentUser.id ? m.receiver_id : m.sender_id;
+    if (!lastMap[otherId]) lastMap[otherId] = m;
+    if (!m.is_read && m.receiver_id === currentUser.id) {
+      unreadMap[otherId] = (unreadMap[otherId] || 0) + 1;
+    }
+  });
+
+  // 대상 목록 결정
+  let peers;
+  if (isTeacher) {
+    peers = (DB.users || []).filter(u => u.role === 'student');
+  } else {
+    // 학생: 대화 상대(선생님)만
+    const teacherIds = new Set(
+      Object.keys(lastMap).filter(id => {
+        const m = lastMap[id];
+        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
+        return other?.role === 'teacher';
+      })
+    );
+    peers = (DB.users || []).filter(u => teacherIds.has(u.id));
+    // DB.users에 없으면 메시지에서 직접 추출
+    if (!peers.length) {
+      const seen = new Set();
+      peers = [];
+      (msgs || []).forEach(m => {
+        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
+        if (other?.role === 'teacher' && !seen.has(other.id)) {
+          seen.add(other.id);
+          peers.push({ ...other });
+        }
+      });
+    }
+  }
+
+  // 마지막 대화 기준 정렬
+  peers.sort((a, b) => {
+    const ta = lastMap[a.id]?.created_at || '';
+    const tb = lastMap[b.id]?.created_at || '';
+    return tb.localeCompare(ta);
+  });
+
+  if (!peers.length) {
+    body.innerHTML = `<div class="msg-empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>대화 기록이 없습니다</div>`;
+    return;
+  }
+
+  let html = '';
+  peers.forEach(peer => {
+    const lm      = lastMap[peer.id];
+    const unread  = unreadMap[peer.id] || 0;
+    const timeStr = lm ? _chatTimeLabel(lm.created_at) : '';
+    const preview = lm ? (lm.body?.slice(0, 40) + (lm.body?.length > 40 ? '…' : '')) : '대화 없음';
+    const isMine  = lm?.sender_id === currentUser.id;
+
+    let avatarHTML;
+    if (isTeacher) {
+      const sd  = _getStudentSlimeData(peer);
+      const svg = buildMiniSlimeSVG(sd.stage || 0, 42, {
+        colorId:  sd.colorId  || 'mint',
+        eyeStyle: sd.eyeStyle || 'round',
+        accessory: sd.accessory || 'none',
+      });
+      const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+      avatarHTML = `${svg}`;
+    } else {
+      avatarHTML = `<span style="font-size:26px">👩‍🏫</span>`;
+    }
+
+    const peerLabel = isTeacher ? _esc(peer.name) : _esc(peer.name) + ' 선생님';
+
+    html += `
+      <div class="msg-chat-row${unread ? ' msg-chat-row-unread' : ''}" onclick="openChatView('${peer.id}','${_esc(peer.name)}')">
+        <div class="msg-chat-row-avatar" style="position:relative">${avatarHTML}</div>
+        <div class="msg-chat-row-info">
+          <div class="msg-chat-row-top">
+            <span class="msg-chat-row-name" style="font-weight:${unread ? 700 : 600}">${peerLabel}</span>
+            <span class="msg-chat-row-time">${timeStr}</span>
+          </div>
+          <div class="msg-chat-row-bot">
+            <span class="msg-chat-row-preview" style="font-weight:${unread ? 500 : 400};color:${unread ? 'var(--text)' : 'var(--text-muted)'}">${isMine ? '나: ' : ''}${_esc(preview)}</span>
+            ${unread ? `<span class="msg-chat-row-badge">${unread}</span>` : ''}
           </div>
         </div>
-        <button onclick="deleteMessage('${m.id}')"
-          style="flex-shrink:0;background:none;border:1px solid transparent;border-radius:7px;cursor:pointer;padding:4px 8px;color:var(--text-dim);font-size:15px;transition:all 0.15s"
-          onmouseenter="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
-          onmouseleave="this.style.borderColor='transparent';this.style.color='var(--text-dim)'"
-          title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>`;
-  }).join('');
+  });
+  body.innerHTML = html;
 }
 
-// 메시지 Supabase 조회 (공용)
-async function _fetchMessages() {
-  if (_msgTab === 'inbox') {
-    const { data } = await sb.from('messages')
-      .select('*, sender:profiles!messages_sender_id_fkey(name, role)')
-      .eq('receiver_id', currentUser.id)
-      .order('created_at', { ascending: false });
-    return data || [];
+/* ══════════════════════════════════════
+   채팅뷰
+══════════════════════════════════════ */
+async function openChatView(userId, userName) {
+  _chatTargetId   = userId;
+  _chatTargetName = userName;
+
+  // 헤더 아바타·이름 설정
+  const nameEl   = document.getElementById('msg-chat-name');
+  const subEl    = document.getElementById('msg-chat-sub');
+  const avatarEl = document.getElementById('msg-chat-avatar');
+  const isTeacher = currentUser?.role === 'teacher';
+
+  if (isTeacher) {
+    const student = (DB.users || []).find(u => u.id === userId);
+    if (student) {
+      const sd  = _getStudentSlimeData(student);
+      const svg = buildMiniSlimeSVG(sd.stage || 0, 38, {
+        colorId:  sd.colorId  || 'mint',
+        eyeStyle: sd.eyeStyle || 'round',
+        accessory: sd.accessory || 'none',
+      });
+      avatarEl.innerHTML = svg;
+      const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+      nameEl.textContent = userName;
+      subEl.textContent  = `Lv.${sd.stage || 0} ${stage.name}` + (student.grade ? '  ·  ' + student.grade : '');
+    }
   } else {
-    const { data } = await sb.from('messages')
-      .select('*, receiver:profiles!messages_receiver_id_fkey(name)')
-      .eq('sender_id', currentUser.id)
-      .order('created_at', { ascending: false });
-    return data || [];
+    avatarEl.innerHTML = '<span style="font-size:22px">👩‍🏫</span>';
+    nameEl.textContent  = userName + ' 선생님';
+    subEl.textContent   = '';
   }
+
+  // 슬라이드인
+  const chatView = document.getElementById('msg-chat-view');
+  chatView.style.display = 'flex';
+  requestAnimationFrame(() => chatView.classList.add('open'));
+
+  await loadChatMessages(userId);
+  closeMsgStudentPopup();
 }
 
-// 읽음 처리 (공용)
-function _markMessagesRead(msgs) {
-  if (_msgTab !== 'inbox') return;
-  const unreadIds = msgs.filter(m => !m.is_read).map(m => m.id);
+function closeChatView() {
+  const chatView = document.getElementById('msg-chat-view');
+  chatView.classList.remove('open');
+  setTimeout(() => { chatView.style.display = 'none'; }, 260);
+  _chatTargetId = null;
+}
+
+async function loadChatMessages(userId) {
+  const msgsEl = document.getElementById('msg-chat-messages');
+  if (!msgsEl) return;
+  msgsEl.innerHTML = `<div class="msg-empty" style="padding:30px 20px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>불러오는 중…</div>`;
+
+  const { data } = await sb.from('messages')
+    .select('id, sender_id, receiver_id, body, created_at, is_read')
+    .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
+    .order('created_at', { ascending: true });
+
+  const list = data || [];
+
+  // 읽음 처리
+  const unreadIds = list.filter(m => m.receiver_id === currentUser.id && !m.is_read).map(m => m.id);
   if (unreadIds.length) {
     sb.from('messages').update({ is_read: true }).in('id', unreadIds).then(() => updateUnreadBadge());
   }
-}
 
-async function renderMessages() {
-  const body = document.getElementById('messages-body');
-  const actionsEl = document.getElementById('messages-actions');
-  const subEl = document.getElementById('messages-sub');
-  if (!body) return;
-
-  // 액션 버튼
-  if (currentUser.role === 'teacher') {
-    actionsEl.innerHTML = `
-      <button class="btn btn-primary btn-sm" onclick="openSendMessageModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 쪽지 보내기</button>`;
-  } else {
-    actionsEl.innerHTML = `
-      <button class="btn btn-primary btn-sm" onclick="openReplyModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg> 답장</button>`;
+  if (!list.length) {
+    msgsEl.innerHTML = `<div class="msg-empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>첫 메시지를 보내보세요!</div>`;
+    return;
   }
 
-  if (subEl) subEl.textContent = '';
+  let html = '';
+  let lastDate = '';
+  list.forEach(m => {
+    const isMine  = m.sender_id === currentUser.id;
+    const dt      = new Date(m.created_at);
+    const dateStr = dt.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+    const timeStr = dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
-  const cache = _msgTab === 'inbox' ? DB_msgInbox : DB_msgSent;
-
-  if (cache !== null) {
-    // ① 캐시 있으면 즉시 렌더 — 잔상 없음
-    body.innerHTML = _buildMsgListHTML(cache);
-    // ② 백그라운드에서 조용히 갱신
-    _fetchMessages().then(fresh => {
-      if (_msgTab === 'inbox') DB_msgInbox = fresh;
-      else DB_msgSent = fresh;
-      body.innerHTML = _buildMsgListHTML(fresh);
-      _markMessagesRead(fresh);
-    }).catch(() => {});
-  } else {
-    // ③ 최초 진입만 로딩 표시
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim)">불러오는 중...</div>';
-    try {
-      const msgs = await _fetchMessages();
-      if (_msgTab === 'inbox') DB_msgInbox = msgs;
-      else DB_msgSent = msgs;
-      body.innerHTML = _buildMsgListHTML(msgs);
-      _markMessagesRead(msgs);
-    } catch(e) {
-      body.innerHTML = `<div style="color:var(--red);padding:20px">오류: ${e.message}</div>`;
+    if (dateStr !== lastDate) {
+      lastDate = dateStr;
+      html += `<div class="msg-date-divider"><span>${dateStr}</span></div>`;
     }
-  }
-}
 
-function switchMsgTab(tab) {
-  _msgTab = tab;
-  ['inbox','sent'].forEach(t => {
-    const btn = document.getElementById(`msg-tab-${t}`);
-    if (!btn) return;
-    const active = t === tab;
-    btn.style.color = active ? 'var(--accent)' : 'var(--text-muted)';
-    btn.style.fontWeight = active ? '600' : '400';
-    btn.style.borderBottom = active ? '2px solid var(--accent)' : '2px solid transparent';
+    html += `
+      <div class="msg-bubble-wrap ${isMine ? 'mine' : 'theirs'}">
+        <div class="msg-bubble-row ${isMine ? 'mine' : 'theirs'}">
+          <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${_esc(m.body)}</div>
+          <span class="msg-bubble-time">${timeStr}</span>
+        </div>
+      </div>`;
   });
-  renderMessages();
+  msgsEl.innerHTML = html;
+  msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
-async function openMessageDetail(msgId) {
-  const { data: m } = await sb.from('messages')
-    .select('*, sender:profiles!messages_sender_id_fkey(name,role), receiver:profiles!messages_receiver_id_fkey(name)')
-    .eq('id', msgId).single();
-  if (!m) return;
-  const date = new Date(m.created_at).toLocaleString('ko-KR');
-  const replyBtn = _msgTab === 'inbox' && currentUser.role === 'student'
-    ? `<button class="btn btn-primary" onclick="closeModal();openReplyModal('${m.sender?.name}','${esc(m.title)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg> 답장</button>`
-    : '';
-  showModal(`
-    <div class="modal-title">📨 ${m.title}</div>
-    <div style="display:flex;gap:16px;margin-bottom:16px;font-size:13px;color:var(--text-muted);flex-wrap:wrap">
-      <span>보낸 사람: <strong style="color:var(--text)">${m.sender?.name||'알 수 없음'}</strong></span>
-      <span>받는 사람: <strong style="color:var(--text)">${m.receiver?.name||'알 수 없음'}</strong></span>
-      <span>${date}</span>
-    </div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;font-size:15px;line-height:1.8;white-space:pre-wrap;min-height:80px">${m.body}</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteMessage('${m.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> 삭제</button>
-      ${replyBtn}
-    </div>`);
-}
-
-async function deleteMessage(msgId) {
-  showModal(`
-    <div class="modal-title" style="color:var(--red)">🗑 쪽지 삭제</div>
-    <p style="color:var(--text-muted);margin-bottom:4px">이 쪽지를 삭제할까요?</p>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
-      <button class="btn btn-danger" onclick="doDeleteMessage('${msgId}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> 삭제</button>
-    </div>`);
-}
-
-async function doDeleteMessage(msgId) {
+async function sendChatMessage() {
+  if (!_chatTargetId) return;
+  const inp  = document.getElementById('msg-chat-input');
+  const body = inp?.value.trim();
+  if (!body) return;
+  inp.value = '';
+  inp.style.height = 'auto';
   try {
-    await sb.from('messages').delete().eq('id', msgId);
-    // 캐시 무효화 → 다음 renderMessages 시 재조회
-    DB_msgInbox = null;
-    DB_msgSent  = null;
-    closeModal();
-    showToast('쪽지가 삭제됐습니다.', 'success');
-    renderMessages();
+    await sb.from('messages').insert({
+      sender_id:   currentUser.id,
+      receiver_id: _chatTargetId,
+      title:       '',
+      body,
+    });
+    await loadChatMessages(_chatTargetId);
+    DB_msgInbox = null; DB_msgSent = null;
   } catch(e) {
-    showToast('삭제 실패: ' + e.message, 'error');
+    showToast('전송 실패: ' + e.message, 'error');
   }
 }
 
-// 선생님: 쪽지 보내기 (개별 또는 반 전체)
-async function openSendMessageModal() {
-  await loadClasses();
-  const students = DB.users.filter(u => u.role === 'student');
-  showModal(`
-    <div class="modal-title">✉️ 쪽지 보내기</div>
-    <div class="form-group">
-      <label class="form-label">받는 사람</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--surface2)">
-        ${DB_classes.length ? `<div style="grid-column:1/-1;font-size:13px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">반 전체</div>
-        ${DB_classes.map(c => `
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);cursor:pointer;font-size:14px">
-            <input type="checkbox" value="class_${c.id}" class="msg-recv-chk" style="accent-color:var(--accent)">
-            🏫 ${c.name}
-          </label>`).join('')}
-        <div style="grid-column:1/-1;font-size:13px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px">개별 학생</div>` : ''}
-        ${students.map(s => `
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);cursor:pointer;font-size:14px">
-            <input type="checkbox" value="student_${s.id}" class="msg-recv-chk" style="accent-color:var(--accent)">
-            🐥 ${s.name}
-          </label>`).join('')}
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">제목</label>
-      <input class="form-input" id="msg-title-inp" placeholder="예: 이번 주 숙제 안내">
-    </div>
-    <div class="form-group">
-      <label class="form-label">내용</label>
-      <textarea class="form-input" id="msg-body-inp" rows="5" placeholder="쪽지 내용을 입력하세요..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" onclick="sendMessages()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 보내기</button>
-    </div>`);
-  setTimeout(() => document.getElementById('msg-title-inp')?.focus(), 80);
+/* ══════════════════════════════════════
+   학생 바텀시트 팝업
+══════════════════════════════════════ */
+function openMsgStudentPopup(studentId) {
+  const student = (DB.users || []).find(u => u.id === studentId);
+  if (!student) return;
+  _msgStudentTarget = student;
+
+  const sd    = _getStudentSlimeData(student);
+  const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+  const prog  = _expProgress(sd);
+  const col   = getSlimeColor(sd.colorId || 'mint');
+
+  // 아바타
+  const svg = buildMiniSlimeSVG(sd.stage || 0, 64, {
+    colorId:  sd.colorId  || 'mint',
+    eyeStyle: sd.eyeStyle || 'round',
+    accessory: sd.accessory || 'none',
+  });
+  document.getElementById('msp-avatar').innerHTML = svg;
+  document.getElementById('msp-name').textContent = student.name;
+  document.getElementById('msp-meta').textContent = [student.grade, student.email].filter(Boolean).join(' · ') || '학생';
+  document.getElementById('msp-badge').innerHTML  = `
+    <span class="msg-bs-stage-chip" style="background:${col.light};color:${col.dark}">
+      Lv.${sd.stage || 0} ${stage.name}
+    </span>`;
+
+  // EXP 바
+  document.getElementById('msp-stage-name').textContent = stage.badge + ' 단계';
+  document.getElementById('msp-exp-val').textContent     = `EXP ${prog.cur}`;
+  document.getElementById('msp-exp-fill').style.width    = prog.pct + '%';
+  document.getElementById('msp-exp-fill').style.background =
+    `linear-gradient(90deg, ${col.b}, ${col.a})`;
+
+  // 바텀시트 열기
+  document.getElementById('msg-bs-backdrop').style.display = 'block';
+  requestAnimationFrame(() => {
+    document.getElementById('msg-bs-backdrop').style.opacity = '1';
+    document.getElementById('msg-bs').classList.add('open');
+  });
 }
 
-// 반 전체에 단체 쪽지 보내기 (반 관리 페이지에서)
+function closeMsgStudentPopup() {
+  document.getElementById('msg-bs').classList.remove('open');
+  document.getElementById('msg-bs-backdrop').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('msg-bs-backdrop').style.display = 'none';
+  }, 300);
+}
+
+function openStudentStatus() {
+  if (!_msgStudentTarget) return;
+  closeMsgStudentPopup();
+  setTimeout(() => openStudentProgressModal(_msgStudentTarget.id), 320);
+}
+function openChatWithStudent() {
+  if (!_msgStudentTarget) return;
+  openChatView(_msgStudentTarget.id, _msgStudentTarget.name);
+}
+
+/* ══════════════════════════════════════
+   학습 현황 모달 (과제 현황 뷰)
+══════════════════════════════════════ */
+async function openStudentProgressModal(studentId) {
+  const student = (DB.users || []).find(u => u.id === studentId);
+  if (!student) return;
+
+  // ── 데이터 fetch ──
+  let quizLogs = [], sentSubs = [];
+  try {
+    const [qlRes, ssRes] = await Promise.all([
+      sb.from('quiz_logs').select('book_id,mode,direction').eq('student_id', studentId),
+      sb.from('sentence_submissions').select('book_id,type').eq('student_id', studentId)
+    ]);
+    quizLogs = qlRes.data || [];
+    sentSubs = ssRes.data || [];
+  } catch(e) { console.warn('openStudentProgressModal fetch 실패', e); }
+
+  const prog     = DB.progress || {};
+  const wordBooks = (DB.books || []).filter(b => (student.assigned || []).includes(b.id));
+  const sentBooks = (DB_sentBooks || []).filter(b =>
+    (DB_sentAssigns || []).some(a => a.student_id === studentId && a.book_id === b.id)
+  );
+  const totalAssigns = wordBooks.length + sentBooks.length;
+
+  // ── 헬퍼 ──
+  function qlCount(bid, mode, dir) {
+    return quizLogs.filter(l => l.book_id === bid && l.mode === mode && l.direction === dir).length;
+  }
+  function ssCount(bid, type) {
+    return sentSubs.filter(s => s.book_id === bid && s.type === type).length;
+  }
+  function taskToken(label, done) {
+    return done
+      ? `<span style="color:var(--t3);text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:1.2px">${label}</span>`
+      : `<span style="color:var(--t3)">${label}</span>`;
+  }
+
+  // ── 단어 교재 행 ──
+  function wordBookLine(b) {
+    const p      = prog[studentId + '_' + b.id] || {};
+    const rounds = p.rounds || 0;
+    const scores = p.quizScores || [];
+    const opts   = (DB.taskOptions || {})[studentId + '_' + b.id] || null;
+    const collName = (DB.collections || []).find(c => c.id === b.collectionId)?.name || b.collectionName || null;
+
+    let tokens = [];
+    if (opts) {
+      if (opts.flashcard > 0)        tokens.push(taskToken(`암기 ${opts.flashcard}회`, rounds >= opts.flashcard));
+      if (opts.quiz_choice_en2ko > 0) tokens.push(taskToken(`객관식 영→한 ${opts.quiz_choice_en2ko}회`, qlCount(b.id,'choice','en2ko') >= opts.quiz_choice_en2ko));
+      if (opts.quiz_choice_ko2en > 0) tokens.push(taskToken(`객관식 한→영 ${opts.quiz_choice_ko2en}회`, qlCount(b.id,'choice','ko2en') >= opts.quiz_choice_ko2en));
+      if (opts.quiz_input_en2ko > 0)  tokens.push(taskToken(`주관식 영→한 ${opts.quiz_input_en2ko}회`, qlCount(b.id,'input','en2ko') >= opts.quiz_input_en2ko));
+      if (opts.quiz_input_ko2en > 0)  tokens.push(taskToken(`주관식 한→영 ${opts.quiz_input_ko2en}회`, qlCount(b.id,'input','ko2en') >= opts.quiz_input_ko2en));
+      if (opts.test > 0)             tokens.push(taskToken(`테스트 ${opts.test}회`, false));
+    } else {
+      tokens.push(taskToken('자유학습', rounds > 0 || scores.length > 0));
+    }
+
+    const totalGoal = opts ? [opts.flashcard,opts.quiz_choice_en2ko,opts.quiz_choice_ko2en,opts.quiz_input_en2ko,opts.quiz_input_ko2en,opts.test].filter(Boolean).length : 1;
+    const totalDone = opts ? [
+      opts.flashcard > 0 && rounds >= opts.flashcard,
+      opts.quiz_choice_en2ko > 0 && qlCount(b.id,'choice','en2ko') >= opts.quiz_choice_en2ko,
+      opts.quiz_choice_ko2en > 0 && qlCount(b.id,'choice','ko2en') >= opts.quiz_choice_ko2en,
+      opts.quiz_input_en2ko > 0 && qlCount(b.id,'input','en2ko') >= opts.quiz_input_en2ko,
+      opts.quiz_input_ko2en > 0 && qlCount(b.id,'input','ko2en') >= opts.quiz_input_ko2en,
+      opts.test > 0 && false
+    ].filter(Boolean).length : (rounds > 0 ? 1 : 0);
+    const pct = totalGoal > 0 ? Math.round(totalDone / totalGoal * 100) : 0;
+    const barColor = pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+    const txtColor = pct >= 100 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+
+    const barHtml = opts ? `<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <div style="width:52px;height:4px;border-radius:2px;background:var(--border);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px"></div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:${txtColor};min-width:34px;text-align:right">${pct}%</span>
+    </div>` : '';
+
+    const collHtml = collName ? `<span style="font-size:14px;color:#1e40af;font-weight:600;margin-right:3px">${_esc(collName)} /</span>` : '';
+    const tokensHtml = tokens.length
+      ? `<div style="margin-top:4px;font-size:13px">${tokens.join('<span style="color:var(--border2);margin:0 5px">·</span>')}</div>` : '';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border)">
+      <span style="flex-shrink:0;font-size:12px;font-weight:600;color:var(--t3);width:30px;text-align:center">단어</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;color:var(--t1)">${collHtml}${_esc(b.name || b.title || '')}</div>
+        ${tokensHtml}
+      </div>
+      ${barHtml}
+      <button onclick="revokeBookAssign('${b.id}','${studentId}','${(student.name||'').replace(/'/g,"\\'")}')"
+        style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
+        onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+    </div>`;
+  }
+
+  // ── 문장 교재 행 ──
+  function sentBookLine(b) {
+    const sa = (DB_sentAssigns || []).find(a => a.student_id === studentId && a.book_id === b.id);
+    let opts = null;
+    if (sa?.task_options) {
+      try { opts = typeof sa.task_options === 'string' ? JSON.parse(sa.task_options) : sa.task_options; } catch(e) {}
+    }
+    const collName = (DB_sentColls || []).find(c => c.id === b.collection_id)?.name || null;
+
+    let tokens = [];
+    if (opts) {
+      if (opts.unscramble > 0) tokens.push(taskToken(`배열 ${opts.unscramble}회`, ssCount(b.id,'unscramble') >= opts.unscramble));
+      if (opts.dictation > 0)  tokens.push(taskToken(`빈칸 ${opts.dictation}회`, ssCount(b.id,'dictation') >= opts.dictation));
+      if (opts.record > 0)     tokens.push(taskToken(`낭독 ${opts.record}회`, ssCount(b.id,'record') >= opts.record));
+    } else {
+      tokens.push(taskToken('자유학습', sentSubs.some(s => s.book_id === b.id)));
+    }
+
+    const collHtml = collName ? `<span style="font-size:14px;color:#1e40af;font-weight:600;margin-right:3px">${_esc(collName)} /</span>` : '';
+    const tokensHtml = tokens.length
+      ? `<div style="margin-top:4px;font-size:13px">${tokens.join('<span style="color:var(--border2);margin:0 5px">·</span>')}</div>` : '';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border)">
+      <span style="flex-shrink:0;font-size:12px;font-weight:600;color:var(--t3);width:30px;text-align:center">문장</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;color:var(--t1)">${collHtml}${_esc(b.name || b.title || '')}</div>
+        ${tokensHtml}
+      </div>
+      <button onclick="revokeSentAssign('${b.id}','${studentId}','${(student.name||'').replace(/'/g,"\\'")}')"
+        style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
+        onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+    </div>`;
+  }
+
+  // ── 미시작 뱃지 ──
+  const anyStarted = wordBooks.some(b => {
+    const p = prog[studentId+'_'+b.id]||{};
+    return (p.rounds||0)>0 || (p.quizScores||[]).length>0 || quizLogs.some(l=>l.book_id===b.id);
+  }) || sentSubs.length > 0;
+  const notStarted = totalAssigns > 0 && !anyStarted;
+  const badge = notStarted
+    ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;margin-left:6px">미시작</span>`
+    : '';
+
+  const _allLines = [
+    ...wordBooks.map(wordBookLine),
+    ...sentBooks.map(sentBookLine)
+  ];
+  if (_allLines.length > 0) {
+    _allLines[_allLines.length - 1] = _allLines[_allLines.length - 1].replace(
+      'border-bottom:0.5px solid var(--border)', 'border-bottom:none'
+    );
+  }
+  const linesHtml = _allLines.join('');
+
+  const bodyHtml = totalAssigns
+    ? `<div style="padding-left:4px">${linesHtml}</div>`
+    : `<div style="text-align:center;padding:24px 0;color:var(--t3);font-size:13px">배정된 교재가 없습니다</div>`;
+
+
+  // ── 슬라임 상태바 ──
+  const sd    = _getStudentSlimeData(student);
+  const col   = getSlimeColor(sd.colorId || 'mint');
+  const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+  const eprog = _expProgress(sd);
+  const svg   = buildMiniSlimeSVG(sd.stage || 0, 36, {
+    colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none'
+  });
+  const slimeBar = `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${col.light};border-radius:12px;margin-bottom:12px;border:1px solid ${col.a}22">
+      <div style="width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center">${svg}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:${col.dark}">Lv.${sd.stage || 0} ${stage.name} · EXP ${sd.exp || 0}</div>
+        <div style="margin-top:5px;height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${eprog.pct}%;background:${col.b};border-radius:3px;transition:width 0.5s"></div>
+        </div>
+      </div>
+    </div>`;
+
+  showModal(`
+    <div class="modal-title" style="margin-bottom:10px">${_esc(student.name)} — 과제 현황</div>
+    ${slimeBar}
+    <div style="font-size:13px;color:var(--t3);margin-bottom:16px;display:flex;align-items:center;gap:6px">
+      배정 ${totalAssigns}건${badge}
+    </div>
+    <div style="max-height:440px;overflow-y:auto">
+      ${bodyHtml}
+    </div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      <button class="btn btn-primary" onclick="closeModal();openChatView('${student.id}','${_esc(student.name)}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 쪽지 보내기
+      </button>
+    </div>`);
+}
+
+/* 반 전체 쪽지 (반 관리 페이지 호환) */
 async function openSendClassMessageModal(classId, className) {
   showModal(`
-    <div class="modal-title">✉️ "${className}" 반 전체 쪽지</div>
-    <div class="form-group">
-      <label class="form-label">제목</label>
-      <input class="form-input" id="cls-msg-title" placeholder="예: 숙제 안내">
-    </div>
+    <div class="modal-title">✉️ "${_esc(className)}" 반 전체 쪽지</div>
     <div class="form-group">
       <label class="form-label">내용</label>
-      <textarea class="form-input" id="cls-msg-body" rows="5" placeholder="내용을 입력하세요..."></textarea>
+      <textarea class="form-input" id="cls-msg-body" rows="5" placeholder="내용을 입력하세요…"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="sendClassMessage('${classId}')">반 전체에 보내기</button>
     </div>`);
-  setTimeout(() => document.getElementById('cls-msg-title')?.focus(), 80);
+  setTimeout(() => document.getElementById('cls-msg-body')?.focus(), 80);
 }
-
 async function sendClassMessage(classId) {
-  const title = document.getElementById('cls-msg-title').value.trim();
   const body = document.getElementById('cls-msg-body').value.trim();
-  if (!title || !body) { showToast('제목과 내용을 입력하세요.', 'error'); return; }
+  if (!body) { showToast('내용을 입력하세요.', 'error'); return; }
   const cls = DB_classes.find(c => c.id === classId);
-  if (!cls) return;
-  const memberIds = cls.memberIds;
-  if (!memberIds.length) { showToast('반에 학생이 없습니다.', 'error'); return; }
+  if (!cls || !cls.memberIds?.length) { showToast('반에 학생이 없습니다.', 'error'); return; }
   try {
     await sb.from('messages').insert(
-      memberIds.map(rid => ({ sender_id: currentUser.id, receiver_id: rid, class_id: classId, title, body }))
+      cls.memberIds.map(rid => ({ sender_id: currentUser.id, receiver_id: rid, class_id: classId, title: '', body }))
     );
     closeModal();
-    showToast(`${memberIds.length}명에게 쪽지를 보냈습니다!`, 'success');
+    showToast(`${cls.memberIds.length}명에게 쪽지를 보냈습니다!`, 'success');
   } catch(e) { showToast('전송 실패: ' + e.message, 'error'); }
 }
 
-async function sendMessages() {
-  const title = document.getElementById('msg-title-inp').value.trim();
-  const body = document.getElementById('msg-body-inp').value.trim();
-  if (!title || !body) { showToast('제목과 내용을 입력하세요.', 'error'); return; }
-
-  const checked = [...document.querySelectorAll('.msg-recv-chk:checked')].map(c => c.value);
-  if (!checked.length) { showToast('받는 사람을 선택하세요.', 'error'); return; }
-
-  // 수신자 ID 수집 (반이면 멤버 전체 포함)
-  const receiverIds = new Set();
-  for (const val of checked) {
-    if (val.startsWith('class_')) {
-      const classId = val.replace('class_', '');
-      const cls = DB_classes.find(c => c.id === classId);
-      cls?.memberIds.forEach(id => receiverIds.add(id));
-    } else {
-      receiverIds.add(val.replace('student_', ''));
-    }
+/* 구버전 호환 stubs */
+function switchMsgTab() {}
+function openReplyModal() { showPage('pg-messages'); }
+function sendReply() {}
+function openMessageDetail() {}
+function deleteMessage() {}
+function doDeleteMessage() {}
+function sendMessages() {}
+async function openSendMessageModal(prefillStudentId) {
+  if (prefillStudentId) {
+    const s = (DB.users || []).find(u => u.id === prefillStudentId);
+    if (s) { showPage('pg-messages'); await openChatView(s.id, s.name); return; }
   }
-
-  try {
-    await sb.from('messages').insert(
-      [...receiverIds].map(rid => ({ sender_id: currentUser.id, receiver_id: rid, title, body }))
-    );
-    closeModal();
-    showToast(`${receiverIds.size}명에게 쪽지를 보냈습니다!`, 'success');
-    renderMessages();
-  } catch(e) { showToast('전송 실패: ' + e.message, 'error'); }
+  showPage('pg-messages');
 }
-
-// 학생: 선생님께 답장
-async function openReplyModal(senderName = '선생님', originalTitle = '') {
-  const teachers = DB.users.filter(u => u.role === 'teacher');
-  const replyTitle = originalTitle ? `Re: ${originalTitle}` : '';
-  showModal(`
-    <div class="modal-title">선생님께 답장</div>
-    ${teachers.length > 1 ? `
-    <div class="form-group">
-      <label class="form-label">받는 선생님</label>
-      <select class="form-input" id="reply-teacher-sel">
-        ${teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-      </select>
-    </div>` : `<input type="hidden" id="reply-teacher-sel" value="${teachers[0]?.id||''}">`}
-    <div class="form-group">
-      <label class="form-label">제목</label>
-      <input class="form-input" id="reply-title-inp" value="${replyTitle}" placeholder="제목 입력">
-    </div>
-    <div class="form-group">
-      <label class="form-label">내용</label>
-      <textarea class="form-input" id="reply-body-inp" rows="5" placeholder="내용을 입력하세요..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" onclick="sendReply()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 보내기</button>
-    </div>`);
-  setTimeout(() => document.getElementById('reply-body-inp')?.focus(), 80);
-}
-
-async function sendReply() {
-  const teacherId = document.getElementById('reply-teacher-sel').value;
-  const title = document.getElementById('reply-title-inp').value.trim();
-  const body = document.getElementById('reply-body-inp').value.trim();
-  if (!teacherId) { showToast('선생님을 선택하세요.', 'error'); return; }
-  if (!title || !body) { showToast('제목과 내용을 입력하세요.', 'error'); return; }
-  try {
-    await sb.from('messages').insert({ sender_id: currentUser.id, receiver_id: teacherId, title, body });
-    closeModal();
-    showToast('쪽지를 보냈습니다!', 'success');
-    renderMessages();
-  } catch(e) { showToast('전송 실패: ' + e.message, 'error'); }
-}
-
 
 
 // 구버전 slimePreviewUpdate 호환
