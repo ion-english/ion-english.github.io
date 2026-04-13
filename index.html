@@ -2685,6 +2685,83 @@ body.student-mode {
   #overlay-slime-chat-bar { display:none !important; }
   #ov-jelly-badge { display:none !important; }
 }
+
+/* ── 모바일 hover 잔상 방지 ──────────────────────────────
+   터치 기기(hover: none)에서는 모든 :hover 스타일을 무효화.
+   @media (hover: hover)는 실제 마우스/트랙패드가 있는 기기만 적용.
+   ──────────────────────────────────────────────────────── */
+@media (hover: none) {
+  /* 카드/행 lift 효과 제거 */
+  .stat-card:hover,
+  .book-card:hover,
+  .fv-card:hover { transform: none !important; box-shadow: none !important; border-color: inherit !important; }
+
+  /* 버튼 hover 효과 제거 */
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-ghost:hover,
+  .btn-success:hover,
+  .btn-danger:hover,
+  .btn-gold:hover,
+  .login-btn:hover,
+  .slime-popup-btn:hover,
+  .slime-deco-btn:hover,
+  .msg-bs-btn.ghost:hover,
+  .msg-bs-btn.primary:hover { transform: none !important; box-shadow: none !important; opacity: 1 !important; background: inherit !important; border-color: inherit !important; }
+
+  /* 네비 hover 제거 */
+  .nav-item:hover { color: inherit !important; background: inherit !important; }
+  .nav-item:hover .nav-icon { opacity: inherit !important; }
+  .logout-btn:hover { border-color: inherit !important; color: inherit !important; background: inherit !important; }
+  .student-topbar-btn:hover { background: inherit !important; }
+  .student-profile-menu-item:hover { background: inherit !important; }
+
+  /* 메시지 행 hover 제거 */
+  .msg-friend-row:hover,
+  .msg-chat-row:hover { background: inherit !important; }
+  .msg-friend-row:hover .msg-friend-chevron { opacity: 0 !important; transform: none !important; }
+  .msg-back-btn:hover { background: inherit !important; color: inherit !important; }
+
+  /* 테이블 행 hover 제거 */
+  tbody tr:hover td { background: inherit !important; }
+
+  /* row-hover-actions: 모바일은 항상 표시(이미 별도 처리됨) */
+
+  /* 슬라임 관련 hover 제거 */
+  .slime-stage:hover .slime-body { animation: none !important; }
+  .slime-chat-bar-avatar:hover { background: inherit !important; }
+  .slime-chat-bar-send:hover { background: #7C6FF7 !important; transform: none !important; }
+  .slime-study-more:hover { color: inherit !important; }
+  .slime-book-item:hover { background: inherit !important; padding-left: 10px !important; }
+  .slime-dropdown-item:hover { background: inherit !important; }
+  .slime-popup-close:hover { background: inherit !important; color: inherit !important; }
+  .slime-badge-item.earned:hover { transform: none !important; box-shadow: none !important; }
+  .slime-chat-quick:hover { background: inherit !important; }
+
+  /* 퀴즈 옵션 hover 제거 */
+  .quiz-opt:hover:not(.locked) { background: inherit !important; border-color: inherit !important; }
+  .quiz-opt:hover::before { opacity: 0 !important; }
+
+  /* chip hover 제거 (active는 유지) */
+  .chip:hover:not(.active) { border-color: inherit !important; background: inherit !important; color: inherit !important; font-weight: inherit !important; }
+
+  /* 기타 인라인 액션 hover 제거 */
+  .row-insert-btn:hover { background: inherit !important; transform: none !important; }
+  .row-del-inline-btn:hover { background: inherit !important; color: inherit !important; border-color: inherit !important; transform: none !important; }
+  .word-drag-handle:hover { color: inherit !important; }
+  .upload-zone:hover { border-color: inherit !important; background: inherit !important; transform: none !important; }
+  .mgmt-tab-btn:hover { background: inherit !important; color: inherit !important; border-color: inherit !important; }
+  .speak-btn:hover { background: inherit !important; transform: none !important; }
+  .fav-toggle:hover { opacity: 1 !important; }
+
+  /* fc 버튼 hover 제거 */
+  .fc-btn-prev:hover:not(:disabled) { border-color: inherit !important; color: inherit !important; transform: none !important; }
+  .fc-btn-next:hover { transform: none !important; box-shadow: none !important; }
+  .fc-btn-sound:hover { background: inherit !important; transform: none !important; }
+
+  /* dash scroll hover 제거 */
+  .dash-recent-scroll:hover { /* 스크롤바 색만이므로 유지 가능 */ }
+}
 </style>
 
 
@@ -4438,6 +4515,59 @@ function resetSessionTimer() {
 }
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer);
+
+/* ── 모바일 hover 잔상 방지 (JS) ─────────────────────────────
+   터치 이후 브라우저가 :hover 상태를 흉내내는 문제를 해결.
+   touchend 시 해당 엘리먼트를 잠깐 blur 처리하거나,
+   body에 'touch-device' 클래스를 달아 CSS와 연동.
+   ─────────────────────────────────────────────────────────── */
+(function() {
+  let _isTouchDevice = false;
+
+  // 최초 touchstart 발생 시 터치 기기로 판정
+  document.addEventListener('touchstart', function onFirstTouch() {
+    _isTouchDevice = true;
+    document.documentElement.classList.add('touch-device');
+    document.removeEventListener('touchstart', onFirstTouch);
+  }, { passive: true });
+
+  // touchend 시 hover 잔상 제거:
+  // 터치한 엘리먼트 또는 상위 hover 대상을 찾아 DOM에서 잠깐 떼었다 붙이는
+  // 방식 대신, 포커스를 body로 넘겨 브라우저의 hover 에뮬레이션을 해제
+  document.addEventListener('touchend', function(e) {
+    // 터치 직후 포커스를 이동시켜 hover sticky 상태 해제
+    const el = e.target;
+    if (!el) return;
+    // 클릭 가능한 엘리먼트가 아닌 경우 body로 포커스 이동
+    const focusable = el.closest('button,a,input,select,textarea,[tabindex]');
+    if (!focusable) {
+      // hover 잔상을 남기는 조상을 찾아 blur 트릭 적용
+      const hoverTarget = el.closest(
+        '.book-card,.stat-card,.fv-card,.nav-item,.msg-friend-row,.msg-chat-row,' +
+        '.quiz-opt,.slime-stage,.chip,.btn-primary,.btn-secondary,.btn-ghost,' +
+        '.btn-danger,.btn-success,.btn-gold,.slime-popup-btn,.slime-deco-btn'
+      );
+      if (hoverTarget) {
+        // 짧게 display none → block 트릭 없이, tabIndex로 focus/blur
+        const prev = hoverTarget.getAttribute('tabindex');
+        hoverTarget.setAttribute('tabindex', '-1');
+        hoverTarget.blur();
+        if (prev === null) hoverTarget.removeAttribute('tabindex');
+        else hoverTarget.setAttribute('tabindex', prev);
+      }
+    }
+  }, { passive: true });
+
+  // ── onmouseover/onmouseout 인라인 핸들러 무력화 ──────────
+  // 터치 기기에서 mouseover/mouseout 이벤트가 발생해도 inline handler를
+  // 실행하지 않도록 캡처 단계에서 차단.
+  // (onmouseover/onmouseout이 수백 곳에 인라인으로 있어 전역 차단이 가장 안전)
+  function blockMouseHoverOnTouch(e) {
+    if (_isTouchDevice) e.stopImmediatePropagation();
+  }
+  document.addEventListener('mouseover', blockMouseHoverOnTouch, true);
+  document.addEventListener('mouseout',  blockMouseHoverOnTouch, true);
+})();
 
 // 선생님 계정은 모든 단어장/문장집 편집·삭제 가능
 function isTeacherOrOwner(item) {
