@@ -7054,7 +7054,7 @@ sb.auth.onAuthStateChange((event, session) => {
 const teacherNav = [
   { group:'Material', items:[
     {id:'pg-dashboard',icon:'dashboard',label:'Dashboard'},
-    {id:'pg-library',icon:'library',label:'Word'},
+    {id:'pg-library',icon:'library',label:'Voca'},
     {id:'pg-sentences',icon:'sentences',label:'Reading'},
     {id:'pg-filevault',icon:'filevault',label:'Edit'},
   ]},
@@ -7071,7 +7071,7 @@ const studentNav = [
     {id:'pg-slime-home',icon:'slime',label:'My Slime'},
   ]},
   { group:'Learning', items:[
-    {id:'pg-mybooks',icon:'library',label:'Word'},
+    {id:'pg-mybooks',icon:'library',label:'Voca'},
     {id:'pg-sentence-study',icon:'sentences',label:'Reading'},
     {id:'pg-progress',icon:'progress',label:'Record'},
     {id:'pg-messages',icon:'messages',label:'Message'},
@@ -7114,9 +7114,9 @@ function buildNav() {
 }
 
 const pageTitles = {
-  'pg-dashboard':'Dashboard','pg-library':'Word',
+  'pg-dashboard':'Dashboard','pg-library':'Voca',
   'pg-assign':'Student & Class','pg-ai':'AI 단어 생성','pg-filevault':'Edit',
-  'pg-mybooks':'Word','pg-flashcard':'암기 학습',
+  'pg-mybooks':'Voca','pg-flashcard':'암기 학습',
   'pg-quiz':'퀴즈 테스트','pg-progress':'Record',
   'pg-sentences':'Reading','pg-sentence-study':'Reading',
   'pg-classes':'Student & Class','pg-messages':'Message',
@@ -11280,7 +11280,7 @@ function sentStudyBackToList() {
   const ov = document.getElementById('sent-book-overlay');
   if (ov) ov.remove();
   const titleEl = document.getElementById('topbar-title');
-  if (titleEl) titleEl.textContent = 'Sentences';
+  if (titleEl) titleEl.textContent = 'Reading';
 }
 
 async function openSentStudyBook(bookId) {
@@ -11989,7 +11989,7 @@ async function renderSentenceStudy() {
   if (!body) return;
   body.style.display = '';
   const titleEl2 = document.getElementById('topbar-title');
-  if (titleEl2) titleEl2.textContent = 'Sentences';
+  if (titleEl2) titleEl2.textContent = 'Reading';
 
   function _renderSentStudyGrid() {
     if (!DB_sentBooks.length) {
@@ -16420,13 +16420,13 @@ async function openStudentDetailInline(studentId) {
           ? '<span style="font-size:13px;color:#1e4db7;font-weight:600">누적 오답 없음 ✓</span>'
           : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
               ${wrongWords.slice(0,20).map(w=>`
-                <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:5px 12px;font-size:14px">
+                <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:4px 10px;font-size:13px">
                   <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#f87171">${w.en}</span>
                   <span style="color:#94a3b8">→</span>
                   <span style="color:#0f172a">${w.ko}</span>
-                  ${(w.count||1)>1?`<span style="background:#ef4444;color:white;border-radius:99px;padding:1px 6px;font-size:12px;font-weight:700">×${w.count}</span>`:''}
+                  ${(w.count||1)>1?`<span style="background:#ef4444;color:white;border-radius:99px;padding:0 5px;font-size:11px;font-weight:700">×${w.count}</span>`:''}
                 </span>`).join('')}
-              ${wrongWords.length>20?`<span style="font-size:14px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
+              ${wrongWords.length>20?`<span style="font-size:13px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
             </div>`;
 
         // 과제 현황 섹션
@@ -16489,7 +16489,7 @@ async function openStudentDetailInline(studentId) {
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
                   <span style="font-size:11px;color:#1e4db7;flex-shrink:0">■</span>
-                  <div style="font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+                  <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
                   ${b.collectionName?`<span style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.collectionName}</span>`:''}
                 </div>
               </div>
@@ -18015,11 +18015,7 @@ async function openStudentWordView(bookId) {
         <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">암기</button>
         <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">퀴즈</button>
         <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
-        <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          프린트
-        </button>
-        <button onclick="document.getElementById('word-view-overlay').remove();bookMakeTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">시험지</button>
+
       </div>
 
     </div>
@@ -19391,16 +19387,31 @@ async function renderSentProgress() {
       { icon:'🎙', label:'낭독 횟수', val: allRecSubs.length, color:'#475569' },
     ];
 
+    // ── 주간 문장 학습 요약 ──
+    const sentWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weekSubs    = submissions.filter(s => new Date(s.created_at) >= sentWeekAgo);
+    const weekStudy   = weekSubs.filter(s => s.type==='unscramble'||s.type==='dictation');
+    const weekRec     = weekSubs.filter(s => s.type==='record_full'||s.type==='record');
+    const weekPcts    = getPcts(weekStudy);
+    const weekSentAvg = weekPcts.length ? Math.round(weekPcts.reduce((a,b)=>a+b,0)/weekPcts.length) : null;
+
+    const weekStatItems = [
+      { icon:'📗', label:'문장집', val: DB_sentBooks.length+'개', color:'#1e4db7' },
+      { icon:'📅', label:'이번주 학습', val: weekStudy.length+'회', color:'#059669' },
+      { icon:'📊', label:'주간 평균', val: weekSentAvg!==null ? weekSentAvg+'%' : '-', color:'#d97706' },
+      { icon:'🎙', label:'이번주 낭독', val: weekRec.length+'회', color:'#475569' },
+    ];
+
     const summaryHTML = `
       <div class="slime-study-section" style="margin-bottom:14px">
         <div class="slime-study-section-head" style="margin-bottom:12px">
           <div class="slime-study-section-title">
             <div class="slime-section-dot" style="background:#059669"></div>
-            문장 학습 요약
+            주간 학습 요약
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          ${statItems.map(s=>`
+          ${weekStatItems.map(s=>`
             <div class="slime-stat-box">
               <div class="slime-stat-val" style="color:${s.color}">${s.val}</div>
               <div class="slime-stat-lbl">${s.icon} ${s.label}</div>
@@ -19550,7 +19561,7 @@ async function renderSentProgress() {
         </div>`;
     }).join('');
 
-    body.innerHTML = summaryHTML + bookCards;
+    body.innerHTML = bookCards;
 
   } catch(e) { body.innerHTML = emptyHTML('기록을 불러오지 못했습니다'); console.error(e); }
 }
@@ -19586,30 +19597,34 @@ async function renderProgress(){
   const assigned = getAssignedBooks();
   if (!assigned.length) { body.innerHTML = emptyHTML('배포된 단어장이 없습니다'); return; }
 
-  // 슬라임 배너
   body.innerHTML = '';
 
   async function _buildProgressSections(quizLogs) {
     const modeLabel = { choice:'4지선다', input:'단답형', essay:'주관식' };
     const dirLabel  = { en2ko:'영→한', ko2en:'한→영' };
 
+    // ── 주간 학습 요약 ──
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const weekLogs = quizLogs.filter(l => new Date(l.taken_at) >= weekAgo);
     const allScores  = assigned.flatMap(b=>(DB.progress[currentUser.id+'_'+b.id]?.quizScores||[]));
     const totalRounds= assigned.reduce((s,b)=>s+(DB.progress[currentUser.id+'_'+b.id]?.rounds||0),0);
-    const overallAvg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : null;
+    const weekScores = weekLogs.map(l => Math.round(l.score/l.total*100));
+    const weekAvg    = weekScores.length ? Math.round(weekScores.reduce((a,b)=>a+b,0)/weekScores.length) : null;
     const overallBest= allScores.length ? Math.max(...allScores) : null;
 
     const summaryStatItems = [
-      { icon:'📖', label:'총 회독', val: totalRounds,                              color:'#818cf8' },
-      { icon:'📊', label:'전체 평균', val: overallAvg!==null ? overallAvg+'%' : '-', color:'#1e4db7' },
+      { icon:'📖', label:'총 회독', val: totalRounds, color:'#818cf8' },
+      { icon:'📅', label:'이번주 퀴즈', val: weekLogs.length+'회', color:'#1e4db7' },
+      { icon:'📊', label:'주간 평균', val: weekAvg!==null ? weekAvg+'%' : '-', color:'#059669' },
       { icon:'🏆', label:'최고 점수', val: overallBest!==null ? overallBest+'%':'-', color:'#d97706' },
-      { icon:'📝', label:'퀴즈 횟수', val: quizLogs.length,                         color:'#059669' },
     ];
     const summaryGrid = `
       <div class="slime-study-section" style="margin-bottom:14px">
         <div class="slime-study-section-head" style="margin-bottom:12px">
           <div class="slime-study-section-title">
             <div class="slime-section-dot" style="background:#1e4db7"></div>
-            단어 학습 요약
+            주간 학습 요약
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
@@ -19684,22 +19699,23 @@ async function renderProgress(){
         const _logId2 = l.id || (l.student_id + '_' + (l.taken_at||''));
         if (hasSnapshot) window._gradedLogMap[_logId2] = l;
         return `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned ? '-' : pct+'%'}</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap">
+            <span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${c};min-width:44px">${isAbandoned ? '-' : pct+'%'}</span>
             <span style="color:#64748b">${l.score}/${l.total}문제</span>
             ${isWordTest
-              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
-              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
+              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700">테스트</span>`
+              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
             }
             ${isAbandoned
-              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
               : wrongW.length
-                ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-                : `<span style="color:#059669;font-size:13px;font-weight:600">✓ 전부 정답</span>`
+                ? `<span style="color:#ef4444;font-size:12px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+                : isWordTest ? `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
+                : `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
             }
-            <span style="margin-left:auto;color:#94a3b8;font-size:13px">${date}</span>
-            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId2}')" style="padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
+            <span style="margin-left:auto;color:#94a3b8;font-size:12px">${date}</span>
+            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId2}')" style="padding:2px 9px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
           </div>`;
       }).join('');
 
@@ -19729,10 +19745,10 @@ async function renderProgress(){
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
               ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
-              <span style="font-size:13px;color:#818cf8;background:rgba(129,140,248,0.1);padding:3px 10px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
-              <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
+              <span style="font-size:12px;color:#818cf8;background:rgba(129,140,248,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
+              <span style="font-size:12px;color:#94a3b8;background:rgba(148,163,184,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
               <button onclick="confirmResetProgress('${b.id}','${esc(b.name)}')"
-                style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:4px"
+                style="padding:4px 10px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:4px"
                 onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg>
                 초기화
@@ -19752,7 +19768,7 @@ async function renderProgress(){
           ${modeStats?`
           <div style="margin-bottom:20px;padding-top:6px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">퀴즈 세부 기록</span>
+              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">퀴즈 세부 기록</span>
             </div>
             ${modeStats}
           </div>`:''}
@@ -19761,7 +19777,7 @@ async function renderProgress(){
           ${recentLogs?`
           <div style="margin-bottom:20px;padding-top:6px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">최근 퀴즈 기록</span>
+              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">최근 퀴즈 기록</span>
             </div>
             <div>${recentLogs}</div>
           </div>`:''}
@@ -19769,14 +19785,14 @@ async function renderProgress(){
           <!-- 오답 단어 -->
           <div style="padding-top:6px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">누적 오답 단어</span>
+              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">누적 오답 단어</span>
             </div>
             ${wrongSection}
           </div>
         </div>`;
     }).join('');
 
-    body.innerHTML = summaryGrid + sections;
+    body.innerHTML = sections;
   }
 
   if (DB_quizLogs !== null) {
@@ -20077,85 +20093,122 @@ async function renderProgress(){
       const rounds= prog.rounds||0;
       const wrongWords = (prog.wrongWords||[]).sort((a,c)=>(c.count||1)-(a.count||1));
       const best  = scores.length ? Math.max(...scores) : null;
-      const avg   = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-      const bestC = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-      const progPct = best!==null ? best : 0;
+      const bestC = best===null?'#94a3b8':best>=80?'#1e4db7':best>=60?'#1e4db7':'#ef4444';
       const bookLogs= quizLogs.filter(l=>l.book_id===b.id);
 
-      // 점수 추이 바 차트 (제거됨)
-      const barChart = '';
+      // 과제 현황
+      const taskOpts = (DB.taskOptions||{})[currentUser.id+'_'+b.id] || null;
+      const taskDefs = taskOpts ? [
+        { key:'flashcard',         label:'암기',        done: rounds,                                                                  goal: taskOpts.flashcard||0 },
+        { key:'quiz_choice_en2ko', label:'객관식 영→한', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='en2ko').length,     goal: taskOpts.quiz_choice_en2ko||0 },
+        { key:'quiz_choice_ko2en', label:'객관식 한→영', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='ko2en').length,     goal: taskOpts.quiz_choice_ko2en||0 },
+        { key:'quiz_input_en2ko',  label:'주관식 영→한', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='en2ko').length,      goal: taskOpts.quiz_input_en2ko||0 },
+        { key:'quiz_input_ko2en',  label:'주관식 한→영', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='ko2en').length,      goal: taskOpts.quiz_input_ko2en||0 },
+        { key:'test',              label:'단어 테스트',  done: bookLogs.filter(l=>l.mode==='essay'&&l.direction==='mixed').length,      goal: taskOpts.test||0 },
+      ].filter(t => t.goal > 0) : [];
 
-      // 유형 × 방향 통합 세분화 통계
-      const modeDirRows = ['choice','input','essay'].flatMap(m=>{
-        return ['en2ko','ko2en'].map(d=>{
-          const ml = bookLogs.filter(l=>l.mode===m && l.direction===d);
+      const taskTotalGoal = taskDefs.reduce((s,t) => s + t.goal, 0);
+      const taskTotalDone = taskDefs.reduce((s,t) => s + Math.min(t.done, t.goal), 0);
+      const progPct = taskDefs.length
+        ? Math.round(taskTotalDone / taskTotalGoal * 100)
+        : (best !== null ? best : 0);
+
+      const taskSectionHtml = taskDefs.length ? (() => {
+        const allDone = taskDefs.every(t => t.done >= t.goal);
+        const rows = taskDefs.map(t => {
+          const pct  = Math.min(100, Math.round(t.done / t.goal * 100));
+          const done = t.done >= t.goal;
+          const textC = done ? '#1e4db7' : pct > 0 ? '#1e4db7' : '#94a3b8';
+          const status = done
+            ? `<span style="font-size:12px;font-weight:700;color:#1e4db7;white-space:nowrap">✓ 완료</span>`
+            : t.done > 0
+              ? `<span style="font-size:12px;color:#1e4db7;white-space:nowrap">${t.done}/${t.goal}회</span>`
+              : `<span style="font-size:12px;color:#94a3b8;white-space:nowrap">0/${t.goal}회</span>`;
+          return `<div style="display:grid;grid-template-columns:90px 1fr 56px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+            <span style="font-size:13px;font-weight:600;color:${textC}">${t.label}</span>
+            <div class="slime-book-prog-wrap">
+              <div class="slime-book-prog" style="width:${pct}%;background:${done?'linear-gradient(90deg,#334155 0%,#475569 50%,#64748b 100%)':'linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#cbd5e1 100%)'};transition:width 0.6s ease;box-shadow:0 0 4px ${done?'rgba(51,65,85,0.35)':'rgba(100,116,139,0.3)'}"></div>
+            </div>
+            ${status}
+          </div>`;
+        }).join('');
+        return `<div style="font-size:13px;font-weight:700;color:${allDone?'#1e4db7':'#475569'};margin-bottom:10px">${allDone?'✓ 과제 완료':'과제 현황'}</div>${rows}`;
+      })() : '';
+
+      // 퀴즈 세부 기록
+      const modeDirRows = [
+        ...['choice','input'].flatMap(m =>
+          ['en2ko','ko2en'].map(d => {
+            const ml = bookLogs.filter(l => l.mode===m && l.direction===d);
+            if (!ml.length) return null;
+            const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
+            const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
+            const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+            return { m, d, mAvg, mBest, scoreC, cnt: ml.length };
+          })
+        ),
+        (() => {
+          const ml = bookLogs.filter(l => l.mode==='essay' && l.direction==='mixed');
           if (!ml.length) return null;
-          const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
-          const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
-          const scoreC = mBest>=80?'#059669':mBest>=60?'#d97706':'#ef4444';
-          const avgC   = mAvg>=80?'#059669':mAvg>=60?'#d97706':'#ef4444';
-          return { m, d, mAvg, mBest, scoreC, avgC, cnt: ml.length };
-        });
-      }).filter(Boolean);
+          const nonAbandoned = ml.filter(l => !l.force_submit);
+          if (!nonAbandoned.length) return null;
+          const mAvg  = Math.round(nonAbandoned.reduce((a,l)=>a+(l.score/l.total*100),0)/nonAbandoned.length);
+          const mBest = Math.max(...nonAbandoned.map(l=>Math.round(l.score/l.total*100)));
+          const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+          return { m:'test', d:'', mAvg, mBest, scoreC, cnt: ml.length, label:'테스트' };
+        })()
+      ].filter(Boolean);
 
-      const quizBreakdown = modeDirRows.length ? (() => {
+      const modeStats = modeDirRows.length ? (() => {
         const rows = modeDirRows.map(r=>`
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:13px">
-            <span style="font-weight:600;color:#334155">${modeLabel[r.m]}</span>
-            <span style="color:#64748b">${dirLabel[r.d]}</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:14px">
+            <span style="font-weight:600;color:#334155">${r.label || modeLabel[r.m] || r.m}</span>
+            <span style="color:#64748b">${r.d ? (dirLabel[r.d]||r.d) : '-'}</span>
             <span style="font-weight:700;color:${r.scoreC};text-align:center">${r.mBest}%</span>
             <span style="color:#94a3b8;text-align:right">평균 ${r.mAvg}% · ${r.cnt}회</span>
           </div>`).join('');
-        return `
-          <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">방향</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
-            </div>
-            ${rows}
-          </div>`;
+        return `<div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
+            <span style="font-size:12px;font-weight:700;color:#64748b">유형</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b">방향</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b;text-align:center">최고</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b;text-align:right">통계</span>
+          </div>
+          ${rows}
+        </div>`;
       })() : '';
 
-      const modeStats = quizBreakdown;
-      const dirStats  = '';
-
       // 최근 퀴즈 기록 5개
-      const recentLogs = bookLogs.slice(0,5).map(l=>{
-        const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
+      const recentLogs = bookLogs.slice(0,5).map(l => {
+        const isWordTest  = l.mode==='essay' && l.direction==='mixed';
         const isAbandoned = isWordTest && l.force_submit;
-        const pct   = Math.round(l.score/l.total*100);
-        const c     = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
-        const date  = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const wrongW= l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
+        const pct  = Math.round(l.score/l.total*100);
+        const c    = isAbandoned?'#64748b':pct>=80?'#1e4db7':pct>=60?'#1e4db7':'#ef4444';
+        const date = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const wrongW = l.wrong_words_json ? (() => { try { return JSON.parse(l.wrong_words_json); } catch { return []; } })() : [];
         const hasSnapshot = !!(l.questions_json);
-        const _logId3 = l.id || (l.student_id + '_' + (l.taken_at||''));
+        const _logId3 = l.id || (l.student_id+'_'+(l.taken_at||''));
         if (hasSnapshot) window._gradedLogMap[_logId3] = l;
-        return `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${c};min-width:44px">${isAbandoned ? '-' : pct+'%'}</span>
-            <span style="color:#64748b">${l.score}/${l.total}문제</span>
-            ${isWordTest
-              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700">테스트</span>`
-              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
-            }
-            ${isAbandoned
-              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
-              : wrongW.length
-                ? `<span style="color:#ef4444;font-size:12px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-                : isWordTest ? `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
-                : `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
-            }
-            <span style="margin-left:auto;color:#94a3b8;font-size:12px">${date}</span>
-            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId3}')" style="padding:2px 9px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
-          </div>`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
+          <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned?'-':pct+'%'}</span>
+          <span style="color:#64748b">${l.score}/${l.total}문제</span>
+          ${isWordTest
+            ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
+            : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+               <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`}
+          ${isAbandoned
+            ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+            : wrongW.length
+              ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+              : `<span style="color:#1e4db7;font-size:13px;font-weight:600">✓ 전부 정답</span>`}
+          ${hasSnapshot?`<button onclick="openGradedTestView('${_logId3}')" style="margin-left:auto;padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>`:``}
+          <span style="${hasSnapshot?'':'margin-left:auto;'}color:#94a3b8;font-size:13px">${date}</span>
+        </div>`;
       }).join('');
 
       // 누적 오답 단어
-      const wrongSection = wrongWords.length===0
-        ? '<span style="font-size:13px;color:#10b981;font-weight:600">누적 오답 없음 ✓</span>'
+      const wrongSection = wrongWords.length === 0
+        ? '<span style="font-size:13px;color:#1e4db7;font-weight:600">누적 오답 없음 ✓</span>'
         : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
             ${wrongWords.slice(0,20).map(w=>`
               <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:4px 10px;font-size:13px">
@@ -20167,62 +20220,59 @@ async function renderProgress(){
             ${wrongWords.length>20?`<span style="font-size:13px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
           </div>`;
 
+      const bid_ = 'st_' + b.id.replace(/-/g,''); // student mode
+      const hasTasks = !!taskSectionHtml;
+      const hasQuiz  = !!modeStats;
+      const hasLogs  = recentLogs.length > 0;
+      const defaultPill = hasTasks ? 'task' : hasQuiz ? 'quiz' : hasLogs ? 'recent' : 'wrong';
+
+      const pillBtn = (key, label, hasContent) => {
+        if (!hasContent && key !== 'wrong') return '';
+        return `<button onclick="_sdmPill('${bid_}','${key}',this)"
+          id="pill_${bid_}_${key}"
+          style="padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid ${key===defaultPill?'#1e4db7':'var(--border)'};background:${key===defaultPill?'#1e4db7':'var(--surface)'};color:${key===defaultPill?'#fff':'var(--t2)'};cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+          ${label}
+        </button>`;
+      };
+
       return `
         <div class="slime-study-section" style="margin-bottom:14px">
-          <!-- 헤더 -->
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
                 <div class="slime-section-dot" style="background:#1e4db7;flex-shrink:0"></div>
                 <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+                ${b.collectionName?`<span style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.collectionName}</span>`:''}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${bestC}">${best}%</span>`:''}
-              <span style="font-size:12px;color:#818cf8;background:rgba(129,140,248,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
-              <span style="font-size:12px;color:#94a3b8;background:rgba(148,163,184,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
+              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
+              <span style="font-size:13px;color:#818cf8;background:rgba(129,140,248,0.1);padding:3px 10px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
+              <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
               <button onclick="confirmResetProgress('${b.id}','${esc(b.name)}')"
-                style="padding:4px 10px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:4px"
+                style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif"
                 onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg>
-                초기화
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg> 초기화
               </button>
             </div>
           </div>
-
-          <!-- 진행 바 + 바 차트 -->
-          <div style="margin-bottom:${(modeStats||dirStats||recentLogs)?'20px':'0'}">
+          <div style="margin-bottom:16px">
             <div class="slime-book-prog-wrap">
               <div class="slime-book-prog" style="width:${progPct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(30,77,183,0.35)"></div>
             </div>
-            ${barChart}
           </div>
-
-          <!-- 퀴즈 세부 기록 (유형 × 방향 통합) -->
-          ${modeStats?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">퀴즈 세부 기록</span>
-            </div>
-            ${modeStats}
-          </div>`:''}
-
-          <!-- 최근 퀴즈 기록 -->
-          ${recentLogs?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">최근 퀴즈 기록</span>
-            </div>
-            <div>${recentLogs}</div>
-          </div>`:''}
-
-          <!-- 오답 단어 -->
-          <div style="padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">누적 오답 단어</span>
-            </div>
-            ${wrongSection}
+          <!-- pill nav -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+            ${pillBtn('task','과제 현황', hasTasks)}
+            ${pillBtn('quiz','퀴즈 세부 기록', hasQuiz)}
+            ${pillBtn('recent','최근 퀴즈 기록', hasLogs)}
+            ${pillBtn('wrong','누적 오답 단어', true)}
           </div>
+          <!-- sections -->
+          <div id="sec_${bid_}_task" style="display:${defaultPill==='task'?'block':'none'}">${taskSectionHtml}</div>
+          <div id="sec_${bid_}_quiz" style="display:${defaultPill==='quiz'?'block':'none'}">${modeStats||''}</div>
+          <div id="sec_${bid_}_recent" style="display:${defaultPill==='recent'?'block':'none'}">${recentLogs||''}</div>
+          <div id="sec_${bid_}_wrong" style="display:${defaultPill==='wrong'?'block':'none'}">${wrongSection}</div>
         </div>`;
     }).join('');
 
