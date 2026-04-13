@@ -2688,8 +2688,10 @@ body.student-mode {
 
 /* ── 모바일 hover 잔상 방지 ──────────────────────────────
    터치 기기(hover: none)에서는 모든 :hover 스타일을 무효화.
+   + body.no-hover 클래스로 JS 터치 감지 후 추가 무효화.
    ──────────────────────────────────────────────────────── */
-@media (hover: none) {
+@media (hover: none), (pointer: coarse) {
+  * { -webkit-tap-highlight-color: transparent; }
   .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; }
   .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; }
   .nav-item:hover { color:inherit !important;background:inherit !important; }
@@ -2716,6 +2718,12 @@ body.student-mode {
   .speak-btn:hover { background:inherit !important;transform:none !important; }
   .fav-toggle:hover { opacity:1 !important; }
   .fc-btn-prev:hover:not(:disabled),.fc-btn-next:hover,.fc-btn-sound:hover { border-color:inherit !important;color:inherit !important;transform:none !important;box-shadow:none !important;background:inherit !important; }
+  .dash-recent-scroll:hover { background:inherit !important; }
+  .dash-recent-scroll:hover::-webkit-scrollbar-thumb { background:inherit !important; }
+  .slime-chat-img-btn:hover { color:inherit !important;background:inherit !important;border-color:inherit !important; }
+  .slime-chat-bar-send:hover { transform:none !important; }
+  .row-hover-actions { display:none !important; }
+  tr:hover .row-hover-actions { display:none !important; }
 }
 </style>
 
@@ -7219,10 +7227,20 @@ function showPage(id, addHistory = true) {
   }
 
   if (id==='pg-slime-home') {
-    renderSlimeHome();
-    // 문장집 아직 안 로드됐으면 로드 후 재렌더
-    if (currentUser?.role === 'student' && DB_sentBooks.length === 0) {
-      loadSentenceBooks().then(() => renderSlimeHome()).catch(() => {});
+    // quizLogs 미로드 상태면 먼저 로드 완료 후 렌더 (race condition 방지)
+    const _doRenderSlimeHome = () => {
+      renderSlimeHome();
+      if (currentUser?.role === 'student' && DB_sentBooks.length === 0) {
+        loadSentenceBooks().then(() => renderSlimeHome()).catch(() => {});
+      }
+    };
+    if (DB_quizLogs === null && currentUser?.id && currentUser.role !== 'teacher') {
+      sb.from('quiz_logs').select('*').eq('student_id', currentUser.id)
+        .order('taken_at', { ascending: false }).limit(500)
+        .then(({ data }) => { DB_quizLogs = data || []; _doRenderSlimeHome(); })
+        .catch(() => { DB_quizLogs = []; _doRenderSlimeHome(); });
+    } else {
+      _doRenderSlimeHome();
     }
   }
   if (id==='pg-dashboard') renderDashboard();
@@ -13355,6 +13373,10 @@ function sttPreview(reshuffle) {
       try {
         const doc = frame.contentDocument || frame.contentWindow.document;
         if (!doc?.body) return;
+        // 높이 자동 조정
+        setTimeout(() => {
+          try { frame.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+        }, 200);
         doc.body.contentEditable = 'true';
         doc.body.style.outline = 'none';
         const old = doc.getElementById('stt-banner');
@@ -13440,8 +13462,8 @@ function sttBuildHtml(reshuffle) {
     const item = q.item;
     const _ansMb = onePage ? 3 : fs*1.5;
     const _ansMt = onePage ? '4pt' : 'auto';
-    const ansLine = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'4pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*14}pt"></div>`;
-    const ansLineShort = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'4pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*8}pt"></div>`;
+    const ansLine = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'6pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.8}pt;min-width:${fs*14}pt"></div>`;
+    const ansLineShort = `<div style="margin-top:${_ansMt};padding-top:${onePage?'0':'6pt'};margin-bottom:${_ansMb}pt;border-bottom:1pt solid #aaa;height:${fs*1.8}pt;min-width:${fs*8}pt"></div>`;
 
     if (q.type === 'writing') return [
       `<div style="font-size:${fs}pt;line-height:${lh};color:#111">${item.ko}</div>`,
@@ -13529,7 +13551,7 @@ function sttBuildHtml(reshuffle) {
         ${ans?'':`이름: <span style="display:inline-block;border-bottom:1pt solid #333;width:80pt;margin-left:4pt"></span>`}
       </div>
     </div>
-    <table style="width:100%;border-collapse:collapse;table-layout:fixed;border:none"><tbody>${rows.join('')}</tbody></table>`;
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed"><tbody>${rows.join('')}</tbody></table>`;
   }
 
   const ansKeyHtml = withKey ? `<div style="page-break-before:always">${sheetHTML(true)}</div>` : '';
@@ -13555,6 +13577,7 @@ function sttBuildHtml(reshuffle) {
     '</style></head><body>',
     sheetHTML(false),
     ansKeyHtml,
+    '<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>',
     '</body></html>'
   ].join('\n');
 }
@@ -19127,16 +19150,61 @@ function renderQuiz(){
   const dir2 = _quizDir || (document.getElementById('quiz-dir')?.value) || 'en2ko';
   if(dir2==='en2ko') setTimeout(()=>speak(w.en), 200);
 }
+// ── 퀴즈 효과음 ─────────────────────────────────────────
+function _playCorrectSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // 밝은 2음 정답음: C5 → E5
+    [[523.25, 0, 0.12], [659.25, 0.13, 0.18]].forEach(([freq, start, end]) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, ctx.currentTime + start);
+      g.gain.linearRampToValueAtTime(0.28, ctx.currentTime + start + 0.02);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + end);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + end + 0.05);
+    });
+  } catch(e) {}
+}
+function _playWrongSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // 낮고 짧은 오답음: G3 → F3
+    [[196, 0, 0.12], [174.61, 0.13, 0.22]].forEach(([freq, start, end]) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sawtooth'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, ctx.currentTime + start);
+      g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + start + 0.02);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + end);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + end + 0.05);
+    });
+  } catch(e) {}
+}
+// ─────────────────────────────────────────────────────────
+
 function answerChoice(btn,selId,corrId){
   if(quizAnswered)return; quizAnswered=true;
   document.querySelectorAll('.quiz-opt').forEach(b=>b.classList.add('locked'));
   const fb=document.getElementById('qfb');
+  const dir = _quizDir || (document.getElementById('quiz-dir')?.value) || 'en2ko';
+  const cw = quizWords.find(w=>String(w.id)===corrId);
   if(selId===corrId){
     btn.classList.add('correct');quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! 슬라임이 기뻐해요 🎉';
     _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
+    // 소리: en2ko → 정답음, ko2en → 단어 발음
+    if (dir === 'en2ko') {
+      _playCorrectSound();
+    } else {
+      setTimeout(() => speak(cw.en), 100);
+    }
     // 퀴즈 하단 칩 업데이트
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
@@ -19144,14 +19212,13 @@ function answerChoice(btn,selId,corrId){
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
   } else {
     btn.classList.add('wrong');
-    const cw=quizWords.find(w=>String(w.id)===corrId);
-    const dir=document.getElementById('quiz-dir').value;
     document.querySelectorAll('.quiz-opt').forEach(b=>{if(b.textContent.trim()===(dir==='en2ko'?cw.ko:cw.en))b.classList.add('correct');});
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML=`❌ 오답 — 정답: <strong>${dir==='en2ko'?cw.ko:cw.en}</strong>`;
     quizWrong.push(cw);
     _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
+    _playWrongSound();
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
     // 오답 AI 도움 버튼
@@ -19182,6 +19249,12 @@ function checkInput(wid, dir, mode){
     fb.innerHTML='✅ 정답! <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
     _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
+    // 소리: en2ko → 정답음, ko2en → 단어 발음
+    if (dir === 'en2ko') {
+      _playCorrectSound();
+    } else {
+      setTimeout(() => speak(w.en), 100);
+    }
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
     if(sc) sc.textContent='✓ '+quizScore+' / '+quizWords.length;
@@ -19192,6 +19265,7 @@ function checkInput(wid, dir, mode){
     quizWrong.push(w);
     _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
+    _playWrongSound();
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
     // 오답 AI 도움 버튼
@@ -21316,9 +21390,29 @@ function fvPrintFile(id) {
   // Hide toolbar on actual print
   const style = document.createElement('style');
   style.id = 'fv-print-style';
-  style.textContent = '@media print { #fv-print-toolbar { display:none!important; } body > *:not(#fv-print-overlay) { display:none!important; } }';
+  style.textContent = '@media print { #fv-print-toolbar { display:none!important; } body > *:not(#fv-print-overlay) { display:none!important; } .a4-dv { display:none!important; } }';
   document.head.appendChild(style);
   document.body.appendChild(overlay);
+  // A4 페이지 구분선 (화면 미리보기용)
+  setTimeout(function(){
+    var ov = document.getElementById('fv-print-overlay');
+    if (!ov) return;
+    var H = 297 * (96 / 25.4);
+    var total = ov.scrollHeight;
+    var pages = Math.ceil(total / H);
+    ov.style.position = 'relative';
+    ov.querySelectorAll('.a4-dv').forEach(function(e){ e.remove(); });
+    for (var i = 1; i < pages; i++) {
+      var d = document.createElement('div');
+      d.className = 'a4-dv';
+      d.style.cssText = 'position:absolute;left:0;right:0;top:'+(H*i)+'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998';
+      var s = document.createElement('span');
+      s.style.cssText = 'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600';
+      s.textContent = i + ' / ' + pages + ' 페이지';
+      d.appendChild(s);
+      ov.appendChild(d);
+    }
+  }, 150);
 }
 
 // =========================================================
@@ -21634,7 +21728,6 @@ async function openWordPrintStudio(bookId) {
             <div style="font-family:'Times New Roman',Georgia,serif;font-weight:700;font-size:${(fs*1.15).toFixed(1)}pt;line-height:${lh};color:#111">${w.en}</div>
             <div style="font-size:${fs}pt;line-height:${lh};color:#374151;margin-top:2pt">${w.ko}</div>
             ${w.example && w.example.trim() ? `<div style="font-size:${fsS}pt;color:#94a3b8;font-style:italic;margin-top:2pt;line-height:${lh}">${w.example}</div>` : ''}
-            <div class="wps-ans-line" style="margin-top:4pt;border-bottom:0.8pt solid #aaa;height:${fs*1.0}pt"></div>
           </div>
         </div>
       </td>`;
@@ -21647,7 +21740,7 @@ async function openWordPrintStudio(bookId) {
       for (let c = 0; c < cols; c++) {
         const idx = c * nRows_wps + r;
         tds.push(idx < wList.length
-          ? itemHTML(wList[idx], r * cols + c + 1)
+          ? itemHTML(wList[idx], idx + 1)
           : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
         );
       }
@@ -21702,6 +21795,7 @@ async function openWordPrintStudio(bookId) {
       '</style>',
       '</head><body>',
       sheetBody,
+      '<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>',
       '</body></html>'
     ].join('\n');
   };
@@ -21729,6 +21823,10 @@ async function openWordPrintStudio(bookId) {
               });
             } catch(e) {}
           });
+          // 높이 자동 조정
+          setTimeout(() => {
+            try { frame.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+          }, 200);
           doc.body.contentEditable = 'true';
           doc.body.style.outline = 'none';
           doc.body.style.cursor = 'text';
@@ -21913,6 +22011,7 @@ async function bookQuickPrint(bookId) {
   <thead><tr><th>문제</th><th style="color:#b91c1c">정답</th></tr></thead>
   <tbody>${qList.map(q => qHTML(q, true)).join('')}</tbody>
 </table></div>
+<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>
 </body></html>`;
 
   let pf = document.getElementById('book-quick-print-frame');
@@ -22227,6 +22326,10 @@ function _tsLoadPreviewHTML(frame, html) {
       const doc = frame.contentDocument || frame.contentWindow.document;
       if (!doc || !doc.body) return;
       // body를 편집 가능하게
+      // 높이 자동 조정
+      setTimeout(() => {
+        try { frame.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+      }, 200);
       doc.body.contentEditable = 'true';
       doc.body.style.outline = 'none';
       doc.body.style.cursor = 'text';
@@ -22425,6 +22528,7 @@ function tsBuiltHtml(autoPrint) {
     sheetHTML(false),
     ansKeyHtml,
     autoPrint ? '<script>window.onload=function(){window.print()}<\/script>' : '',
+    '<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>',
     '</body></html>'
   ].join('\n');
 }
@@ -25245,6 +25349,10 @@ function slpPreview() {
       try {
         const doc = frame.contentDocument || frame.contentWindow.document;
         if (!doc?.body) return;
+        // 높이 자동 조정
+        setTimeout(() => {
+          try { frame.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+        }, 200);
         doc.body.contentEditable = 'true';
         doc.body.style.outline = 'none';
         const old = doc.getElementById('slp-banner');
@@ -25278,8 +25386,7 @@ function slpBuildHtml() {
   const lh      = parseFloat(document.getElementById('slp-lineheight')?.value || 1.5);
   const cp      = parseInt(document.getElementById('slp-cellpad')?.value || 5);
   const colW = (100/cols).toFixed(1);
-  const cells = items.map((it, i) => {
-    const num  = showNum ? `<span style="font-size:${(fs*0.7).toFixed(1)}pt;color:#bbb;margin-right:4pt;flex-shrink:0">${i+1}.</span>` : '';
+  const cellItems = items.map((it) => {
     const enContent = hideEn
       ? `<div style="margin-top:3pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*14}pt"></div>`
       : `<div style="font-family:'JetBrains Mono',monospace;font-size:${fs}pt;font-weight:700;line-height:${lh};color:#111">${it.en}</div>`;
@@ -25288,17 +25395,23 @@ function slpBuildHtml() {
       ? `<div style="margin-top:3pt;border-bottom:1pt solid #aaa;height:${fs*1.2}pt;min-width:${fs*10}pt"></div>`
       : `<div style="font-size:${(fs*0.9).toFixed(1)}pt;color:#555;margin-top:2pt;line-height:${lh}">${it.ko}</div>`;
     const ko = showKo ? koContent : '';
-    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
-      <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div style="flex:1">${en}${ko}</div></div>
-    </td>`;
+    return { en, ko };
   });
   const rows = [];
-  const nRows_slp = Math.ceil(cells.length / cols);
+  const nRows_slp = Math.ceil(cellItems.length / cols);
   for (let r = 0; r < nRows_slp; r++) {
     const sl = [];
     for (let c = 0; c < cols; c++) {
       const idx = c * nRows_slp + r;
-      sl.push(idx < cells.length ? cells[idx] : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+      if (idx < cellItems.length) {
+        const { en, ko } = cellItems[idx];
+        const num = showNum ? `<span style="font-size:${(fs*0.7).toFixed(1)}pt;color:#bbb;margin-right:4pt;flex-shrink:0">${idx+1}.</span>` : '';
+        sl.push(`<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
+      <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div style="flex:1">${en}${ko}</div></div>
+    </td>`);
+      } else {
+        sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+      }
     }
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
@@ -25326,6 +25439,7 @@ function slpBuildHtml() {
       </div>
     </div>`,
     `<table><tbody>${rows.join('')}</tbody></table>`,
+    '<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>',
     '</body></html>'
   ].join('');
 }
@@ -25513,6 +25627,10 @@ function wlpPreview() {
       try {
         const doc = frame.contentDocument || frame.contentWindow.document;
         if (!doc || !doc.body) return;
+        // 높이 자동 조정
+        setTimeout(() => {
+          try { frame.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+        }, 200);
         doc.body.contentEditable = 'true';
         doc.body.style.outline = 'none';
         doc.body.style.cursor = 'text';
@@ -25554,27 +25672,32 @@ function wlpBuildHtml() {
   if (!words.length) return null;
 
   const colW = (100 / cols).toFixed(1);
-  const cells = words.map((w, i) => {
-    const num   = showNum ? `<span style="font-weight:400;font-size:${fs - 2}pt;color:#ccc;margin-right:4pt;flex-shrink:0;line-height:${lh}">${from + i + 1}.</span>` : '';
-     const en    = showEn ? `<div style="font-family:'Times New Roman',Georgia,serif;font-weight:700;font-size:${(fs*1.2).toFixed(1)}pt;line-height:${lh}">${w.en}</div>` : '';
+  const wordItems = words.map((w) => {
+    const en    = showEn ? `<div style="font-family:'Times New Roman',Georgia,serif;font-weight:700;font-size:${(fs*1.2).toFixed(1)}pt;line-height:${lh}">${w.en}</div>` : '';
     const ko    = showKo
       ? hideKo
         ? `<div style="margin-top:3pt;border-bottom:1pt solid #aaa;height:${fs * 1.3}pt;width:${fs * 8}pt"></div>`
-         : `<div style="font-size:${fs}pt;color:#444;line-height:${lh};margin-top:1pt">${w.ko}</div>`
+        : `<div style="font-size:${fs}pt;color:#444;line-height:${lh};margin-top:1pt">${w.ko}</div>`
       : '';
     const ex    = showEx && w.example ? `<div style="font-size:${fs - 2}pt;color:#888;font-style:italic;line-height:${lh};margin-top:2pt">${w.example}</div>` : '';
-    return `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
-      <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div>${en}${ko}${ex}</div></div>
-    </td>`;
+    return { en, ko, ex };
   });
 
   const rows = [];
-  const nRows_wlp = Math.ceil(cells.length / cols);
+  const nRows_wlp = Math.ceil(wordItems.length / cols);
   for (let r = 0; r < nRows_wlp; r++) {
     const sl = [];
     for (let c = 0; c < cols; c++) {
       const idx = c * nRows_wlp + r;
-      sl.push(idx < cells.length ? cells[idx] : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+      if (idx < wordItems.length) {
+        const { en, ko, ex } = wordItems[idx];
+        const num = showNum ? `<span style="font-weight:400;font-size:${fs - 2}pt;color:#ccc;margin-right:4pt;flex-shrink:0;line-height:${lh}">${from + idx + 1}.</span>` : '';
+        sl.push(`<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc">
+      <div style="display:flex;align-items:flex-start;gap:2pt">${num}<div>${en}${ko}${ex}</div></div>
+    </td>`);
+      } else {
+        sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+      }
     }
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
@@ -25612,6 +25735,7 @@ function wlpBuildHtml() {
       </div>
     </div>`,
     `<table><tbody>${rows.join('')}</tbody></table>`,
+    '<script>(function(){function d(){var H=297*(96/25.4);document.querySelectorAll(\'.a4-dv\').forEach(function(e){e.remove()});var p=Math.ceil(document.body.scrollHeight/H);document.body.style.position=\'relative\';for(var i=1;i<p;i++){var v=document.createElement(\'div\');v.className=\'a4-dv\';v.style.cssText=\'position:absolute;left:0;right:0;top:\'+(H*i)+\'px;height:0;border-top:2px dashed #3b82f6;pointer-events:none;z-index:9998\';var s=document.createElement(\'span\');s.style.cssText=\'position:absolute;right:4px;top:-16px;font-size:10px;color:#3b82f6;font-family:sans-serif;background:white;padding:1px 4px;border-radius:3px;font-weight:600\';s.textContent=i+\' / \'+p+\' 페이지\';v.appendChild(s);document.body.appendChild(v);}}if(document.readyState===\'loading\')document.addEventListener(\'DOMContentLoaded\',function(){setTimeout(d,150)});else setTimeout(d,150);})();<\/script><style>@media print{.a4-dv{display:none!important}}<\/style>',
     '</body></html>'
   ].join('\n');
 }
@@ -27209,6 +27333,11 @@ async function saveProfile() {
 
 // 슬라임 홈 렌더
 function renderSlimeHome() {
+  // ── 방어: _slimeCache 또는 DB 미준비 시 잠시 후 재시도
+  if (!_slimeCache || !DB.books) {
+    setTimeout(() => renderSlimeHome(), 300);
+    return;
+  }
   let slime = getSlimeData();
   slime = checkStreak(slime);
   const computed = calcSlimeExp(slime);
@@ -27240,6 +27369,7 @@ function renderSlimeHome() {
   const expPct    = slime.stage>=SLIME_STAGES.length-1 ? 100
     : Math.min(100,Math.round(((slime.exp-prevExp)/(expNeeded-prevExp))*100));
   const missions  = getTodayMissions(slime);
+  const doneMissions = missions.filter(m => m.current >= m.target).length;
   const col       = getSlimeColor(slime.colorId);
   const h2 = new Date().getHours();
   const greet = h2<12?'좋은 아침이에요':h2<18?'안녕하세요':'수고했어요';
@@ -27735,5 +27865,33 @@ async function sendTaskReminderNotifs() {
 </script>
 <!-- 슬라임 채팅 패널 (항상 body 최상위) -->
 <div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
+
+<script>
+/* ── 모바일 터치 hover 잔상 방지 (iOS Safari 고착 버그 해결) ──
+   터치 이벤트 감지 후 touchstart/touchend 시 빈 클래스를 토글해
+   브라우저가 hover 상태를 강제로 flush하도록 함. */
+(function() {
+  if (!('ontouchstart' in window)) return;
+  document.addEventListener('touchstart', function(e) {
+    // 터치 시작 시 타겟 요소에서 hover 상태 flush
+    var el = e.target;
+    while (el && el !== document.body) {
+      el.classList.add('_touch-active');
+      el = el.parentElement;
+    }
+  }, { passive: true });
+  document.addEventListener('touchend', function() {
+    // 터치 종료 후 짧은 딜레이로 전체 hover 상태 해제
+    setTimeout(function() {
+      var els = document.querySelectorAll('._touch-active');
+      els.forEach(function(el) { el.classList.remove('_touch-active'); });
+      // blur로 포커스 강제 이동해 hover 잔상 제거
+      if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
+    }, 300);
+  }, { passive: true });
+})();
+</script>
 </body>
 </html>
