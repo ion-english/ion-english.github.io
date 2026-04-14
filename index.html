@@ -19508,23 +19508,22 @@ function answerChoice(btn,selId,corrId){
   const dir = _quizDir || (document.getElementById('quiz-dir')?.value) || 'en2ko';
   const cw = quizWords.find(w=>String(w.id)===corrId);
   if(selId===corrId){
+    // 소리 먼저 — DOM 업데이트 전에 play() 태워야 체감 지연 없음
+    if (dir === 'en2ko') _playCorrectSound();
     btn.classList.add('correct');quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! 슬라임이 기뻐해요 🎉';
     _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
-    // 소리: en2ko → 정답음, ko2en → 단어 발음
-    if (dir === 'en2ko') {
-      _playCorrectSound();
-    } else {
-      setTimeout(() => speak(cw.en), 100);
-    }
+    if (dir !== 'en2ko') setTimeout(() => speak(cw.en), 100);
     // 퀴즈 하단 칩 업데이트
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
     if(sc) sc.textContent='✓ '+quizScore+' / '+quizWords.length;
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
   } else {
+    // 소리 먼저
+    _playWrongSound();
     btn.classList.add('wrong');
     document.querySelectorAll('.quiz-opt').forEach(b=>{if(b.textContent.trim()===(dir==='en2ko'?cw.ko:cw.en))b.classList.add('correct');});
     fb.className='quiz-feedback wrong-fb';
@@ -19532,7 +19531,6 @@ function answerChoice(btn,selId,corrId){
     quizWrong.push(cw);
     _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
-    _playWrongSound();
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
     // 오답 AI 도움 버튼
@@ -19558,28 +19556,25 @@ function checkInput(wid, dir, mode){
   );
   const fb=document.getElementById('qfb');
   if(ok){
+    // 소리 먼저
+    if (dir === 'en2ko') _playCorrectSound();
     quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
     _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
-    // 소리: en2ko → 정답음, ko2en → 단어 발음
-    if (dir === 'en2ko') {
-      _playCorrectSound();
-    } else {
-      setTimeout(() => speak(w.en), 100);
-    }
+    if (dir !== 'en2ko') setTimeout(() => speak(w.en), 100);
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
     if(sc) sc.textContent='✓ '+quizScore+' / '+quizWords.length;
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
   } else {
+    _playWrongSound();
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML='❌ 오답 — 정답: <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
     quizWrong.push(w);
     _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
-    _playWrongSound();
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
     // 오답 AI 도움 버튼
