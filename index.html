@@ -19398,19 +19398,15 @@ function renderQuiz(){
 // async/await 이후 gesture 컨텍스트가 끊겨 소리가 안 남.
 // HTMLAudioElement + data URI WAV 방식으로 교체.
 // onclick 핸들러에서 .play() 한 번만 호출 → iOS/Android 모두 정상 작동.
-// ── 퀴즈 효과음 (AudioBuffer 방식 — 가장 빠름) ──────────────
-// Web Audio API의 AudioBuffer에 오실레이터 파형을 미리 오프라인 렌더링해 저장.
-// bufferSource.start()는 샘플 단위 즉시 재생 — 디코딩 딜레이 없음.
-// AudioContext는 첫 터치에서 unlock → 이후 항상 running 상태 유지.
+// ── 퀴즈 효과음 (AudioBuffer 방식) ──────────────────────────
+let _sfxAC = null;
+let _sfxBufCorrect = null;
+let _sfxBufWrong   = null;
+let _sfxReady = false;      // 버퍼 준비 완료 플래그
+let _sfxIniting = false;    // 중복 init 방지
 
-let _sfxAC = null;          // 싱글톤 AudioContext
-let _sfxBufCorrect = null;  // 미리 렌더링된 정답음 버퍼
-let _sfxBufWrong   = null;  // 미리 렌더링된 오답음 버퍼
-
-// OfflineAudioContext로 오실레이터를 미리 렌더링 → AudioBuffer 반환
 async function _renderSfx(notes, sr = 44100) {
-  // notes: [[freq, startSec, durSec, vol], ...]
-  const totalDur = Math.max(...notes.map(([,s,d]) => s + d + 0.05));
+  const totalDur = Math.max(...notes.map(([,s,d]) => s + d + 0.06));
   const off = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, Math.ceil(sr * totalDur), sr);
   notes.forEach(([freq, start, dur, vol = 0.3]) => {
     const o = off.createOscillator(), g = off.createGain();
@@ -19419,35 +19415,55 @@ async function _renderSfx(notes, sr = 44100) {
     g.gain.setValueAtTime(0, start);
     g.gain.linearRampToValueAtTime(vol, start + 0.01);
     g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-    o.start(start); o.stop(start + dur + 0.05);
+    o.start(start); o.stop(start + dur + 0.06);
   });
   return off.startRendering();
 }
 
-// 첫 터치/클릭에서 AudioContext unlock + 버퍼 준비
-async function _sfxInit() {
+// 터치/클릭마다 호출 — 아직 안 됐으면 준비, 됐으면 resume만
+async function _sfxEnsure() {
   try {
     if (!_sfxAC) _sfxAC = new (window.AudioContext || window.webkitAudioContext)();
-    if (_sfxAC.state === 'suspended') await _sfxAC.resume();
-    if (!_sfxBufCorrect) _sfxBufCorrect = await _renderSfx([[880,0,0.08],[1108,0.09,0.08],[1318,0.18,0.15]]);
-    if (!_sfxBufWrong)   _sfxBufWrong   = await _renderSfx([[800,0,0.01,0.6],[600,0,0.15,0.4],[400,0,0.1,0.2]]);
-  } catch(e) {}
+    if (_sfxAC.state === 'suspended') _sfxAC.resume(); // await 없이 — gesture 컨텍스트 유지
+    if (_sfxReady || _sfxIniting) return;
+    _sfxIniting = true;
+    [_sfxBufCorrect, _sfxBufWrong] = await Promise.all([
+      _renderSfx([[880,0,0.08],[1108,0.09,0.08],[1318,0.18,0.15]]),
+      _renderSfx([[800,0,0.01,0.6],[600,0,0.15,0.4],[400,0,0.1,0.2]])
+    ]);
+    _sfxReady = true;
+  } catch(e) { _sfxIniting = false; }
 }
-document.addEventListener('touchstart', _sfxInit, { once: true, passive: true });
-document.addEventListener('click',      _sfxInit, { once: true, passive: true });
+document.addEventListener('touchstart', _sfxEnsure, { passive: true });
+document.addEventListener('click',      _sfxEnsure, { passive: true });
 
-// 버퍼 재생 — bufferSource.start()는 즉각 실행, 딜레이 없음
-function _sfxPlay(buf) {
+// 재생 — 버퍼 없으면 폴백으로 즉시 오실레이터 재생
+function _sfxPlay(buf, fallbackNotes) {
   try {
-    if (!_sfxAC || !buf || _sfxAC.state !== 'running') return;
-    const src = _sfxAC.createBufferSource();
-    src.buffer = buf;
-    src.connect(_sfxAC.destination);
-    src.start(0);
+    if (!_sfxAC) return;
+    if (_sfxAC.state === 'suspended') _sfxAC.resume();
+    const ctx = _sfxAC;
+    if (buf && ctx.state === 'running') {
+      // 버퍼 재생 (즉각, 딜레이 없음)
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+    } else {
+      // 폴백: 오실레이터 직접 재생 (버퍼 미준비 시)
+      fallbackNotes.forEach(([freq, start, dur, vol = 0.3]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = freq;
+        const t = ctx.currentTime;
+        g.gain.setValueAtTime(0, t + start);
+        g.gain.linearRampToValueAtTime(vol, t + start + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+        o.start(t + start); o.stop(t + start + dur + 0.06);
+      });
+    }
   } catch(e) {}
 }
-function _playCorrectSound() { _sfxPlay(_sfxBufCorrect); }
-function _playWrongSound()   { _sfxPlay(_sfxBufWrong); }
+function _playCorrectSound() { _sfxPlay(_sfxBufCorrect, [[880,0,0.08],[1108,0.09,0.08],[1318,0.18,0.15]]); }
+function _playWrongSound()   { _sfxPlay(_sfxBufWrong,   [[800,0,0.01,0.6],[600,0,0.15,0.4],[400,0,0.1,0.2]]); }
 
 // ─────────────────────────────────────────────────────────
 
