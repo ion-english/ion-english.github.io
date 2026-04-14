@@ -19403,6 +19403,19 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 _sfxCorrect.volume = 0.7;
 _sfxWrong.volume   = 0.7;
 
+// 딜레이 제거: 첫 터치 시 묵음 재생으로 브라우저 디코딩 완료 + 오디오 버퍼 캐싱
+(function _prewarmAudio() {
+  function warm() {
+    // volume=0 으로 아주 짧게 재생 → 내부 디코딩/버퍼링 완료
+    _sfxCorrect.volume = 0; _sfxCorrect.play().then(() => { _sfxCorrect.pause(); _sfxCorrect.currentTime = 0; _sfxCorrect.volume = 0.7; }).catch(()=>{});
+    _sfxWrong.volume   = 0; _sfxWrong.play().then(()   => { _sfxWrong.pause();   _sfxWrong.currentTime   = 0; _sfxWrong.volume   = 0.7; }).catch(()=>{});
+    document.removeEventListener('touchstart', warm);
+    document.removeEventListener('click', warm);
+  }
+  document.addEventListener('touchstart', warm, { once: true, passive: true });
+  document.addEventListener('click',      warm, { once: true, passive: true });
+})();
+
 function _playCorrectSound() {
   try { _sfxCorrect.currentTime = 0; _sfxCorrect.play(); } catch(e) {}
 }
