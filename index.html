@@ -946,8 +946,9 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
-/* 초기 로딩 중 FOUC 방지 */
+/* 초기 로딩 중 FOUC 방지 — login-screen은 항상 보이게 (모바일 키보드 포커스 유지) */
 body.app-initializing{visibility:hidden}
+body.app-initializing #login-screen{visibility:visible}
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
