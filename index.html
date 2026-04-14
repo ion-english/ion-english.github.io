@@ -1279,7 +1279,7 @@ body.app-initializing{visibility:hidden}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
 .stat-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:22px;
   position:relative;overflow:hidden;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);box-shadow:var(--sh)}
-@media (hover: hover) and (pointer: fine) { .stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)} }
+.stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)}
 .stat-card-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:0.07}
 .stat-value{font-family:'Fraunces',serif;font-size:38px;font-weight:900;line-height:1;margin-bottom:4px}
 .stat-label{font-size:14px;color:var(--t2);font-weight:500}
@@ -1297,7 +1297,7 @@ body.app-initializing{visibility:hidden}
 #sent-books-grid-student.cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
 .book-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   cursor:default;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);position:relative;box-shadow:var(--sh)}
-@media (hover: hover) and (pointer: fine) { .book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)} }
+.book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)}
 .book-card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
 .book-emoji{font-size:28px;margin-bottom:10px}
 .book-name{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-0.2px}
@@ -1767,7 +1767,7 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
 .fv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .fv-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   transition:all 0.18s;position:relative;overflow:hidden;box-shadow:var(--sh)}
-@media (hover: hover) and (pointer: fine) { .fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)} }
+.fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)}
 .fv-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
 .fv-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
 .fv-name{font-size:15px;font-weight:600;margin-bottom:3px;word-break:break-word;letter-spacing:-0.1px}
@@ -2692,6 +2692,7 @@ body.student-mode {
    ──────────────────────────────────────────────────────── */
 @media (hover: none), (pointer: coarse) {
   * { -webkit-tap-highlight-color: transparent; }
+  .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; }
   .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; }
   .nav-item:hover { color:inherit !important;background:inherit !important; }
   .nav-item:hover .nav-icon { opacity:inherit !important; }
@@ -7210,7 +7211,12 @@ function showPage(id, addHistory = true) {
   document.querySelectorAll('.page').forEach(p => { if (p.id !== prevId) p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   const pg = document.getElementById(id);
-  if (pg) pg.classList.add('active');
+  if (pg) {
+    pg.classList.add('active');
+    // iOS ghost hover 방지: 새 페이지 컨테이너만 한 프레임 pointer-events 차단
+    pg.style.pointerEvents = 'none';
+    setTimeout(function() { pg.style.pointerEvents = ''; }, 300);
+  }
   const nb = document.getElementById('nav-'+id);
   if (nb) nb.classList.add('active');
   document.getElementById('topbar-title').textContent = pageTitles[id] || '';
