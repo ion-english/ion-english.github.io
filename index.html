@@ -4654,7 +4654,6 @@ document.addEventListener('mousedown', function(e) {
 });
 
 async function doLogin() {
-  _loggingIn = true;
   const email = document.getElementById('login-id').value.trim();
   const pw    = document.getElementById('login-pw').value.trim();
   if (!email || !pw) { showToast('이메일과 비밀번호를 입력하세요.', 'error'); return; }
@@ -4687,7 +4686,6 @@ async function doLogin() {
     showToast('로그인 실패: ' + (e.message || '이메일/비밀번호를 확인하세요.'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = '로그인 →';
-    _loggingIn = false;
   }
 }
 
@@ -6999,7 +6997,12 @@ function initApp() {
 async function checkSession() {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) return; // 세션 없으면 로그인 화면 유지
+    if (!session) {
+      // 세션 없으면 즉시 화면 표시 — visibility:hidden 상태에서 input 탭 시 키보드 내려가는 문제 방지
+      document.body.classList.remove('app-initializing');
+      _appReady = true;
+      return;
+    }
 
     const { data: profile } = await sb.from('profiles')
       .select('*').eq('id', session.user.id).single();
@@ -7104,14 +7107,12 @@ if (document.readyState === 'loading') {
 }
 
 // 토큰 자동 갱신 (백그라운드)
-let _loggingIn = false;
 sb.auth.onAuthStateChange((event, session) => {
   if (!_appReady) return; // 초기화 완료 전 이벤트 무시
   if (event === 'TOKEN_REFRESHED') {
     console.log('토큰 갱신됨');
   }
   if (event === 'SIGNED_OUT') {
-    if (_loggingIn) return; // 로그인 처리 중 오발화 무시
     currentUser = null;
     DB = { users: [], books: [], collections: [], files: [], progress: {}, taskOptions: {} };
     document.getElementById('login-screen').style.display = 'flex';
