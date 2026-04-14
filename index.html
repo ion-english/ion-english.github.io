@@ -7249,7 +7249,9 @@ function showPage(id, addHistory = true) {
     window._skipLibCollReset = false;
     if (!window._skipLibReset) closeLibEditor();
     window._skipLibReset = false;
-    loadClasses().then(() => renderLibrary()).catch(() => renderLibrary());
+    // 즉시 렌더 (collId 세팅 상태 유지) → loadClasses 후 재렌더 (담당반 dot 보완)
+    renderLibrary();
+    loadClasses().then(() => renderLibrary()).catch(() => {});
   }
   if (id==='pg-students') {
     mgmtSetTab('students'); renderStudentsMgmt();
@@ -7710,7 +7712,7 @@ async function renderDashboard() {
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
-        <button onclick="event.stopPropagation();openBookAssignModal('${b.id}','status')"
+        <button onclick="event.stopPropagation();openWordBookStatusModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="현황"
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
@@ -7762,7 +7764,7 @@ async function renderDashboard() {
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
-        <button onclick="event.stopPropagation();openSentAssignModal('${b.id}','status')"
+        <button onclick="event.stopPropagation();openSentBookStatusModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="현황"
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
@@ -8166,59 +8168,364 @@ let _collOrder   = [];   // collection ids (단어장)
 let _sentBookOrder = []; // sent book ids
 let _sentCollOrder = []; // sent collection ids
 
-// ── 단어장 학습 현황 모달 ──
-async function openBookStatusModal(bookId) {
+// ── 현황 모달 내 해제 래퍼 ──
+async function _revokeWordAndRefreshStatus(bookId, studentId, studentName) {
+  if (!confirm(`"${studentName}"의 단어장 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`"${studentName}" 과제 해제 완료`, 'success');
+    await loadDB();
+    openWordBookStatusModal(bookId);
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+async function _revokeSentAndRefreshStatus(bookId, studentId, studentName) {
+  if (!confirm(`"${studentName}"의 문장집 과제를 해제하시겠습니까?`)) return;
+  try {
+    await sb.from('sentence_assignments').delete().eq('book_id', bookId).eq('student_id', studentId);
+    showToast(`"${studentName}" 문장집 과제 해제 완료`, 'success');
+    await loadSentenceBooks();
+    openSentBookStatusModal(bookId);
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+// ── 단어장 과제 현황 모달 (배포 단어장 기준) ──
+async function openWordBookStatusModal(bookId) {
   const b = (DB.books||[]).find(x=>x.id===bookId);
   if (!b) return;
-  let assigned = [];
-  try {
-    const { data } = await sb.from('assignments').select('student_id').eq('book_id', bookId);
-    assigned = (data||[]).map(d=>d.student_id);
-  } catch(e) {}
-  const students = (DB.users||[]).filter(u=>u.role==='student');
-  const assignedStudents = students.filter(s=>assigned.includes(s.id));
-  const studied = assignedStudents.filter(s=>(DB.progress[s.id+'_'+bookId]||{}).rounds>0).length;
 
-  const rows = assignedStudents.map(s=>{
-    const p = DB.progress[s.id+'_'+bookId]||{};
-    const rounds = p.rounds||0;
-    const scores = p.quizScores||[];
-    const avg = scores.length ? Math.round(scores.reduce((a,c)=>a+c,0)/scores.length) : null;
-    const done = rounds>0;
-    const scoreColor = avg===null?'var(--t3)':avg>=80?'#059669':avg>=60?'#b45309':'#dc2626';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:${done?'var(--green-dim)':'#fff'}">
-      <div style="width:8px;height:8px;border-radius:50%;background:${done?'var(--green)':'var(--border2)'};flex-shrink:0"></div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name||s.email}</div>
-        <div style="font-size:13px;color:var(--t3)">${s.grade||''}</div>
+  showModal(`<div class="modal-title">현황 — ${b.name}</div><div style="text-align:center;padding:32px 0;color:var(--t3)">데이터 불러오는 중...</div>`);
+
+  await loadClasses();
+  let existingAssigns = [];
+  try {
+    const { data } = await sb.from('assignments').select('student_id,task_options').eq('book_id', bookId);
+    existingAssigns = data || [];
+  } catch(e) {}
+
+  const assignedIds = new Set(existingAssigns.map(a => a.student_id));
+  const existingOpts = {};
+  existingAssigns.forEach(a => {
+    existingOpts[a.student_id] = a.task_options
+      ? (typeof a.task_options==='string' ? JSON.parse(a.task_options) : a.task_options) : null;
+  });
+
+  const allStudents = (DB.users||[]).filter(u => u.role==='student' && assignedIds.has(u.id));
+  const sids = allStudents.map(s => s.id);
+
+  let quizLogs = [];
+  try {
+    if (sids.length) {
+      const { data } = await sb.from('quiz_logs').select('student_id,book_id,mode,direction,score,total,taken_at').eq('book_id', bookId).in('student_id', sids);
+      quizLogs = data || [];
+    }
+  } catch(e) {}
+
+  function qlCount(sid, mode, dir) {
+    return quizLogs.filter(l => l.student_id===sid && l.mode===mode && l.direction===dir).length;
+  }
+  function qlAvg(sid) {
+    const logs = quizLogs.filter(l => l.student_id===sid && l.total > 0);
+    if (!logs.length) return null;
+    return Math.round(logs.reduce((a,l) => a + (l.score/l.total)*100, 0) / logs.length);
+  }
+
+  function token(label, done, required) {
+    if (done) return `<span style="color:#16a34a;text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:1.5px;font-weight:600">${label}</span>`;
+    return `<span style="color:var(--t3)">${label}</span>`;
+  }
+
+  function studentRow(s) {
+    const opts = existingOpts[s.id];
+    const prog = DB.progress[s.id+'_'+bookId] || {};
+    const rounds = prog.rounds || 0;
+    const avg = qlAvg(s.id);
+
+    // 토큰
+    let tokens = [], doneCount = 0, totalCount = 0;
+    if (opts) {
+      const checks = [
+        opts.flashcard > 0       ? { label: `암기 ${opts.flashcard}회`,           done: rounds >= opts.flashcard } : null,
+        opts.quiz_choice_en2ko>0 ? { label: `객관식 영→한 ${opts.quiz_choice_en2ko}회`, done: qlCount(s.id,'choice','en2ko') >= opts.quiz_choice_en2ko } : null,
+        opts.quiz_choice_ko2en>0 ? { label: `객관식 한→영 ${opts.quiz_choice_ko2en}회`, done: qlCount(s.id,'choice','ko2en') >= opts.quiz_choice_ko2en } : null,
+        opts.quiz_input_en2ko>0  ? { label: `주관식 영→한 ${opts.quiz_input_en2ko}회`,  done: qlCount(s.id,'input','en2ko')  >= opts.quiz_input_en2ko  } : null,
+        opts.quiz_input_ko2en>0  ? { label: `주관식 한→영 ${opts.quiz_input_ko2en}회`,  done: qlCount(s.id,'input','ko2en')  >= opts.quiz_input_ko2en  } : null,
+        opts.test > 0            ? { label: `테스트 ${opts.test}회`,               done: false } : null,
+      ].filter(Boolean);
+      checks.forEach(c => { totalCount++; if (c.done) doneCount++; tokens.push(token(c.label, c.done)); });
+    } else {
+      const started = rounds > 0 || quizLogs.some(l=>l.student_id===s.id);
+      tokens.push(`<span style="color:var(--t3)">자유학습</span>`);
+      if (started) doneCount = totalCount = 1; else totalCount = 1;
+    }
+
+    const notStarted = doneCount === 0 && !quizLogs.some(l=>l.student_id===s.id) && rounds === 0;
+    const allDone = totalCount > 0 && doneCount === totalCount;
+    const pct = totalCount > 0 ? Math.round(doneCount / totalCount * 100) : 0;
+    const barColor = allDone ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+
+    const badge = notStarted
+      ? `<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca">미시작</span>`
+      : allDone
+        ? `<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">완료</span>`
+        : '';
+
+    const barHtml = (opts && totalCount > 0) ? `<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <div style="width:64px;height:5px;border-radius:3px;background:var(--border);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.3s"></div>
       </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:14px;font-weight:700;color:var(--blue)">${rounds}회독</div>
-        <div style="font-size:13px;font-weight:600;color:${scoreColor}">${avg!==null?avg+'점':done?'퀴즈 없음':'미학습'}</div>
+      <span style="font-size:13px;font-weight:700;color:${barColor};min-width:36px;text-align:right">${pct}%</span>
+    </div>` : '';
+
+    const avgHtml = avg !== null
+      ? `<span style="font-size:12px;font-weight:700;color:${avg>=80?'#16a34a':avg>=60?'#d97706':'#dc2626'};margin-left:8px">avg ${avg}%</span>`
+      : '';
+
+    const cls = (DB_classes||[]).find(c => (c.memberIds||[]).includes(s.id));
+    const clsDot = cls ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0;margin-right:2px"></span>` : '';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f1f5f9">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          ${clsDot}
+          <span style="font-size:15px;font-weight:700;color:var(--t1)">${s.name||s.email}</span>
+          ${s.grade?`<span style="font-size:12px;color:var(--t3)">${s.grade}</span>`:''}
+          ${badge}
+          ${avgHtml}
+        </div>
+        <div style="font-size:12px;display:flex;flex-wrap:wrap;gap:4px">${tokens.join('<span style="color:var(--border2);margin:0 3px">·</span>')}</div>
       </div>
+      ${barHtml}
+      <button onclick="_revokeWordAndRefreshStatus('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
+        style="flex-shrink:0;padding:3px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
+        onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
     </div>`;
-  }).join('');
+  }
+
+  // 반별 그룹핑
+  const allClasses = DB_classes || [];
+  const classGroups = allClasses.map(cls => {
+    const members = allStudents.filter(s => (cls.memberIds||[]).includes(s.id));
+    return { cls, members };
+  }).filter(g => g.members.length > 0);
+  const ungrouped = allStudents.filter(s => !allClasses.some(c => (c.memberIds||[]).includes(s.id)));
+
+  const notStartedCount = allStudents.filter(s => {
+    const prog = DB.progress[s.id+'_'+bookId] || {};
+    return (prog.rounds||0)===0 && !quizLogs.some(l=>l.student_id===s.id);
+  }).length;
+
+  const subLabel = [`학생 ${allStudents.length}명`, `배포 ${existingAssigns.length}건`,
+    notStartedCount>0 ? `<span style="color:#dc2626;font-weight:700">미시작 ${notStartedCount}명</span>` : ''].filter(Boolean).join(' · ');
+
+  let bodyHtml = '';
+  if (!allStudents.length) {
+    bodyHtml = '<div style="text-align:center;padding:32px 0;color:var(--t3);font-size:13px">배포된 학생이 없습니다</div>';
+  } else {
+    classGroups.forEach(({ cls, members }) => {
+      const clsDoneCount = members.filter(s => {
+        const opts = existingOpts[s.id]; const prog = DB.progress[s.id+'_'+bookId]||{};
+        if (!opts) return (prog.rounds||0)>0||quizLogs.some(l=>l.student_id===s.id);
+        const checks = [
+          opts.flashcard>0 && (prog.rounds||0)>=opts.flashcard,
+          opts.quiz_choice_en2ko>0 && qlCount(s.id,'choice','en2ko')>=opts.quiz_choice_en2ko,
+          opts.quiz_choice_ko2en>0 && qlCount(s.id,'choice','ko2en')>=opts.quiz_choice_ko2en,
+          opts.quiz_input_en2ko>0  && qlCount(s.id,'input','en2ko') >=opts.quiz_input_en2ko,
+          opts.quiz_input_ko2en>0  && qlCount(s.id,'input','ko2en') >=opts.quiz_input_ko2en,
+        ].filter((v,i) => [opts.flashcard>0,opts.quiz_choice_en2ko>0,opts.quiz_choice_ko2en>0,opts.quiz_input_en2ko>0,opts.quiz_input_ko2en>0][i]);
+        return checks.length>0 && checks.every(Boolean);
+      }).length;
+      const notStartedCls = members.filter(s=>{const prog=DB.progress[s.id+'_'+bookId]||{};return (prog.rounds||0)===0&&!quizLogs.some(l=>l.student_id===s.id);}).length;
+      bodyHtml += `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px 10px 0 0;border:1.5px solid var(--border);border-bottom:none">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>
+          <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">${cls.name}</span>
+          <span style="font-size:12px;color:var(--t3)">${members.length}명</span>
+          ${notStartedCls>0?`<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca">미시작 ${notStartedCls}명</span>`:''}
+          ${clsDoneCount===members.length?`<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">전원 완료</span>`:''}
+        </div>
+        <div style="border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:0 16px">
+          ${members.map(studentRow).join('')}
+        </div>
+      </div>`;
+    });
+    if (ungrouped.length) {
+      bodyHtml += `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px 10px 0 0;border:1.5px solid var(--border);border-bottom:none">
+          <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">👤 반 미배정</span>
+          <span style="font-size:12px;color:var(--t3)">${ungrouped.length}명</span>
+        </div>
+        <div style="border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:0 16px">
+          ${ungrouped.map(studentRow).join('')}
+        </div>
+      </div>`;
+    }
+  }
 
   showModal(`
-    <div class="modal-title">현황 — ${b.name}</div>
-    <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div style="flex:1;text-align:center;padding:12px;background:var(--blue-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--blue2)">${assignedStudents.length}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">배포 학생</div>
-      </div>
-      <div style="flex:1;text-align:center;padding:12px;background:var(--green-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--green)">${studied}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">학습 완료</div>
-      </div>
-      <div style="flex:1;text-align:center;padding:12px;background:var(--red-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--red)">${assignedStudents.length-studied}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">미학습</div>
-      </div>
+    <div class="modal-title" style="margin-bottom:4px">현황 — ${b.name}</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:16px">${subLabel}</div>
+    <div style="max-height:460px;overflow-y:auto">${bodyHtml}</div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      <button class="btn btn-secondary" onclick="closeModal();openBookAssignModal('${bookId}')">배포 관리</button>
     </div>
-    ${assignedStudents.length
-      ? `<div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto">${rows}</div>`
-      : '<div style="color:var(--t3);text-align:center;padding:20px">배포된 학생이 없습니다</div>'}
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">닫기</button></div>
+  `);
+}
+
+// ── 문장집 과제 현황 모달 (배포 문장집 기준) ──
+async function openSentBookStatusModal(bookId) {
+  const b = (DB_sentBooks||[]).find(x=>x.id===bookId);
+  if (!b) return;
+
+  showModal(`<div class="modal-title">현황 — ${b.name}</div><div style="text-align:center;padding:32px 0;color:var(--t3)">데이터 불러오는 중...</div>`);
+
+  await loadClasses();
+  let existingAssigns = [];
+  try {
+    const { data } = await sb.from('sentence_assignments').select('student_id,task_options').eq('book_id', bookId);
+    existingAssigns = data || [];
+  } catch(e) {}
+
+  const assignedIds = new Set(existingAssigns.map(a => a.student_id));
+  const existingOpts = {};
+  existingAssigns.forEach(a => {
+    existingOpts[a.student_id] = a.task_options
+      ? (typeof a.task_options==='string' ? JSON.parse(a.task_options) : a.task_options) : null;
+  });
+
+  const allStudents = (DB.users||[]).filter(u => u.role==='student' && assignedIds.has(u.id));
+  const sids = allStudents.map(s => s.id);
+
+  let sentSubs = [];
+  try {
+    if (sids.length) {
+      const { data } = await sb.from('sentence_submissions').select('student_id,book_id,type,created_at').eq('book_id', bookId).in('student_id', sids);
+      sentSubs = data || [];
+    }
+  } catch(e) {}
+
+  function ssCount(sid, type) {
+    return sentSubs.filter(s => s.student_id===sid && s.type===type).length;
+  }
+
+  function studentRow(s) {
+    const opts = existingOpts[s.id];
+    let tokens = [], doneCount = 0, totalCount = 0;
+    if (opts) {
+      const checks = [
+        opts.unscramble>0 ? { label:`배열 ${opts.unscramble}회`,  done: ssCount(s.id,'unscramble')>=opts.unscramble } : null,
+        opts.dictation>0  ? { label:`빈칸 ${opts.dictation}회`,   done: ssCount(s.id,'dictation') >=opts.dictation  } : null,
+        opts.record>0     ? { label:`낭독 ${opts.record}회`,      done: ssCount(s.id,'record')    >=opts.record     } : null,
+      ].filter(Boolean);
+      checks.forEach(c => {
+        totalCount++;
+        if (c.done) doneCount++;
+        tokens.push(c.done
+          ? `<span style="color:#16a34a;text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:1.5px;font-weight:600">${c.label}</span>`
+          : `<span style="color:var(--t3)">${c.label}</span>`);
+      });
+    } else {
+      const started = sentSubs.some(ss=>ss.student_id===s.id);
+      tokens.push(`<span style="color:var(--t3)">자유학습</span>`);
+      if (started) doneCount = totalCount = 1; else totalCount = 1;
+    }
+
+    const notStarted = doneCount===0 && !sentSubs.some(ss=>ss.student_id===s.id);
+    const allDone = totalCount>0 && doneCount===totalCount;
+    const pct = totalCount>0 ? Math.round(doneCount/totalCount*100) : 0;
+    const barColor = allDone?'#22c55e':pct>=50?'#f59e0b':'#ef4444';
+
+    const badge = notStarted
+      ? `<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca">미시작</span>`
+      : allDone
+        ? `<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">완료</span>`
+        : '';
+
+    const barHtml = (opts && totalCount>0) ? `<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <div style="width:64px;height:5px;border-radius:3px;background:var(--border);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.3s"></div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:${barColor};min-width:36px;text-align:right">${pct}%</span>
+    </div>` : '';
+
+    const cls = (DB_classes||[]).find(c=>(c.memberIds||[]).includes(s.id));
+    const clsDot = cls?`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0;margin-right:2px"></span>`:'';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f1f5f9">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          ${clsDot}
+          <span style="font-size:15px;font-weight:700;color:var(--t1)">${s.name||s.email}</span>
+          ${s.grade?`<span style="font-size:12px;color:var(--t3)">${s.grade}</span>`:''}
+          ${badge}
+        </div>
+        <div style="font-size:12px;display:flex;flex-wrap:wrap;gap:4px">${tokens.join('<span style="color:var(--border2);margin:0 3px">·</span>')}</div>
+      </div>
+      ${barHtml}
+      <button onclick="_revokeSentAndRefreshStatus('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
+        style="flex-shrink:0;padding:3px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
+        onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+    </div>`;
+  }
+
+  const allClasses = DB_classes||[];
+  const classGroups = allClasses.map(cls => {
+    const members = allStudents.filter(s=>(cls.memberIds||[]).includes(s.id));
+    return { cls, members };
+  }).filter(g=>g.members.length>0);
+  const ungrouped = allStudents.filter(s=>!allClasses.some(c=>(c.memberIds||[]).includes(s.id)));
+
+  const notStartedCount = allStudents.filter(s=>!sentSubs.some(ss=>ss.student_id===s.id)).length;
+  const subLabel = [`학생 ${allStudents.length}명`, `배포 ${existingAssigns.length}건`,
+    notStartedCount>0?`<span style="color:#dc2626;font-weight:700">미시작 ${notStartedCount}명</span>`:''].filter(Boolean).join(' · ');
+
+  let bodyHtml = '';
+  if (!allStudents.length) {
+    bodyHtml = '<div style="text-align:center;padding:32px 0;color:var(--t3);font-size:13px">배포된 학생이 없습니다</div>';
+  } else {
+    classGroups.forEach(({cls, members}) => {
+      const notStartedCls = members.filter(s=>!sentSubs.some(ss=>ss.student_id===s.id)).length;
+      const allDoneCls = members.filter(s=>{
+        const opts=existingOpts[s.id];
+        if(!opts) return sentSubs.some(ss=>ss.student_id===s.id);
+        return (!opts.unscramble||ssCount(s.id,'unscramble')>=opts.unscramble)&&(!opts.dictation||ssCount(s.id,'dictation')>=opts.dictation)&&(!opts.record||ssCount(s.id,'record')>=opts.record);
+      }).length;
+      bodyHtml += `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px 10px 0 0;border:1.5px solid var(--border);border-bottom:none">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>
+          <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">${cls.name}</span>
+          <span style="font-size:12px;color:var(--t3)">${members.length}명</span>
+          ${notStartedCls>0?`<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca">미시작 ${notStartedCls}명</span>`:''}
+          ${allDoneCls===members.length?`<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">전원 완료</span>`:''}
+        </div>
+        <div style="border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:0 16px">
+          ${members.map(studentRow).join('')}
+        </div>
+      </div>`;
+    });
+    if (ungrouped.length) {
+      bodyHtml += `<div style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px 10px 0 0;border:1.5px solid var(--border);border-bottom:none">
+          <span style="font-size:14px;font-weight:700;color:var(--t1);flex:1">👤 반 미배정</span>
+          <span style="font-size:12px;color:var(--t3)">${ungrouped.length}명</span>
+        </div>
+        <div style="border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:0 16px">
+          ${ungrouped.map(studentRow).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
+  showModal(`
+    <div class="modal-title" style="margin-bottom:4px">현황 — ${b.name}</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:16px">${subLabel}</div>
+    <div style="max-height:460px;overflow-y:auto">${bodyHtml}</div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      <button class="btn btn-secondary" onclick="closeModal();openSentAssignModal('${bookId}')">배포 관리</button>
+    </div>
   `);
 }
 
@@ -10772,71 +11079,7 @@ async function deleteSentBook(bookId) {
 
 // ── 배포 ────────────────────────────────────────────────────
 // ── 문장집 학습 현황 모달 ──
-async function openSentStatusModal(bookId) {
-  const b = DB_sentBooks.find(x => x.id === bookId);
-  if (!b) return;
-  let assigned = [];
-  try {
-    const { data } = await sb.from('sentence_assignments').select('student_id').eq('book_id', bookId);
-    assigned = (data||[]).map(d => d.student_id);
-  } catch(e) {}
-  const students = (DB.users||[]).filter(u => u.role === 'student');
-  const assignedStudents = students.filter(s => assigned.includes(s.id));
-
-  // 문장집 학습 현황은 sentence_submissions에서 읽어옴
-  let submits = {};
-  try {
-    const { data } = await sb.from('sentence_submissions')
-      .select('student_id, is_read')
-      .eq('book_id', bookId);
-    (data||[]).forEach(r => {
-      if (!submits[r.student_id]) submits[r.student_id] = 0;
-      submits[r.student_id]++;
-    });
-  } catch(e) {}
-
-  const studied = assignedStudents.filter(s => (submits[s.id]||0) > 0).length;
-  const itemCount = b.item_count ?? (DB_sentItems[b.id]||[]).length;
-
-  const rows = assignedStudents.map(s => {
-    const cnt = submits[s.id] || 0;
-    const done = cnt > 0;
-    const pct = itemCount > 0 ? Math.min(100, Math.round(cnt / itemCount * 100)) : 0;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:${done?'var(--green-dim)':'#fff'}">
-      <div style="width:8px;height:8px;border-radius:50%;background:${done?'var(--green)':'var(--border2)'};flex-shrink:0"></div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:600;color:var(--t1)">${s.name||s.email}</div>
-        <div style="font-size:13px;color:var(--t3)">${s.grade||''}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:14px;font-weight:700;color:var(--blue)">${cnt}/${itemCount}문장</div>
-        <div style="font-size:13px;font-weight:600;color:${done?'var(--green)':'var(--t3)'}">${done?pct+'% 완료':'미학습'}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  showModal(`
-    <div class="modal-title">현황 — ${b.name}</div>
-    <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div style="flex:1;text-align:center;padding:12px;background:var(--blue-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--blue2)">${assignedStudents.length}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">배포 학생</div>
-      </div>
-      <div style="flex:1;text-align:center;padding:12px;background:var(--green-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--green)">${studied}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">학습 중</div>
-      </div>
-      <div style="flex:1;text-align:center;padding:12px;background:var(--red-dim);border-radius:10px">
-        <div style="font-size:22px;font-weight:900;color:var(--red)">${assignedStudents.length - studied}</div>
-        <div style="font-size:13px;color:var(--t2);margin-top:2px">미학습</div>
-      </div>
-    </div>
-    ${assignedStudents.length
-      ? `<div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto">${rows}</div>`
-      : '<div style="color:var(--t3);text-align:center;padding:20px">배포된 학생이 없습니다</div>'}
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">닫기</button></div>
-  `);
-}
+async function openSentStatusModal(bookId) { return openSentBookStatusModal(bookId); }
 
 async function openSentAssignModal(bookId, initialTab) {
   const b = DB_sentBooks.find(b => b.id === bookId);
@@ -14157,7 +14400,7 @@ function bookListHTML(b, draggable) {
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
           onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">배포</button>
-        <button onclick="openBookStatusModal('${b.id}')"
+        <button onclick="openWordBookStatusModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
           onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">현황</button>
@@ -14211,7 +14454,7 @@ function bookCardHTML(b, isTeacher, fromDash) {
         onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
         배포
       </button>
-      <button onclick="openBookStatusModal('${b.id}')"
+      <button onclick="openWordBookStatusModal('${b.id}')"
         style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
         font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
         onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
@@ -19154,34 +19397,32 @@ function renderQuiz(){
 function _playCorrectSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // 밝은 2음 정답음: C5 → E5
-    [[523.25, 0, 0.12], [659.25, 0.13, 0.18]].forEach(([freq, start, end]) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+    // 퀴즈쇼 정답음: C5 → E5 → G5
+    [[880, 0, 0.08], [1108, 0.09, 0.08], [1318, 0.18, 0.15]].forEach(([freq, start, dur]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
       o.type = 'sine'; o.frequency.value = freq;
       g.gain.setValueAtTime(0, ctx.currentTime + start);
-      g.gain.linearRampToValueAtTime(0.28, ctx.currentTime + start + 0.02);
-      g.gain.linearRampToValueAtTime(0, ctx.currentTime + end);
+      g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
       o.start(ctx.currentTime + start);
-      o.stop(ctx.currentTime + end + 0.05);
+      o.stop(ctx.currentTime + start + dur + 0.05);
     });
   } catch(e) {}
 }
 function _playWrongSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // 낮고 짧은 오답음: G3 → F3
-    [[196, 0, 0.12], [174.61, 0.13, 0.22]].forEach(([freq, start, end]) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+    // 뚝 — 목탁 느낌의 짧고 둔탁한 타격음
+    [[800, 0, 0.01, 0.6], [600, 0, 0.15, 0.4], [400, 0, 0.1, 0.2]].forEach(([freq, start, dur, vol]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
-      o.type = 'sawtooth'; o.frequency.value = freq;
+      o.type = 'sine'; o.frequency.value = freq;
       g.gain.setValueAtTime(0, ctx.currentTime + start);
-      g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + start + 0.02);
-      g.gain.linearRampToValueAtTime(0, ctx.currentTime + end);
+      g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
       o.start(ctx.currentTime + start);
-      o.stop(ctx.currentTime + end + 0.05);
+      o.stop(ctx.currentTime + start + dur + 0.05);
     });
   } catch(e) {}
 }
