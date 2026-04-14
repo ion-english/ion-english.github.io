@@ -18988,12 +18988,9 @@ async function recordStudied(){
 // =========================================================
 let _quizDir  = 'en2ko'; // 전역: 방향
 let _quizMode = 'choice'; // 전역: 모드
-let _sfxCtx = null; // 공유 AudioContext (모바일 호환)
 
 // 단어보기에서 퀴즈 유형 팝업 표시
 function openQuizTypePopup(bookId, mode) {
-  // 모바일: 터치 이벤트 시점에 AudioContext 미리 생성해두면 이후 resume() 없이 재생 가능
-  _getSfxCtx();
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
   document.getElementById('quiz-type-popup')?.remove();
@@ -19128,7 +19125,6 @@ function _launchQuizFromView(bookId, mode, dir) {
 }
 
 async function startQuiz(){
-  _getSfxCtx(); // 모바일: 사용자 인터랙션 시점에 AudioContext 초기화
   // 모바일 카운터 리셋
   window._mspKnowCount = 0;
   window._mspXPGain    = 0;
@@ -19398,19 +19394,55 @@ function renderQuiz(){
   if(dir2==='en2ko') setTimeout(()=>speak(w.en), 200);
 }
 // ── 퀴즈 효과음 ─────────────────────────────────────────
+// 모바일(iOS/Android)은 AudioContext를 매번 new로 만들면 suspended 상태가 되어 소리가 안 남.
+// 싱글톤으로 유지하고, 사용자 터치 이벤트마다 resume()을 보장하는 방식으로 처리.
+let _sfxCtx = null;
 function _getSfxCtx() {
-  if (!_sfxCtx) _sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!_sfxCtx || _sfxCtx.state === 'closed') {
+    _sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // iOS Safari는 첫 사용자 제스처 이후에도 suspended로 남을 수 있음 → 반드시 resume
+  if (_sfxCtx.state === 'suspended') {
+    _sfxCtx.resume();
+  }
   return _sfxCtx;
 }
-function _playTones(notes) {
+// 첫 터치/클릭 시 AudioContext를 미리 unlock (iOS 정책 대응)
+function _unlockSfxCtx() {
+  try { _getSfxCtx(); } catch(e) {}
+}
+document.addEventListener('touchstart', _unlockSfxCtx, { once: false, passive: true });
+document.addEventListener('touchend', _unlockSfxCtx, { once: false, passive: true });
+
+function _playCorrectSound() {
   try {
     const ctx = _getSfxCtx();
     const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
     resume.then(() => {
-      notes.forEach(([freq, start, dur, vol = 0.3, type = 'sine']) => {
+      // 퀴즈쇼 정답음: C5 → E5 → G5
+      [[880, 0, 0.08], [1108, 0.09, 0.08], [1318, 0.18, 0.15]].forEach(([freq, start, dur]) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.connect(g); g.connect(ctx.destination);
-        o.type = type; o.frequency.value = freq;
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, ctx.currentTime + start);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + start + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        o.start(ctx.currentTime + start);
+        o.stop(ctx.currentTime + start + dur + 0.05);
+      });
+    });
+  } catch(e) {}
+}
+function _playWrongSound() {
+  try {
+    const ctx = _getSfxCtx();
+    const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+    resume.then(() => {
+      // 뚝 — 목탁 느낌의 짧고 둔탁한 타격음
+      [[800, 0, 0.01, 0.6], [600, 0, 0.15, 0.4], [400, 0, 0.1, 0.2]].forEach(([freq, start, dur, vol]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, ctx.currentTime + start);
         g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.01);
         g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
@@ -19419,14 +19451,6 @@ function _playTones(notes) {
       });
     });
   } catch(e) {}
-}
-function _playCorrectSound() {
-  // 퀴즈쇼 정답음: C5 → E5 → G5
-  _playTones([[880, 0, 0.08], [1108, 0.09, 0.08], [1318, 0.18, 0.15]]);
-}
-function _playWrongSound() {
-  // 뚝 — 목탁 느낌의 짧고 둔탁한 타격음
-  _playTones([[800, 0, 0.01, 0.6], [600, 0, 0.15, 0.4], [400, 0, 0.1, 0.2]]);
 }
 // ─────────────────────────────────────────────────────────
 
