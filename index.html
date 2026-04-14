@@ -19434,6 +19434,12 @@ function _dataUriToArrayBuffer(dataUri) {
   return bytes.buffer;
 }
 
+// iOS Safari: playsinline 없으면 전체화면 재생 → 트릭 실패
+_sfxCorrect.setAttribute('playsinline', '');
+_sfxCorrect.setAttribute('webkit-playsinline', '');
+_sfxWrong.setAttribute('playsinline', '');
+_sfxWrong.setAttribute('webkit-playsinline', '');
+
 const _sfxCorrectDataUri = _sfxCorrect.src;
 const _sfxWrongDataUri   = _sfxWrong.src;
 
@@ -19491,6 +19497,11 @@ function _startSilenceLoop() {
     _silenceAudio.loop = true;
     _silenceAudio.volume = 0.001;  // 거의 0이지만 0이면 iOS가 트릭 무시할 수 있음
     _silenceAudio.preload = 'auto';
+    // iOS Safari: playsinline 없으면 전체화면으로 열려 무음 루프 트릭 실패
+    _silenceAudio.setAttribute('playsinline', '');
+    _silenceAudio.setAttribute('webkit-playsinline', '');
+    // muted=false 명시 — muted이면 iOS가 "미디어 재생 중"으로 인식 안 함
+    _silenceAudio.muted = false;
     _silenceAudio.play().catch(() => {
       // 실패해도 무시 (다음 제스처에서 재시도)
       _silenceAudio = null;
@@ -19573,7 +19584,21 @@ function _playBuffer(buf) {
   const ctx = _sfxCtx;
   if (!ctx || _sfxCtxInvalid) return false;
   if (ctx.state !== 'running') {
-    try { ctx.resume(); } catch(e) {}
+    try {
+      ctx.resume().then(() => {
+        // resume 성공 후 재생 시도 (Android Chrome suspended 대응)
+        if (ctx.state === 'running') {
+          try {
+            const src2 = ctx.createBufferSource();
+            src2.buffer = buf;
+            const g2 = ctx.createGain();
+            g2.gain.value = _SFX_GAIN;
+            src2.connect(g2).connect(ctx.destination);
+            src2.start(0);
+          } catch(e) {}
+        }
+      }).catch(() => {});
+    } catch(e) {}
     return false;
   }
   try {
