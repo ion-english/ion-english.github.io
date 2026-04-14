@@ -947,7 +947,7 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
 /* 초기 로딩 중 FOUC 방지 */
-body.app-initializing{visibility:hidden}
+
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -2729,7 +2729,7 @@ body.student-mode {
 
 
 </head>
-<body class="app-initializing">
+<body>
 
 <!-- ====== LOGIN ====== -->
 <div id="login-screen">
@@ -6999,7 +6999,6 @@ async function checkSession() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
       // 세션 없으면 즉시 화면 표시 — visibility:hidden 상태에서 input 탭 시 키보드 내려가는 문제 방지
-      document.body.classList.remove('app-initializing');
       _appReady = true;
       return;
     }
@@ -7024,8 +7023,6 @@ async function checkSession() {
   } catch(e) {
     console.error('세션 복원 실패:', e);
   } finally {
-    // FOUC 방지 해제: 초기화 완료 후 화면 표시
-    document.body.classList.remove('app-initializing');
     // onAuthStateChange가 초기화 전 SIGNED_OUT 발화해도 무시하도록 플래그 활성화
     _appReady = true;
   }
