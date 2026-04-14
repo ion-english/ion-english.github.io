@@ -947,7 +947,7 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
 /* 초기 로딩 중 FOUC 방지 */
-
+body.app-initializing{visibility:hidden}
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -2729,7 +2729,7 @@ body.student-mode {
 
 
 </head>
-<body>
+<body class="app-initializing">
 
 <!-- ====== LOGIN ====== -->
 <div id="login-screen">
@@ -6997,11 +6997,7 @@ function initApp() {
 async function checkSession() {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      // 세션 없으면 즉시 화면 표시 — visibility:hidden 상태에서 input 탭 시 키보드 내려가는 문제 방지
-      _appReady = true;
-      return;
-    }
+    if (!session) return; // 세션 없으면 로그인 화면 유지
 
     const { data: profile } = await sb.from('profiles')
       .select('*').eq('id', session.user.id).single();
@@ -7023,6 +7019,8 @@ async function checkSession() {
   } catch(e) {
     console.error('세션 복원 실패:', e);
   } finally {
+    // FOUC 방지 해제: 초기화 완료 후 화면 표시
+    document.body.classList.remove('app-initializing');
     // onAuthStateChange가 초기화 전 SIGNED_OUT 발화해도 무시하도록 플래그 활성화
     _appReady = true;
   }
@@ -12613,6 +12611,7 @@ function renderSentStudyCard() {
     const displayWords = words.map((w, i) => blankIdxs.has(i)
       ? `<input data-answer="${w.replace(/[.,!?]/g,'').toLowerCase()}" type="text" class="pw-visible" placeholder=""
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+          readonly onfocus="this.removeAttribute('readonly')"
           style="width:${Math.min(Math.max(50,w.length*14),window.innerWidth<=600?Math.min(w.length*13,160):w.length*16)}px;border:none;border-bottom:3px solid ${col.b};
           background:transparent;color:#1a2d4a;font-size:clamp(17px,5vw,22px);font-weight:700;
           font-family:'Fraunces',serif;text-align:center;outline:none;padding:2px 4px;
@@ -19272,6 +19271,7 @@ function renderQuiz(){
         <input class="form-input pw-visible" id="quiz-inp"
           type="text"
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+          readonly onfocus="this.removeAttribute('readonly')"
           placeholder="${dir==='en2ko'?'한국어 뜻 입력':'영어 단어 입력'}"
           style="flex:1;border-radius:14px;border:2px solid var(--border);font-size:16px;padding:12px 16px"
           onkeydown="if(event.key==='Enter')checkInput('${w.id}','${dir}','input')">
@@ -23663,7 +23663,7 @@ async function openWordTest(bookId) {
         <input id="wt-inp-${i}" type="text" class="pw-visible" value="${esc(q.answer||'')}"
           placeholder="${placeholder}"
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-          ${submitted ? 'readonly' : ''}
+          ${submitted ? 'readonly' : 'readonly onfocus="this.removeAttribute(\'readonly\')"'}
           oninput="wtSaveInput(${i},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();const nx=document.getElementById('wt-inp-${i+1}');if(nx)nx.focus();}"
           style="width:100%;padding:10px 14px;border:1.5px solid ${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'};border-radius:10px;font-size:15px;font-family:'Outfit',sans-serif;outline:none;background:${q.correct!==null?'transparent':'#fff'};box-sizing:border-box;transition:border-color 0.2s"
