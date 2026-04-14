@@ -19403,85 +19403,107 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 _sfxCorrect.volume = 0.7;
 _sfxWrong.volume   = 0.7;
 
-// ── 모바일 오디오 버그 — 근본 해결 (v3) ────────────────────
-// 이전 버그:
-//  (A) 워밍 시 volume=0으로 play→pause 했는데, .then()이 비동기라
-//      워밍 진행 중에 실제 재생이 섞이면 "음소거로 재생" 또는 "크기 불균일" 발생
-//  (B) visibilitychange 복귀 시 pool 전체를 다시 play() → "연타 소리" 발생
-//  (C) pool 요소별 volume 복구 타이밍이 달라 소리 크기가 들쭉날쭉
-// 해결:
-//  1) volume 조작 완전 제거 → 모든 요소 항상 0.7 고정
-//  2) 워밍은 load()만 호출. play()는 절대 워밍에 사용 안 함
-//  3) iOS gesture unlock은 "첫 실제 재생"이 담당 (사용자가 어차피 터치하는 그 순간)
-//  4) visibilitychange에서는 아무것도 재생하지 않음 → 유령 연타 제거
+// ── 모바일 오디오 버그 — 근본 해결 (v4) ────────────────────
+// 이전 v3의 남은 문제:
+//  iOS Safari는 한 페이지에 여러 Audio 요소가 있으면 "활성 오디오 세션"을 한 요소에만 부여.
+//  _pickFromPool이 매번 다른 요소를 골라 돌려쓰면, iOS가 비활성화한 요소에 걸릴 때
+//  play() Promise는 resolve되지만 실제 소리는 안 남 (catch에도 안 걸림 → 재시도 불가).
+//
+// v4 해결:
+//  1) "주 요소(primary)" 1개를 고정 사용. iOS 활성 세션이 여기에 집중됨.
+//  2) 주 요소가 재생 중이면 backup pool 순환 사용 (연타 대응).
+//  3) play() 후 "실제로 소리가 났는지" timeupdate 이벤트로 검증.
+//     100ms 안에 currentTime이 0.02 이상 진행되지 않으면 재시도.
+//  4) 재시도는 무조건 새 Audio 인스턴스 생성 — iOS 비활성 세션 우회.
 const _SFX_VOL = 0.7;
-const _SFX_POOL_SIZE = 4;
 const _sfxCorrectSrc = _sfxCorrect.src;
 const _sfxWrongSrc   = _sfxWrong.src;
 
-function _buildPool(src) {
-  const pool = [];
-  for (let i = 0; i < _SFX_POOL_SIZE; i++) {
-    const a = new Audio(src);
-    a.volume = _SFX_VOL;      // 한 번만 세팅, 이후 절대 건드리지 않음
-    a.preload = 'auto';
-    try { a.load(); } catch(e) {}
-    pool.push(a);
-  }
-  return pool;
+// 주 요소 (iOS 오디오 세션 활성화용) + backup pool (연타 대응)
+function _makeSfx(src) {
+  const a = new Audio(src);
+  a.volume = _SFX_VOL;
+  a.preload = 'auto';
+  try { a.load(); } catch(e) {}
+  return a;
 }
-const _sfxCorrectPool = _buildPool(_sfxCorrectSrc);
-const _sfxWrongPool   = _buildPool(_sfxWrongSrc);
-const _corrIdxRef = { v: 0 };
-const _wrongIdxRef = { v: 0 };
+const _sfxCorrectPrimary = _makeSfx(_sfxCorrectSrc);
+const _sfxWrongPrimary   = _makeSfx(_sfxWrongSrc);
+const _sfxCorrectBackup = [_makeSfx(_sfxCorrectSrc), _makeSfx(_sfxCorrectSrc), _makeSfx(_sfxCorrectSrc)];
+const _sfxWrongBackup   = [_makeSfx(_sfxWrongSrc),   _makeSfx(_sfxWrongSrc),   _makeSfx(_sfxWrongSrc)];
+const _corrBackupIdx = { v: 0 };
+const _wrongBackupIdx = { v: 0 };
 
-// 안전장치: 혹시 어디서 volume이 건드려져도 재생 직전에 0.7로 강제
 function _ensureVol(a) {
   if (a.volume !== _SFX_VOL) a.volume = _SFX_VOL;
   if (a.muted) a.muted = false;
 }
 
-// 쉬고 있는 요소 우선 (완전히 멈춘 것 = paused && (ended || currentTime===0))
-function _pickFromPool(pool, idxRef) {
-  for (let i = 0; i < pool.length; i++) {
-    const a = pool[i];
-    if (a.paused) return a;
-  }
-  const a = pool[idxRef.v % pool.length];
-  idxRef.v = (idxRef.v + 1) % pool.length;
-  return a;
+// 실제 재생 여부 검증: currentTime이 실제로 전진하는지 체크
+function _verifyPlaying(a, src, onFail) {
+  const t0 = a.currentTime;
+  setTimeout(() => {
+    // 여전히 재생 중이어야 하고, currentTime이 전진했어야 함
+    if (a.paused || a.currentTime - t0 < 0.02) {
+      onFail();
+    }
+  }, 120);
 }
-function _playPooled(pool, idxRef) {
+
+function _attemptPlay(a, src, onFail) {
   try {
-    const a = _pickFromPool(pool, idxRef);
     _ensureVol(a);
-    if (a.paused) {
+    if (a.paused || a.ended) {
       try { a.currentTime = 0; } catch(e) {}
     }
     const p = a.play();
-    if (p && p.catch) p.catch(() => {
-      // 실패 시 다른 pool 요소로 재시도
-      const b = pool[idxRef.v % pool.length];
-      idxRef.v = (idxRef.v + 1) % pool.length;
-      _ensureVol(b);
-      try { b.currentTime = 0; b.play().catch(()=>{}); } catch(e){}
-    });
-  } catch(e) {}
+    if (p && p.then) {
+      p.then(() => _verifyPlaying(a, src, onFail))
+       .catch(() => onFail());
+    } else {
+      _verifyPlaying(a, src, onFail);
+    }
+  } catch(e) { onFail(); }
 }
 
-function _playCorrectSound() { _playPooled(_sfxCorrectPool, _corrIdxRef); }
-function _playWrongSound()   { _playPooled(_sfxWrongPool,   _wrongIdxRef); }
+function _playSfx(primary, backupPool, backupIdxRef, src) {
+  // 주 요소가 쉬고 있으면 주 요소 사용 (iOS 세션 활성화 유지)
+  // 재생 중이면 backup 순환
+  const usePrimary = primary.paused || primary.ended;
+  const main = usePrimary ? primary : backupPool[backupIdxRef.v % backupPool.length];
+  if (!usePrimary) backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
 
-// 백그라운드 복귀 시: 아무것도 재생하지 않음. 단, iOS가 Audio 요소를
-// suspend 상태로 두면 다음 실제 재생 때 약간 늦을 수 있으니 load()로만 깨움.
-// load()는 소리를 내지 않음 → 연타 현상 원천 차단.
+  _attemptPlay(main, src, () => {
+    // 1차 실패 → 다른 backup 요소로 재시도
+    const b = backupPool[backupIdxRef.v % backupPool.length];
+    backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
+    _attemptPlay(b, src, () => {
+      // 2차 실패 → 새 Audio 인스턴스 생성 (최후 수단: iOS 비활성 세션 완전 우회)
+      try {
+        const fresh = new Audio(src);
+        fresh.volume = _SFX_VOL;
+        fresh.play().catch(()=>{});
+      } catch(e) {}
+    });
+  });
+}
+
+function _playCorrectSound() {
+  _playSfx(_sfxCorrectPrimary, _sfxCorrectBackup, _corrBackupIdx, _sfxCorrectSrc);
+}
+function _playWrongSound() {
+  _playSfx(_sfxWrongPrimary, _sfxWrongBackup, _wrongBackupIdx, _sfxWrongSrc);
+}
+
+// 백그라운드 복귀 시: 재생하지 않고 상태만 리셋
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  [..._sfxCorrectPool, ..._sfxWrongPool].forEach(a => {
+  const all = [_sfxCorrectPrimary, _sfxWrongPrimary, ..._sfxCorrectBackup, ..._sfxWrongBackup];
+  all.forEach(a => {
     try {
-      if (!a.paused) a.pause();       // 혹시 백그라운드 진입 중 걸려있던 재생 정리
+      if (!a.paused) a.pause();
       a.currentTime = 0;
-      a.volume = _SFX_VOL;             // 볼륨 재고정 (iOS가 만지는 경우 대비)
+      a.volume = _SFX_VOL;
       a.muted = false;
     } catch(e) {}
   });
