@@ -19404,23 +19404,72 @@ _sfxCorrect.volume = 0.7;
 _sfxWrong.volume   = 0.7;
 
 // 딜레이 제거: 첫 터치 시 묵음 재생으로 브라우저 디코딩 완료 + 오디오 버퍼 캐싱
+// ── 모바일 오디오 딜레이/무음 버그 수정 ──────────────────
+// 문제1: warm()이 최초 1회만 실행 → 백그라운드 복귀 후 재생 불가
+// 문제2: play().then(pause) 타이밍 오류 → iOS에서 디코딩 전에 pause/reset 발생
+// 문제3: _play*Sound에서 play() Promise 무시 → 실패 시 아무 처리 없음
+// 해결: 1) visibilitychange 복귀 시 재워밍  2) canplaythrough 이벤트로 안전하게 reset
+//       3) _play*Sound에 .catch() 추가
+let _audioWarmed = false;
+function _warmOnce(audio) {
+  if (audio.readyState >= 2) return; // 이미 디코딩됨
+  const orig = audio.volume;
+  audio.volume = 0;
+  const p = audio.play();
+  if (p && p.then) {
+    p.then(() => {
+      // canplaythrough 이후에 안전하게 pause/reset
+      const onReady = () => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = orig;
+        audio.removeEventListener('canplaythrough', onReady);
+      };
+      if (audio.readyState >= 3) { audio.pause(); audio.currentTime = 0; audio.volume = orig; }
+      else audio.addEventListener('canplaythrough', onReady, { once: true });
+    }).catch(() => { audio.volume = orig; });
+  } else {
+    audio.volume = orig;
+  }
+}
 (function _prewarmAudio() {
   function warm() {
-    // volume=0 으로 아주 짧게 재생 → 내부 디코딩/버퍼링 완료
-    _sfxCorrect.volume = 0; _sfxCorrect.play().then(() => { _sfxCorrect.pause(); _sfxCorrect.currentTime = 0; _sfxCorrect.volume = 0.7; }).catch(()=>{});
-    _sfxWrong.volume   = 0; _sfxWrong.play().then(()   => { _sfxWrong.pause();   _sfxWrong.currentTime   = 0; _sfxWrong.volume   = 0.7; }).catch(()=>{});
-    document.removeEventListener('touchstart', warm);
-    document.removeEventListener('click', warm);
+    _audioWarmed = true;
+    _warmOnce(_sfxCorrect);
+    _warmOnce(_sfxWrong);
   }
+  // 최초 터치/클릭
   document.addEventListener('touchstart', warm, { once: true, passive: true });
   document.addEventListener('click',      warm, { once: true, passive: true });
+  // 백그라운드 복귀 시 재워밍 (iOS Safari AudioContext suspend 대응)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      _audioWarmed = false; // 다음 인터랙션 때 재워밍 트리거
+      // 이미 DOM에서 대기 중인 리스너 재등록
+      document.addEventListener('touchstart', warm, { once: true, passive: true });
+      document.addEventListener('click',      warm, { once: true, passive: true });
+    }
+  });
 })();
 
 function _playCorrectSound() {
-  try { _sfxCorrect.currentTime = 0; _sfxCorrect.play(); } catch(e) {}
+  try {
+    _sfxCorrect.currentTime = 0;
+    const p = _sfxCorrect.play();
+    if (p && p.catch) p.catch(() => {
+      // 재생 실패 시 짧은 딜레이 후 재시도 (iOS gesture lock 해제 후 시도)
+      setTimeout(() => { try { _sfxCorrect.currentTime = 0; _sfxCorrect.play().catch(()=>{}); } catch(e){} }, 80);
+    });
+  } catch(e) {}
 }
 function _playWrongSound() {
-  try { _sfxWrong.currentTime = 0; _sfxWrong.play(); } catch(e) {}
+  try {
+    _sfxWrong.currentTime = 0;
+    const p = _sfxWrong.play();
+    if (p && p.catch) p.catch(() => {
+      setTimeout(() => { try { _sfxWrong.currentTime = 0; _sfxWrong.play().catch(()=>{}); } catch(e){} }, 80);
+    });
+  } catch(e) {}
 }
 // ─────────────────────────────────────────────────────────
 
