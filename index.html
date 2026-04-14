@@ -19411,12 +19411,17 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 //  - 이어폰/블루투스와 무관하게 완전 균일
 // iOS gesture unlock (v8):
 //  - new AudioContext() + resume() + 빈 버퍼 재생 (표준 unlock 패턴)
-//  - context가 running될 때까지 제스처 리스너 유지 (첫 시도 실패해도 재시도)
-//  - 재생 시 state !== 'running'이면 resume 후 재생 보장
+//  - context가 running될 때까지 제스처 리스너 유지
+// 이어폰 라우팅 (v9):
+//  - iOS는 unlock된 시점의 출력 장치(이어폰/스피커)로 destination 고정
+//  - 이어폰 뺀 후에도 destination이 이어폰을 가리켜 스피커로 전환 안 됨
+//  - 해결: devicechange 이벤트 + visibilitychange에서 AudioContext 재생성
+//  - 추가: sampleRate 변화 감지 (이어폰 연결 시 흔히 바뀜)
 let _sfxCtx = null;
 let _sfxCorrectBuf = null;
 let _sfxWrongBuf = null;
 let _sfxUnlocked = false;
+let _sfxCtxSampleRate = 0;
 const _SFX_GAIN = 0.7;
 
 // data URI → ArrayBuffer 변환
@@ -19429,42 +19434,60 @@ function _dataUriToArrayBuffer(dataUri) {
   return bytes.buffer;
 }
 
-// 기존 _sfxCorrect, _sfxWrong Audio 요소의 src (data URI) 재사용
 const _sfxCorrectDataUri = _sfxCorrect.src;
 const _sfxWrongDataUri   = _sfxWrong.src;
 
-// AudioContext 생성 + 디코딩 시작 (최초 1회)
-function _createSfxCtx() {
-  if (_sfxCtx) return _sfxCtx;
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return null;
-  try {
-    _sfxCtx = new Ctx();
-  } catch(e) { return null; }
-
+// 디코딩 (ctx 재생성 시마다 다시 해야 함 — AudioBuffer는 ctx에 종속)
+function _decodeSfxBuffers(ctx) {
   const decode = (buf) => new Promise((resolve, reject) => {
-    const result = _sfxCtx.decodeAudioData(buf, resolve, reject);
+    const result = ctx.decodeAudioData(buf, resolve, reject);
     if (result && result.then) result.then(resolve, reject);
   });
   try {
     decode(_dataUriToArrayBuffer(_sfxCorrectDataUri))
-      .then(b => { _sfxCorrectBuf = b; }).catch(()=>{});
+      .then(b => { if (ctx === _sfxCtx) _sfxCorrectBuf = b; }).catch(()=>{});
     decode(_dataUriToArrayBuffer(_sfxWrongDataUri))
-      .then(b => { _sfxWrongBuf = b; }).catch(()=>{});
+      .then(b => { if (ctx === _sfxCtx) _sfxWrongBuf = b; }).catch(()=>{});
   } catch(e) {}
+}
+
+// AudioContext 생성 (기존 ctx가 있으면 close 후 재생성)
+function _createSfxCtx() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  // 기존 ctx 정리
+  if (_sfxCtx) {
+    try { _sfxCtx.close(); } catch(e) {}
+    _sfxCorrectBuf = null;
+    _sfxWrongBuf = null;
+  }
+  try {
+    _sfxCtx = new Ctx();
+  } catch(e) { _sfxCtx = null; return null; }
+  _sfxCtxSampleRate = _sfxCtx.sampleRate;
+  _decodeSfxBuffers(_sfxCtx);
   return _sfxCtx;
 }
 
+// 오디오 라우팅 변경 감지 → ctx 무효화 플래그
+let _sfxCtxInvalid = false;
+function _markCtxInvalid() {
+  _sfxCtxInvalid = true;
+  _sfxUnlocked = false;
+}
+
 // iOS unlock: 제스처 안에서 resume + 빈 버퍼 재생
-// 이 두 가지를 모두 같은 동기 호출 스택에서 해야 iOS가 unlock함
 function _unlockSfxCtx() {
-  const ctx = _createSfxCtx();
+  // ctx가 없거나 무효화됐으면 새로 생성
+  if (!_sfxCtx || _sfxCtxInvalid) {
+    _createSfxCtx();
+    _sfxCtxInvalid = false;
+  }
+  const ctx = _sfxCtx;
   if (!ctx) return false;
-  // resume 호출 (반드시 제스처 안에서)
   if (ctx.state === 'suspended') {
     try { ctx.resume(); } catch(e) {}
   }
-  // 빈 버퍼 재생 (iOS 표준 unlock 트릭)
   try {
     const buf = ctx.createBuffer(1, 1, 22050);
     const src = ctx.createBufferSource();
@@ -19472,7 +19495,6 @@ function _unlockSfxCtx() {
     src.connect(ctx.destination);
     src.start(0);
   } catch(e) {}
-  // state 확인: running이면 unlock 성공
   if (ctx.state === 'running') {
     _sfxUnlocked = true;
     return true;
@@ -19480,16 +19502,12 @@ function _unlockSfxCtx() {
   return false;
 }
 
-// 제스처 리스너: unlock 성공할 때까지 계속 재등록
+// 제스처 리스너: 항상 유지 (unlock + 라우팅 변경 후 재unlock)
 (function _attachUnlockListeners() {
   function onGesture() {
-    _unlockSfxCtx();
-    // unlock 성공하면 리스너 제거, 아니면 유지 (다음 제스처에서 재시도)
-    if (_sfxUnlocked) {
-      document.removeEventListener('touchstart', onGesture, true);
-      document.removeEventListener('touchend',   onGesture, true);
-      document.removeEventListener('click',      onGesture, true);
-      document.removeEventListener('keydown',    onGesture, true);
+    // ctx가 무효화됐거나 아직 unlock 안 됐으면 unlock 시도
+    if (_sfxCtxInvalid || !_sfxUnlocked) {
+      _unlockSfxCtx();
     }
   }
   document.addEventListener('touchstart', onGesture, true);
@@ -19498,15 +19516,35 @@ function _unlockSfxCtx() {
   document.addEventListener('keydown',    onGesture, true);
 })();
 
+// 오디오 출력 장치 변경 감지 (이어폰 연결/해제)
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+  try {
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      _markCtxInvalid();
+    });
+  } catch(e) {}
+}
+
+// 백그라운드 복귀 시에도 라우팅이 바뀌었을 수 있음 → ctx 무효화
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // sampleRate가 바뀌었으면 라우팅 변경된 것 (이어폰 연결/해제의 주요 신호)
+    if (_sfxCtx && _sfxCtx.sampleRate !== _sfxCtxSampleRate) {
+      _markCtxInvalid();
+    }
+    // resume 시도
+    if (_sfxCtx && _sfxCtx.state === 'suspended') {
+      try { _sfxCtx.resume(); } catch(e) {}
+    }
+  }
+});
+
 function _playBuffer(buf) {
-  if (!buf) return;
+  if (!buf) return false;
   const ctx = _sfxCtx;
-  if (!ctx) return;
-  // context가 running이 아니면 resume 시도 + HTMLAudio fallback
+  if (!ctx || _sfxCtxInvalid) return false;
   if (ctx.state !== 'running') {
     try { ctx.resume(); } catch(e) {}
-    // resume은 비동기라 즉시 재생 보장 안 됨 → HTMLAudio로 대체 재생
-    // (사용자 경험상 소리가 나는 게 우선)
     return false;
   }
   try {
@@ -19521,7 +19559,6 @@ function _playBuffer(buf) {
 }
 
 function _playCorrectSound() {
-  // Web Audio로 재생 시도, 실패하면 HTMLAudio fallback
   const ok = _sfxCorrectBuf && _playBuffer(_sfxCorrectBuf);
   if (!ok) {
     try { _sfxCorrect.currentTime = 0; _sfxCorrect.play().catch(()=>{}); } catch(e) {}
@@ -19533,13 +19570,6 @@ function _playWrongSound() {
     try { _sfxWrong.currentTime = 0; _sfxWrong.play().catch(()=>{}); } catch(e) {}
   }
 }
-
-// 백그라운드 복귀 시 AudioContext resume
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && _sfxCtx && _sfxCtx.state === 'suspended') {
-    try { _sfxCtx.resume(); } catch(e) {}
-  }
-});
 // ─────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────
 
