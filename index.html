@@ -19403,23 +19403,22 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 _sfxCorrect.volume = 0.7;
 _sfxWrong.volume   = 0.7;
 
-// ── 모바일 오디오 버그 — 근본 해결 (v4) ────────────────────
-// 이전 v3의 남은 문제:
-//  iOS Safari는 한 페이지에 여러 Audio 요소가 있으면 "활성 오디오 세션"을 한 요소에만 부여.
-//  _pickFromPool이 매번 다른 요소를 골라 돌려쓰면, iOS가 비활성화한 요소에 걸릴 때
-//  play() Promise는 resolve되지만 실제 소리는 안 남 (catch에도 안 걸림 → 재시도 불가).
+// ── 모바일 오디오 버그 — 근본 해결 (v5) ────────────────────
+// v4의 남은 문제:
+//  - _verifyPlaying이 120ms 타임아웃으로 "안 울렸네?" 판단 → false positive 빈발
+//  - 실제로는 재생 중인데 재시도 발동 → 더블 재생/늘어짐/음량 불균일
+//  - Primary가 방금 재생 시작했는데 paused 체크 오판 → 중첩 재생
 //
-// v4 해결:
-//  1) "주 요소(primary)" 1개를 고정 사용. iOS 활성 세션이 여기에 집중됨.
-//  2) 주 요소가 재생 중이면 backup pool 순환 사용 (연타 대응).
-//  3) play() 후 "실제로 소리가 났는지" timeupdate 이벤트로 검증.
-//     100ms 안에 currentTime이 0.02 이상 진행되지 않으면 재시도.
-//  4) 재시도는 무조건 새 Audio 인스턴스 생성 — iOS 비활성 세션 우회.
+// v5 해결:
+//  1) _verifyPlaying 제거. Promise 성공하면 믿음 (Primary 고정으로 거의 해결됨)
+//  2) 재시도는 Promise reject 시에만 → 확실한 실패에만 발동
+//  3) "마지막 재생 시각" 추적 → 80ms 이내 중복 호출 무시 (더블 재생 방지)
+//  4) Primary 재사용 시 이전 재생이 "실제 종료"되었는지 duration 기반 체크
 const _SFX_VOL = 0.7;
+const _SFX_MIN_GAP_MS = 80;  // 같은 사운드 최소 간격 (더블 재생 방지)
 const _sfxCorrectSrc = _sfxCorrect.src;
 const _sfxWrongSrc   = _sfxWrong.src;
 
-// 주 요소 (iOS 오디오 세션 활성화용) + backup pool (연타 대응)
 function _makeSfx(src) {
   const a = new Audio(src);
   a.volume = _SFX_VOL;
@@ -19427,72 +19426,73 @@ function _makeSfx(src) {
   try { a.load(); } catch(e) {}
   return a;
 }
+// Primary 하나로 집중. Backup은 Primary가 진짜 재생 중일 때만 사용.
 const _sfxCorrectPrimary = _makeSfx(_sfxCorrectSrc);
 const _sfxWrongPrimary   = _makeSfx(_sfxWrongSrc);
-const _sfxCorrectBackup = [_makeSfx(_sfxCorrectSrc), _makeSfx(_sfxCorrectSrc), _makeSfx(_sfxCorrectSrc)];
-const _sfxWrongBackup   = [_makeSfx(_sfxWrongSrc),   _makeSfx(_sfxWrongSrc),   _makeSfx(_sfxWrongSrc)];
+const _sfxCorrectBackup  = [_makeSfx(_sfxCorrectSrc), _makeSfx(_sfxCorrectSrc)];
+const _sfxWrongBackup    = [_makeSfx(_sfxWrongSrc),   _makeSfx(_sfxWrongSrc)];
 const _corrBackupIdx = { v: 0 };
 const _wrongBackupIdx = { v: 0 };
+
+// 마지막 재생 시각 기록 (더블 재생 차단용)
+const _sfxLastPlayTs = { correct: 0, wrong: 0 };
 
 function _ensureVol(a) {
   if (a.volume !== _SFX_VOL) a.volume = _SFX_VOL;
   if (a.muted) a.muted = false;
 }
 
-// 실제 재생 여부 검증: currentTime이 실제로 전진하는지 체크
-function _verifyPlaying(a, src, onFail) {
-  const t0 = a.currentTime;
-  setTimeout(() => {
-    // 여전히 재생 중이어야 하고, currentTime이 전진했어야 함
-    if (a.paused || a.currentTime - t0 < 0.02) {
-      onFail();
-    }
-  }, 120);
+// Primary가 실제로 "재생 가능한 상태"인지 엄격 판정
+// paused이고, currentTime이 duration 근처이거나 0이면 재사용 가능
+function _isFree(a) {
+  if (!a.paused) return false;
+  if (a.ended) return true;
+  if (a.currentTime === 0) return true;
+  if (a.duration && a.currentTime >= a.duration - 0.05) return true;
+  return false;
 }
 
-function _attemptPlay(a, src, onFail) {
+function _playOnce(a, onFail) {
   try {
     _ensureVol(a);
-    if (a.paused || a.ended) {
-      try { a.currentTime = 0; } catch(e) {}
-    }
+    try { a.currentTime = 0; } catch(e) {}
     const p = a.play();
-    if (p && p.then) {
-      p.then(() => _verifyPlaying(a, src, onFail))
-       .catch(() => onFail());
-    } else {
-      _verifyPlaying(a, src, onFail);
-    }
-  } catch(e) { onFail(); }
+    if (p && p.catch) p.catch(() => onFail && onFail());
+  } catch(e) { onFail && onFail(); }
 }
 
-function _playSfx(primary, backupPool, backupIdxRef, src) {
-  // 주 요소가 쉬고 있으면 주 요소 사용 (iOS 세션 활성화 유지)
-  // 재생 중이면 backup 순환
-  const usePrimary = primary.paused || primary.ended;
-  const main = usePrimary ? primary : backupPool[backupIdxRef.v % backupPool.length];
-  if (!usePrimary) backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
+function _playSfx(kind, primary, backupPool, backupIdxRef, src) {
+  const now = Date.now();
+  // 더블 재생 차단: 같은 사운드가 너무 빨리 연속 호출되면 무시
+  if (now - _sfxLastPlayTs[kind] < _SFX_MIN_GAP_MS) return;
+  _sfxLastPlayTs[kind] = now;
 
-  _attemptPlay(main, src, () => {
-    // 1차 실패 → 다른 backup 요소로 재시도
-    const b = backupPool[backupIdxRef.v % backupPool.length];
-    backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
-    _attemptPlay(b, src, () => {
-      // 2차 실패 → 새 Audio 인스턴스 생성 (최후 수단: iOS 비활성 세션 완전 우회)
-      try {
-        const fresh = new Audio(src);
-        fresh.volume = _SFX_VOL;
-        fresh.play().catch(()=>{});
-      } catch(e) {}
+  // Primary가 쉬고 있으면 Primary 사용 (iOS 오디오 세션 고정)
+  if (_isFree(primary)) {
+    _playOnce(primary, () => {
+      // Primary 실패 시에만 backup으로 재시도
+      const b = backupPool[backupIdxRef.v % backupPool.length];
+      backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
+      _playOnce(b, () => {
+        // 최후 수단: 새 Audio 인스턴스
+        try { const fresh = new Audio(src); fresh.volume = _SFX_VOL; fresh.play().catch(()=>{}); } catch(e) {}
+      });
     });
+    return;
+  }
+  // Primary 재생 중 → backup 사용 (연타 대응)
+  const b = backupPool[backupIdxRef.v % backupPool.length];
+  backupIdxRef.v = (backupIdxRef.v + 1) % backupPool.length;
+  _playOnce(b, () => {
+    try { const fresh = new Audio(src); fresh.volume = _SFX_VOL; fresh.play().catch(()=>{}); } catch(e) {}
   });
 }
 
 function _playCorrectSound() {
-  _playSfx(_sfxCorrectPrimary, _sfxCorrectBackup, _corrBackupIdx, _sfxCorrectSrc);
+  _playSfx('correct', _sfxCorrectPrimary, _sfxCorrectBackup, _corrBackupIdx, _sfxCorrectSrc);
 }
 function _playWrongSound() {
-  _playSfx(_sfxWrongPrimary, _sfxWrongBackup, _wrongBackupIdx, _sfxWrongSrc);
+  _playSfx('wrong', _sfxWrongPrimary, _sfxWrongBackup, _wrongBackupIdx, _sfxWrongSrc);
 }
 
 // 백그라운드 복귀 시: 재생하지 않고 상태만 리셋
@@ -19507,6 +19507,9 @@ document.addEventListener('visibilitychange', () => {
       a.muted = false;
     } catch(e) {}
   });
+  // 타임스탬프도 리셋 → 복귀 직후 첫 재생이 gap 체크로 차단되지 않도록
+  _sfxLastPlayTs.correct = 0;
+  _sfxLastPlayTs.wrong = 0;
 });
 // ─────────────────────────────────────────────────────────
 
