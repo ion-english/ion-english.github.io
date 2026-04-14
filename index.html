@@ -1279,7 +1279,7 @@ body.app-initializing{visibility:hidden}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
 .stat-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:22px;
   position:relative;overflow:hidden;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);box-shadow:var(--sh)}
-.stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)}
+@media (hover: hover) and (pointer: fine) { .stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)} }
 .stat-card-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:0.07}
 .stat-value{font-family:'Fraunces',serif;font-size:38px;font-weight:900;line-height:1;margin-bottom:4px}
 .stat-label{font-size:14px;color:var(--t2);font-weight:500}
@@ -1297,7 +1297,7 @@ body.app-initializing{visibility:hidden}
 #sent-books-grid-student.cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
 .book-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   cursor:default;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);position:relative;box-shadow:var(--sh)}
-.book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)}
+@media (hover: hover) and (pointer: fine) { .book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)} }
 .book-card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
 .book-emoji{font-size:28px;margin-bottom:10px}
 .book-name{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-0.2px}
@@ -1767,7 +1767,7 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
 .fv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .fv-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   transition:all 0.18s;position:relative;overflow:hidden;box-shadow:var(--sh)}
-.fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)}
+@media (hover: hover) and (pointer: fine) { .fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)} }
 .fv-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
 .fv-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
 .fv-name{font-size:15px;font-weight:600;margin-bottom:3px;word-break:break-word;letter-spacing:-0.1px}
@@ -2692,7 +2692,6 @@ body.student-mode {
    ──────────────────────────────────────────────────────── */
 @media (hover: none), (pointer: coarse) {
   * { -webkit-tap-highlight-color: transparent; }
-  .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; }
   .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; }
   .nav-item:hover { color:inherit !important;background:inherit !important; }
   .nav-item:hover .nav-icon { opacity:inherit !important; }
@@ -2724,18 +2723,6 @@ body.student-mode {
   .slime-chat-bar-send:hover { transform:none !important; }
   .row-hover-actions { display:none !important; }
   tr:hover .row-hover-actions { display:none !important; }
-}
-
-/* ── body.no-hover: JS 터치 감지 후 모든 hover 전역 무효화 ── */
-body.no-hover *:hover {
-  background: inherit !important;
-  transform: none !important;
-  box-shadow: none !important;
-  border-color: inherit !important;
-  color: inherit !important;
-  opacity: inherit !important;
-  animation: none !important;
-  padding: inherit !important;
 }
 </style>
 
@@ -28179,24 +28166,31 @@ async function sendTaskReminderNotifs() {
 
 <script>
 /* ── 모바일 터치 hover 잔상 방지 (iOS Safari 고착 버그 해결) ──
-   1) 첫 터치 시 body.no-hover 영구 추가 → CSS 전역 무효화
-   2) touchend마다 pointer-events 한 프레임 토글 → iOS hover state 강제 flush
-      (classList 토글은 iOS가 무시하지만 pointer-events:none은 무조건 해제됨) */
+   터치 이벤트 감지 후 touchstart/touchend 시 빈 클래스를 토글해
+   브라우저가 hover 상태를 강제로 flush하도록 함. */
 (function() {
   if (!('ontouchstart' in window)) return;
-
-  // 첫 터치 시 body.no-hover 클래스 영구 추가
-  document.addEventListener('touchstart', function addNoHover() {
-    document.body.classList.add('no-hover');
-  }, { passive: true, once: true });
-
-  // touchend마다 pointer-events 순간 토글로 iOS hover state flush
+  document.addEventListener('touchstart', function(e) {
+    // 터치 시작 시 타겟 요소에서 hover 상태 flush
+    var el = e.target;
+    while (el && el !== document.body) {
+      el.classList.add('_touch-active');
+      el = el.parentElement;
+    }
+  }, { passive: true });
   document.addEventListener('touchend', function() {
-    var s = document.body.style;
-    s.pointerEvents = 'none';
-    requestAnimationFrame(function() {
-      s.pointerEvents = '';
-    });
+    // 터치 종료 후 짧은 딜레이로 전체 hover 상태 해제
+    setTimeout(function() {
+      var els = document.querySelectorAll('._touch-active');
+      els.forEach(function(el) { el.classList.remove('_touch-active'); });
+      // blur로 포커스 강제 이동해 hover 잔상 제거
+      // input/textarea/select는 제외 (키보드가 내려가는 문제 방지)
+      var _tag = document.activeElement ? document.activeElement.tagName : '';
+      if (document.activeElement && document.activeElement !== document.body
+          && _tag !== 'INPUT' && _tag !== 'TEXTAREA' && _tag !== 'SELECT') {
+        document.activeElement.blur();
+      }
+    }, 300);
   }, { passive: true });
 })();
 </script>
