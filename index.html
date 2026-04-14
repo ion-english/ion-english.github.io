@@ -7211,12 +7211,7 @@ function showPage(id, addHistory = true) {
   document.querySelectorAll('.page').forEach(p => { if (p.id !== prevId) p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   const pg = document.getElementById(id);
-  if (pg) {
-    pg.classList.add('active');
-    // iOS ghost hover 방지: 새 페이지 컨테이너만 한 프레임 pointer-events 차단
-    pg.style.pointerEvents = 'none';
-    setTimeout(function() { pg.style.pointerEvents = ''; }, 300);
-  }
+  if (pg) pg.classList.add('active');
   const nb = document.getElementById('nav-'+id);
   if (nb) nb.classList.add('active');
   document.getElementById('topbar-title').textContent = pageTitles[id] || '';
