@@ -19409,12 +19409,14 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 //  - GainNode로 직접 게인 제어 → OS가 만지지 못함
 //  - AudioBufferSourceNode는 매번 새로 생성 (iOS 세션 문제 없음)
 //  - 이어폰/블루투스와 무관하게 완전 균일
-// iOS gesture 이슈 해결:
-//  - 첫 사용자 제스처에서 AudioContext 생성 + resume()
-//  - 재생 호출마다 suspended 체크 후 resume()
+// iOS gesture unlock (v8):
+//  - new AudioContext() + resume() + 빈 버퍼 재생 (표준 unlock 패턴)
+//  - context가 running될 때까지 제스처 리스너 유지 (첫 시도 실패해도 재시도)
+//  - 재생 시 state !== 'running'이면 resume 후 재생 보장
 let _sfxCtx = null;
 let _sfxCorrectBuf = null;
 let _sfxWrongBuf = null;
+let _sfxUnlocked = false;
 const _SFX_GAIN = 0.7;
 
 // data URI → ArrayBuffer 변환
@@ -19431,54 +19433,82 @@ function _dataUriToArrayBuffer(dataUri) {
 const _sfxCorrectDataUri = _sfxCorrect.src;
 const _sfxWrongDataUri   = _sfxWrong.src;
 
-function _ensureSfxCtx() {
-  if (!_sfxCtx) {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return null;
-    try {
-      _sfxCtx = new Ctx();
-    } catch(e) { return null; }
+// AudioContext 생성 + 디코딩 시작 (최초 1회)
+function _createSfxCtx() {
+  if (_sfxCtx) return _sfxCtx;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  try {
+    _sfxCtx = new Ctx();
+  } catch(e) { return null; }
 
-    // 버퍼 디코딩 (비동기, 한 번만)
-    const decode = (buf) => new Promise((resolve, reject) => {
-      // Safari 구버전은 Promise 반환 안 함 → 콜백 형태 지원
-      const result = _sfxCtx.decodeAudioData(buf, resolve, reject);
-      if (result && result.then) result.then(resolve, reject);
-    });
-    try {
-      decode(_dataUriToArrayBuffer(_sfxCorrectDataUri))
-        .then(b => { _sfxCorrectBuf = b; }).catch(()=>{});
-      decode(_dataUriToArrayBuffer(_sfxWrongDataUri))
-        .then(b => { _sfxWrongBuf = b; }).catch(()=>{});
-    } catch(e) {}
-  }
-  // iOS: suspended 상태면 resume
-  if (_sfxCtx.state === 'suspended') {
-    try { _sfxCtx.resume(); } catch(e) {}
-  }
+  const decode = (buf) => new Promise((resolve, reject) => {
+    const result = _sfxCtx.decodeAudioData(buf, resolve, reject);
+    if (result && result.then) result.then(resolve, reject);
+  });
+  try {
+    decode(_dataUriToArrayBuffer(_sfxCorrectDataUri))
+      .then(b => { _sfxCorrectBuf = b; }).catch(()=>{});
+    decode(_dataUriToArrayBuffer(_sfxWrongDataUri))
+      .then(b => { _sfxWrongBuf = b; }).catch(()=>{});
+  } catch(e) {}
   return _sfxCtx;
 }
 
-// 첫 사용자 제스처에서 AudioContext 초기화 (iOS gesture unlock)
-(function _initSfxOnGesture() {
-  const once = { once: true, passive: true, capture: true };
-  function init() {
-    _ensureSfxCtx();
-    document.removeEventListener('touchstart', init, true);
-    document.removeEventListener('touchend',   init, true);
-    document.removeEventListener('click',      init, true);
-    document.removeEventListener('keydown',    init, true);
+// iOS unlock: 제스처 안에서 resume + 빈 버퍼 재생
+// 이 두 가지를 모두 같은 동기 호출 스택에서 해야 iOS가 unlock함
+function _unlockSfxCtx() {
+  const ctx = _createSfxCtx();
+  if (!ctx) return false;
+  // resume 호출 (반드시 제스처 안에서)
+  if (ctx.state === 'suspended') {
+    try { ctx.resume(); } catch(e) {}
   }
-  document.addEventListener('touchstart', init, once);
-  document.addEventListener('touchend',   init, once);
-  document.addEventListener('click',      init, once);
-  document.addEventListener('keydown',    init, once);
+  // 빈 버퍼 재생 (iOS 표준 unlock 트릭)
+  try {
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch(e) {}
+  // state 확인: running이면 unlock 성공
+  if (ctx.state === 'running') {
+    _sfxUnlocked = true;
+    return true;
+  }
+  return false;
+}
+
+// 제스처 리스너: unlock 성공할 때까지 계속 재등록
+(function _attachUnlockListeners() {
+  function onGesture() {
+    _unlockSfxCtx();
+    // unlock 성공하면 리스너 제거, 아니면 유지 (다음 제스처에서 재시도)
+    if (_sfxUnlocked) {
+      document.removeEventListener('touchstart', onGesture, true);
+      document.removeEventListener('touchend',   onGesture, true);
+      document.removeEventListener('click',      onGesture, true);
+      document.removeEventListener('keydown',    onGesture, true);
+    }
+  }
+  document.addEventListener('touchstart', onGesture, true);
+  document.addEventListener('touchend',   onGesture, true);
+  document.addEventListener('click',      onGesture, true);
+  document.addEventListener('keydown',    onGesture, true);
 })();
 
 function _playBuffer(buf) {
   if (!buf) return;
-  const ctx = _ensureSfxCtx();
+  const ctx = _sfxCtx;
   if (!ctx) return;
+  // context가 running이 아니면 resume 시도 + HTMLAudio fallback
+  if (ctx.state !== 'running') {
+    try { ctx.resume(); } catch(e) {}
+    // resume은 비동기라 즉시 재생 보장 안 됨 → HTMLAudio로 대체 재생
+    // (사용자 경험상 소리가 나는 게 우선)
+    return false;
+  }
   try {
     const src = ctx.createBufferSource();
     src.buffer = buf;
@@ -19486,23 +19516,22 @@ function _playBuffer(buf) {
     gain.gain.value = _SFX_GAIN;
     src.connect(gain).connect(ctx.destination);
     src.start(0);
-  } catch(e) {}
+    return true;
+  } catch(e) { return false; }
 }
 
 function _playCorrectSound() {
-  // 버퍼가 아직 디코딩 안 됐으면 HTMLAudio로 fallback (초기 1~2회만)
-  if (!_sfxCorrectBuf) {
+  // Web Audio로 재생 시도, 실패하면 HTMLAudio fallback
+  const ok = _sfxCorrectBuf && _playBuffer(_sfxCorrectBuf);
+  if (!ok) {
     try { _sfxCorrect.currentTime = 0; _sfxCorrect.play().catch(()=>{}); } catch(e) {}
-    return;
   }
-  _playBuffer(_sfxCorrectBuf);
 }
 function _playWrongSound() {
-  if (!_sfxWrongBuf) {
+  const ok = _sfxWrongBuf && _playBuffer(_sfxWrongBuf);
+  if (!ok) {
     try { _sfxWrong.currentTime = 0; _sfxWrong.play().catch(()=>{}); } catch(e) {}
-    return;
   }
-  _playBuffer(_sfxWrongBuf);
 }
 
 // 백그라운드 복귀 시 AudioContext resume
