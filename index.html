@@ -19403,79 +19403,49 @@ const _sfxWrong   = new Audio('data:audio/wav;base64,UklGRrY6AABXQVZFZm10IBAAAAA
 _sfxCorrect.volume = 0.7;
 _sfxWrong.volume   = 0.7;
 
-// ── 모바일 오디오 딜레이/무음 버그 — 근본 해결 ────────────
-// 근본 원인:
-//  (A) iOS는 data URI WAV를 즉시 디코딩 안 함. 첫 play() 시 디코딩 대기 → 수백 ms 지연
-//  (B) 단일 Audio 요소로 currentTime=0 + play() 연타 시 seek/pause 경쟁 → 묵음/AbortError
-//  (C) 재생 중 같은 요소를 다시 play()하면 iOS는 무시함
-//  (D) 백그라운드 복귀 시 Audio 요소 suspend
-// 해결: 각 사운드를 3개씩 풀링(pool)해서 순환 사용. 첫 제스처에서 전체 pool 워밍.
-//      → 경쟁 조건 자체 제거. 연타에도 즉시 반응.
-
-const _SFX_POOL_SIZE = 3;
+// ── 모바일 오디오 버그 — 근본 해결 (v3) ────────────────────
+// 이전 버그:
+//  (A) 워밍 시 volume=0으로 play→pause 했는데, .then()이 비동기라
+//      워밍 진행 중에 실제 재생이 섞이면 "음소거로 재생" 또는 "크기 불균일" 발생
+//  (B) visibilitychange 복귀 시 pool 전체를 다시 play() → "연타 소리" 발생
+//  (C) pool 요소별 volume 복구 타이밍이 달라 소리 크기가 들쭉날쭉
+// 해결:
+//  1) volume 조작 완전 제거 → 모든 요소 항상 0.7 고정
+//  2) 워밍은 load()만 호출. play()는 절대 워밍에 사용 안 함
+//  3) iOS gesture unlock은 "첫 실제 재생"이 담당 (사용자가 어차피 터치하는 그 순간)
+//  4) visibilitychange에서는 아무것도 재생하지 않음 → 유령 연타 제거
+const _SFX_VOL = 0.7;
+const _SFX_POOL_SIZE = 4;
 const _sfxCorrectSrc = _sfxCorrect.src;
 const _sfxWrongSrc   = _sfxWrong.src;
 
-function _buildPool(src, vol) {
+function _buildPool(src) {
   const pool = [];
   for (let i = 0; i < _SFX_POOL_SIZE; i++) {
     const a = new Audio(src);
-    a.volume = vol;
+    a.volume = _SFX_VOL;      // 한 번만 세팅, 이후 절대 건드리지 않음
     a.preload = 'auto';
-    try { a.load(); } catch(e) {} // iOS: 명시적 load() 필요
+    try { a.load(); } catch(e) {}
     pool.push(a);
   }
   return pool;
 }
-const _sfxCorrectPool = _buildPool(_sfxCorrectSrc, 0.7);
-const _sfxWrongPool   = _buildPool(_sfxWrongSrc,   0.7);
+const _sfxCorrectPool = _buildPool(_sfxCorrectSrc);
+const _sfxWrongPool   = _buildPool(_sfxWrongSrc);
 const _corrIdxRef = { v: 0 };
 const _wrongIdxRef = { v: 0 };
 
-// 첫 제스처에서 전체 pool을 묵음 재생 → iOS 디코딩 완료 + gesture unlock
-let _audioWarmed = false;
-function _warmPool(pool) {
-  pool.forEach(a => {
-    const orig = a.volume;
-    a.volume = 0;
-    const p = a.play();
-    if (p && p.then) {
-      p.then(() => {
-        try { a.pause(); a.currentTime = 0; } catch(e) {}
-        a.volume = orig;
-      }).catch(() => { a.volume = orig; });
-    } else {
-      a.volume = orig;
-    }
-  });
+// 안전장치: 혹시 어디서 volume이 건드려져도 재생 직전에 0.7로 강제
+function _ensureVol(a) {
+  if (a.volume !== _SFX_VOL) a.volume = _SFX_VOL;
+  if (a.muted) a.muted = false;
 }
-function _warmAllSfx() {
-  _audioWarmed = true;
-  _warmPool(_sfxCorrectPool);
-  _warmPool(_sfxWrongPool);
-}
-(function _prewarmAudio() {
-  const once = { once: true, passive: true };
-  function attach() {
-    document.addEventListener('touchstart', _warmAllSfx, once);
-    document.addEventListener('touchend',   _warmAllSfx, once);
-    document.addEventListener('click',      _warmAllSfx, once);
-    document.addEventListener('keydown',    _warmAllSfx, once);
-  }
-  attach();
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      _audioWarmed = false;
-      attach();
-    }
-  });
-})();
 
-// pool에서 쉬고 있는 요소 우선, 없으면 순환
+// 쉬고 있는 요소 우선 (완전히 멈춘 것 = paused && (ended || currentTime===0))
 function _pickFromPool(pool, idxRef) {
   for (let i = 0; i < pool.length; i++) {
     const a = pool[i];
-    if (a.paused || a.ended) return a;
+    if (a.paused) return a;
   }
   const a = pool[idxRef.v % pool.length];
   idxRef.v = (idxRef.v + 1) % pool.length;
@@ -19484,14 +19454,16 @@ function _pickFromPool(pool, idxRef) {
 function _playPooled(pool, idxRef) {
   try {
     const a = _pickFromPool(pool, idxRef);
-    if (a.paused || a.ended) {
+    _ensureVol(a);
+    if (a.paused) {
       try { a.currentTime = 0; } catch(e) {}
     }
     const p = a.play();
     if (p && p.catch) p.catch(() => {
-      // 실패 시 다음 pool 요소로 즉시 재시도
+      // 실패 시 다른 pool 요소로 재시도
       const b = pool[idxRef.v % pool.length];
       idxRef.v = (idxRef.v + 1) % pool.length;
+      _ensureVol(b);
       try { b.currentTime = 0; b.play().catch(()=>{}); } catch(e){}
     });
   } catch(e) {}
@@ -19499,6 +19471,21 @@ function _playPooled(pool, idxRef) {
 
 function _playCorrectSound() { _playPooled(_sfxCorrectPool, _corrIdxRef); }
 function _playWrongSound()   { _playPooled(_sfxWrongPool,   _wrongIdxRef); }
+
+// 백그라운드 복귀 시: 아무것도 재생하지 않음. 단, iOS가 Audio 요소를
+// suspend 상태로 두면 다음 실제 재생 때 약간 늦을 수 있으니 load()로만 깨움.
+// load()는 소리를 내지 않음 → 연타 현상 원천 차단.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  [..._sfxCorrectPool, ..._sfxWrongPool].forEach(a => {
+    try {
+      if (!a.paused) a.pause();       // 혹시 백그라운드 진입 중 걸려있던 재생 정리
+      a.currentTime = 0;
+      a.volume = _SFX_VOL;             // 볼륨 재고정 (iOS가 만지는 경우 대비)
+      a.muted = false;
+    } catch(e) {}
+  });
+});
 // ─────────────────────────────────────────────────────────
 
 function answerChoice(btn,selId,corrId){
