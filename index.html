@@ -19394,63 +19394,58 @@ function renderQuiz(){
   if(dir2==='en2ko') setTimeout(()=>speak(w.en), 200);
 }
 // ── 퀴즈 효과음 ─────────────────────────────────────────
-// 모바일(iOS/Android)은 AudioContext를 매번 new로 만들면 suspended 상태가 되어 소리가 안 남.
-// 싱글톤으로 유지하고, 사용자 터치 이벤트마다 resume()을 보장하는 방식으로 처리.
+// [모바일 오디오 정책 대응]
+// iOS/Android는 AudioContext를 사용자 제스처(터치) 직후에 resume해야 하고,
+// oscillator 생성/재생도 반드시 동기 컨텍스트에서 이루어져야 함.
+// .then() 비동기 콜백 안에서 oscillator를 만들면 iOS가 gesture로 인정하지 않아 소리 안 남.
+//
+// 해결 전략:
+// 1. AudioContext는 싱글톤으로 유지 (매번 new 금지)
+// 2. 모든 터치/클릭 이벤트에서 resume() 선제 호출 → running 상태 유지
+// 3. 소리 재생은 resume().then() 없이 동기적으로 즉시 실행
+
 let _sfxCtx = null;
-function _getSfxCtx() {
-  if (!_sfxCtx || _sfxCtx.state === 'closed') {
-    _sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  // iOS Safari는 첫 사용자 제스처 이후에도 suspended로 남을 수 있음 → 반드시 resume
-  if (_sfxCtx.state === 'suspended') {
-    _sfxCtx.resume();
-  }
+
+function _initSfxCtx() {
+  if (_sfxCtx && _sfxCtx.state !== 'closed') return _sfxCtx;
+  try { _sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { _sfxCtx = null; }
   return _sfxCtx;
 }
-// 첫 터치/클릭 시 AudioContext를 미리 unlock (iOS 정책 대응)
-function _unlockSfxCtx() {
-  try { _getSfxCtx(); } catch(e) {}
+
+function _resumeSfxCtx() {
+  const ctx = _initSfxCtx();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
 }
-document.addEventListener('touchstart', _unlockSfxCtx, { once: false, passive: true });
-document.addEventListener('touchend', _unlockSfxCtx, { once: false, passive: true });
+document.addEventListener('touchstart', _resumeSfxCtx, { passive: true });
+document.addEventListener('touchend',   _resumeSfxCtx, { passive: true });
+document.addEventListener('click',      _resumeSfxCtx, { passive: true });
+
+async function _sfxPlay(notes) {
+  try {
+    const ctx = _initSfxCtx();
+    if (!ctx) return;
+    // suspended 상태면 await로 완전히 running이 될 때까지 기다림
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (ctx.state !== 'running') return;
+    const t = ctx.currentTime;
+    notes.forEach(([freq, start, dur, vol = 0.3]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + start);
+      g.gain.linearRampToValueAtTime(vol, t + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.start(t + start);
+      o.stop(t + start + dur + 0.05);
+    });
+  } catch(e) {}
+}
 
 function _playCorrectSound() {
-  try {
-    const ctx = _getSfxCtx();
-    const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
-    resume.then(() => {
-      // 퀴즈쇼 정답음: C5 → E5 → G5
-      [[880, 0, 0.08], [1108, 0.09, 0.08], [1318, 0.18, 0.15]].forEach(([freq, start, dur]) => {
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, ctx.currentTime + start);
-        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + start + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
-        o.start(ctx.currentTime + start);
-        o.stop(ctx.currentTime + start + dur + 0.05);
-      });
-    });
-  } catch(e) {}
+  _sfxPlay([[880, 0, 0.08], [1108, 0.09, 0.08], [1318, 0.18, 0.15]]);
 }
 function _playWrongSound() {
-  try {
-    const ctx = _getSfxCtx();
-    const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
-    resume.then(() => {
-      // 뚝 — 목탁 느낌의 짧고 둔탁한 타격음
-      [[800, 0, 0.01, 0.6], [600, 0, 0.15, 0.4], [400, 0, 0.1, 0.2]].forEach(([freq, start, dur, vol]) => {
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, ctx.currentTime + start);
-        g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
-        o.start(ctx.currentTime + start);
-        o.stop(ctx.currentTime + start + dur + 0.05);
-      });
-    });
-  } catch(e) {}
+  _sfxPlay([[800, 0, 0.01, 0.6], [600, 0, 0.15, 0.4], [400, 0, 0.1, 0.2]]);
 }
 // ─────────────────────────────────────────────────────────
 
