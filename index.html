@@ -1643,6 +1643,19 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 }
 .quiz-opt.locked{cursor:not-allowed}
 
+/* 퀴즈 선택 팝업 버튼 - 데스크탑만 호버 */
+@media (hover: hover) {
+  .quiz-type-sel-btn:hover {
+    border-color: var(--slime-accent, #6ee7b7) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(110,231,183,0.18);
+  }
+}
+.quiz-type-sel-btn:active {
+  transform: scale(0.97) !important;
+  transition: transform 0.08s ease !important;
+}
+
 /* 피드백 */
 .quiz-feedback{
   min-height:44px;display:flex;align-items:center;justify-content:center;
@@ -2724,6 +2737,23 @@ body.student-mode {
   .slime-chat-bar-send:hover { transform:none !important; }
   .row-hover-actions { display:none !important; }
   tr:hover .row-hover-actions { display:none !important; }
+
+  /* 모바일 터치 피드백 - :active로 대체 */
+  .quiz-opt:active:not(.locked) {
+    border-color:var(--slime-accent,#6ee7b7) !important;
+    background:rgba(var(--slime-accent-rgb,110,231,183),0.08) !important;
+    transform:scale(0.97) !important;
+    transition:transform 0.08s ease !important;
+  }
+  .btn-primary:active { transform:translateY(1px) scale(0.98) !important;box-shadow:none !important; }
+  .btn-secondary:active,.btn-ghost:active { transform:scale(0.97) !important; }
+  .book-card:active { transform:scale(0.98) !important;box-shadow:var(--sh-b) !important; }
+  .fc-btn-prev:active:not(:disabled),.fc-btn-next:active { transform:scale(0.95) !important; }
+  .fc-btn-sound:active { transform:scale(0.93) !important; }
+  .login-btn:active { transform:scale(0.98) !important; }
+  .mgmt-tab-btn:active { background:#dbeafe !important;color:#2563eb !important; }
+  .speak-btn:active { transform:scale(0.93) !important;background:var(--blue-dim) !important; }
+  .chip:active { border-color:var(--blue) !important;background:var(--blue-dim) !important;color:var(--blue2) !important; }
 }
 </style>
 
@@ -19033,8 +19063,10 @@ function openQuizTypePopup(bookId, mode) {
   const btn2 = document.createElement('button');
   btn2.style.cssText = `padding:16px 20px;background:var(--surface2);border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;display:flex;align-items:center;gap:12px`;
   btn2.innerHTML = `<div><div>한국어 → 영어</div><div style="font-size:13px;color:#7ea8cc;font-weight:400">한국어 뜻을 보고 영어 맞추기</div></div>`;
-  btn2.onmouseover = () => { btn2.style.borderColor = col.b; btn2.style.background = col.a+'20'; btn2.style.transform = 'translateY(-2px)'; };
-  btn2.onmouseout  = () => { btn2.style.borderColor = '#dde8f2'; btn2.style.background = 'var(--surface2)'; btn2.style.transform = ''; };
+  if (window.matchMedia('(hover: hover)').matches) {
+    btn2.onmouseover = () => { btn2.style.borderColor = col.b; btn2.style.background = col.a+'20'; btn2.style.transform = 'translateY(-2px)'; };
+    btn2.onmouseout  = () => { btn2.style.borderColor = '#dde8f2'; btn2.style.background = 'var(--surface2)'; btn2.style.transform = ''; };
+  }
   btn2.onclick = () => { popup.remove(); _launchQuizFromView(bookId, mode, 'ko2en'); };
 
   btnWrap.appendChild(btn1);
@@ -19047,6 +19079,9 @@ function openQuizTypePopup(bookId, mode) {
 
   popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
   document.body.appendChild(popup);
+  // ghost hover 방지: 팝업 열릴 때 짧은 시간 pointer-events 차단
+  card.style.pointerEvents = 'none';
+  setTimeout(() => { card.style.pointerEvents = ''; }, 300);
 }
 
 // 학생 단어장 카드의 퀴즈 버튼 → 퀴즈 선택 팝업 (기존 openQuizTypePopup 확장)
@@ -19080,9 +19115,8 @@ function openStudentQuizPopup(bookId) {
       </div>`;
     }
     return `<button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','${mode}','${dir}')"
-      style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;"
-      onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-2px)'"
-      onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">
+      class="quiz-type-sel-btn"
+      style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;width:100%">
       ${label}${badge}<br><span style="font-size:12px;font-weight:400;color:#64748b">${subLabel}</span>
     </button>`;
   }
@@ -19115,6 +19149,8 @@ function openStudentQuizPopup(bookId) {
   popup.appendChild(card);
   popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
   document.body.appendChild(popup);
+  card.style.pointerEvents = 'none';
+  setTimeout(() => { card.style.pointerEvents = ''; }, 300);
 }
 
 function _launchQuizFromView(bookId, mode, dir) {
