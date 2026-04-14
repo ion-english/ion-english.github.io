@@ -4657,6 +4657,7 @@ document.addEventListener('mousedown', function(e) {
 async function doLogin() {
   // 모바일 키보드 먼저 닫기
   document.activeElement && document.activeElement.blur();
+  _loggingIn = true; // SIGNED_OUT 오발화 방지 시작
   const email = document.getElementById('login-id').value.trim();
   const pw    = document.getElementById('login-pw').value.trim();
   if (!email || !pw) { showToast('이메일과 비밀번호를 입력하세요.', 'error'); return; }
@@ -4689,6 +4690,7 @@ async function doLogin() {
     showToast('로그인 실패: ' + (e.message || '이메일/비밀번호를 확인하세요.'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = '로그인 →';
+    _loggingIn = false; // SIGNED_OUT 오발화 방지 해제
   }
 }
 
@@ -7105,12 +7107,14 @@ if (document.readyState === 'loading') {
 }
 
 // 토큰 자동 갱신 (백그라운드)
+let _loggingIn = false; // 로그인 진행 중 플래그 — SIGNED_OUT 오발화 방지
 sb.auth.onAuthStateChange((event, session) => {
   if (!_appReady) return; // 초기화 완료 전 이벤트 무시
   if (event === 'TOKEN_REFRESHED') {
     console.log('토큰 갱신됨');
   }
   if (event === 'SIGNED_OUT') {
+    if (_loggingIn) return; // 로그인 처리 중 오발화 무시
     currentUser = null;
     DB = { users: [], books: [], collections: [], files: [], progress: {}, taskOptions: {} };
     document.getElementById('login-screen').style.display = 'flex';
