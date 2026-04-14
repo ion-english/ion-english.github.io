@@ -361,7 +361,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  z-index: 50;
+  z-index: 10;
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(.32,0,.18,1);
 }
@@ -504,6 +504,100 @@
   flex-shrink: 0;
   padding-bottom: 2px;
 }
+
+/* ── 선택 삭제 모드 ── */
+.msg-select-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(239,68,68,0.08);
+  border-bottom: 1px solid rgba(239,68,68,0.18);
+  flex-shrink: 0;
+  animation: msgPop 0.15s ease both;
+}
+.msg-select-bar.active { display: flex; }
+.msg-select-bar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #ef4444; }
+.msg-select-bar-right { display: flex; gap: 8px; }
+.msg-sel-count { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+.msg-sel-btn {
+  padding: 5px 13px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.msg-sel-btn:active { transform: scale(0.96); }
+.msg-sel-btn.cancel { background: rgba(0,0,0,0.06); color: var(--text); }
+.msg-sel-btn.delete { background: #ef4444; color: #fff; }
+.msg-sel-btn.delete:disabled { background: rgba(239,68,68,0.35); cursor: not-allowed; }
+[data-theme="dark"] .msg-sel-btn.cancel { background: rgba(255,255,255,0.1); }
+
+/* 버블 선택 체크박스 */
+.msg-bubble-wrap { position: relative; }
+.msg-bubble-checkbox {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-self: center;
+  transition: border-color 0.15s, background 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+}
+.msg-bubble-checkbox::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.msg-bubble-checkbox:checked {
+  border-color: #6366f1;
+  background: #ede9fe;
+}
+.msg-bubble-checkbox:checked::after { opacity: 1; }
+
+body.msg-select-mode .msg-bubble-checkbox { display: flex; }
+body.msg-select-mode .msg-bubble-wrap { cursor: pointer; }
+body.msg-select-mode .msg-bubble-wrap:hover .msg-bubble-checkbox { border-color: #6366f1; }
+
+/* 선택된 버블 하이라이트 */
+body.msg-select-mode .msg-bubble-wrap.selected .msg-bubble {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* 선택 삭제 모드에선 입력바 숨김 */
+body.msg-select-mode .msg-chat-inputbar { display: none !important; }
+
+/* 헤더 선택 삭제 버튼 */
+.msg-select-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.msg-select-delete-btn:hover { background: rgba(239,68,68,0.10); }
+.msg-select-delete-btn:active { transform: scale(0.93); }
 
 /* 입력바 — 글래스 */
 .msg-chat-inputbar {
@@ -852,9 +946,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
-/* 초기 로딩 중 FOUC 방지 — login-screen은 항상 보이게 (모바일 키보드 포커스 유지) */
+/* 초기 로딩 중 FOUC 방지 */
 body.app-initializing{visibility:hidden}
-body.app-initializing #login-screen{visibility:visible}
 
 /* ════ LOGIN ════ */
 @keyframes loginFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -1013,8 +1106,8 @@ body.app-initializing #login-screen{visibility:visible}
   position:sticky;top:0;z-index:1000;
   box-shadow:0 1px 0 #eaeff6,0 2px 8px rgba(15,23,42,0.04);
 }
-.topbar-left{display:flex;align-items:center;gap:12px;flex-shrink:0}
-.topbar-title{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#0f172a;white-space:nowrap}
+.topbar-left{display:flex;align-items:center;gap:10px;flex-shrink:1;min-width:0;overflow:hidden}
+.topbar-title{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:clamp(80px,30vw,300px)}
 .topbar-crumb{font-size:14px;color:var(--t2)}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .topbar-search{
@@ -2346,6 +2439,9 @@ body.student-mode {
   }
   .btn-sm { min-height: 36px; }
 
+  /* -- 일반 topbar: 젤리배지 숨김 -- */
+  #jelly-badge { display:none !important; }
+
   /* ── 챗 패널: 모바일에서 전체폭 + 하단 고정 ── */
   .slime-chat-panel {
     position: fixed !important;
@@ -2371,12 +2467,13 @@ body.student-mode {
 
   /* ── topbar 버튼 영역 overflow 방지 ── */
   #topbar-right {
-    overflow: hidden;
-    max-width: calc(100vw - 160px);
+    overflow: visible;
+    max-width: none;
+    flex-shrink: 0;
   }
   .slime-chat-bar {
-    max-width: 180px !important;
-    min-width: 120px !important;
+    max-width: 160px !important;
+    min-width: 100px !important;
   }
 
   /* ── 대시보드 헤더 ── */
@@ -2550,6 +2647,44 @@ body.student-mode {
 }
 /* 퀴즈 자동완성/예측 차단 */
 .pw-visible { -webkit-text-security:none; text-security:none; }
+
+/* ════ 오버레이 헤더 모바일 패치 ════ */
+/* row2 스크롤바 숨김 */
+.overlay-row2::-webkit-scrollbar { display:none; }
+
+@media(max-width:600px){
+  /* 오버레이 row1: 슬라임 챗바 인풋 최소화 */
+  #overlay-slime-chat-bar .slime-chat-bar-avatar-name { display:none; }
+  #overlay-slime-chat-bar { max-width:110px !important; min-width:80px !important; }
+  #overlay-slime-chat-bar .slime-chat-bar-input { font-size:14px !important; }
+
+  /* 젤리 배지: 모바일 숨김 (공간 절약) */
+  #ov-jelly-badge { display:none !important; }
+
+  /* 알림/설정 버튼: 약간 작게 */
+  .student-topbar-btn { width:34px !important; height:34px !important; }
+  #st-profile-btn { width:34px !important; height:34px !important; }
+
+  /* 오버레이 row2 탭 버튼: 약간 패딩 축소 */
+  .overlay-row2 button {
+    padding:5px 9px !important;
+    font-size:12px !important;
+    white-space:nowrap;
+  }
+
+  /* 단어보기 row2 우측 학습 버튼: 넘치면 숨길 것들 */
+  #wv-hide-btns button { font-size:12px !important; padding:4px 9px !important; }
+
+  /* 오버레이 헤더 내 우측 gap 추가 압축 */
+  #overlay-slime-chat-bar + div,
+  [id*="overlay"] .student-topbar-btn { gap:2px; }
+}
+
+@media(max-width:380px){
+  /* 극소형: 슬라임 챗바 아예 숨김 */
+  #overlay-slime-chat-bar { display:none !important; }
+  #ov-jelly-badge { display:none !important; }
+}
 </style>
 
 
@@ -3636,7 +3771,7 @@ body.student-mode {
               <div class="msg-tab-indicator"></div>
               <button id="msgtab-friends" class="msg-tab active" onclick="switchMsgMainTab('friends')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>학생</span>
+                <span id="msgtab-friends-label">학생</span>
               </button>
               <button id="msgtab-chats" class="msg-tab" onclick="switchMsgMainTab('chats')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -3646,11 +3781,15 @@ body.student-mode {
             </div>
           </div>
 
-          <!-- ══ 친구목록 패널 ══ -->
+          <!-- ══ 친구목록 패널 (선생님: 학생목록 / 학생: 친구목록) ══ -->
           <div id="msg-panel-friends" class="msg-panel">
             <div class="msg-search-bar">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="msg-friends-search" oninput="renderFriendsList()" placeholder="학생 이름 검색…">
+              <input id="msg-friends-search" oninput="msgFriendsSearchHandler()" placeholder="이름 검색…">
+              <!-- 학생 전용: 친구 추가 버튼 -->
+              <button id="msg-add-friend-btn" onclick="openAddFriendModal()" style="display:none;border:none;background:none;cursor:pointer;padding:2px 0 2px 6px;color:var(--accent);flex-shrink:0" title="친구 추가">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              </button>
             </div>
             <div id="msg-friends-body" class="msg-list-body"></div>
           </div>
@@ -3671,6 +3810,26 @@ body.student-mode {
                 <div id="msg-chat-name" class="msg-chat-hname"></div>
                 <div id="msg-chat-sub" class="msg-chat-hsub"></div>
               </div>
+              <!-- 선택 삭제 버튼 -->
+              <button class="msg-select-delete-btn" onclick="enterMsgSelectMode()" title="메시지 선택 삭제" style="margin-left:auto">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="4" height="4" rx="1"/><rect x="3" y="11" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><line x1="10" y1="7" x2="21" y2="7"/><line x1="10" y1="13" x2="21" y2="13"/><line x1="10" y1="19" x2="21" y2="19"/></svg>
+              </button>
+              <!-- 전체 삭제 버튼 -->
+              <button class="msg-back-btn" onclick="deleteChatConfirm()" title="대화 전체 삭제" style="color:#ef4444;opacity:0.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+            <!-- 선택 삭제 모드 바 -->
+            <div id="msg-select-bar" class="msg-select-bar">
+              <div class="msg-select-bar-left">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                선택 삭제 모드
+                <span id="msg-sel-count" class="msg-sel-count">0개 선택</span>
+              </div>
+              <div class="msg-select-bar-right">
+                <button class="msg-sel-btn cancel" onclick="exitMsgSelectMode()">취소</button>
+                <button class="msg-sel-btn delete" id="msg-sel-delete-btn" onclick="deleteSelectedMsgs()" disabled>삭제</button>
+              </div>
             </div>
             <div id="msg-chat-messages" class="msg-chat-body"></div>
             <div class="msg-chat-inputbar">
@@ -3685,7 +3844,7 @@ body.student-mode {
 
         </div><!-- #msg-root -->
 
-        <!-- ══ 학생 바텀시트 팝업 ══ -->
+        <!-- ══ 학생 바텀시트 팝업 (선생님용) ══ -->
         <div id="msg-bs-backdrop" class="msg-bs-backdrop" onclick="closeMsgStudentPopup()"></div>
         <div id="msg-bs" class="msg-bs">
           <div class="msg-bs-handle"></div>
@@ -3712,6 +3871,37 @@ body.student-mode {
             <button class="msg-bs-btn primary" onclick="openChatWithStudent()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               쪽지 보내기
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ 학생용 친구 바텀시트 팝업 ══ -->
+        <div id="msg-friend-bs-backdrop" class="msg-bs-backdrop" onclick="closeMsgFriendPopup()"></div>
+        <div id="msg-friend-bs" class="msg-bs">
+          <div class="msg-bs-handle"></div>
+          <div class="msg-bs-profile">
+            <div id="mfp-avatar" class="msg-bs-avatar"></div>
+            <div class="msg-bs-info">
+              <div id="mfp-name" class="msg-bs-name"></div>
+              <div id="mfp-meta" class="msg-bs-meta"></div>
+              <div id="mfp-badge" class="msg-bs-badge-wrap"></div>
+            </div>
+          </div>
+          <div id="mfp-exp-bar-wrap" class="msg-bs-exp-wrap">
+            <div class="msg-bs-exp-labels">
+              <span id="mfp-stage-name"></span>
+              <span id="mfp-exp-val"></span>
+            </div>
+            <div class="msg-bs-exp-track"><div id="mfp-exp-fill" class="msg-bs-exp-fill"></div></div>
+          </div>
+          <div class="msg-bs-actions">
+            <button class="msg-bs-btn ghost" id="mfp-delete-btn" onclick="removeFriend()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              친구 삭제
+            </button>
+            <button class="msg-bs-btn primary" onclick="openChatWithFriend()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              메시지 보내기
             </button>
           </div>
         </div>
@@ -3814,7 +4004,8 @@ async function loadDB() {
         .map(u => ({
           id: u.id, name: u.name, role: u.role, grade: u.grade || '',
           username: u.email || u.name, teacherId: u.teacher_id || null,
-          assigned: u.assigned_book_ids || []
+          assigned: u.assigned_book_ids || [],
+          slime_data: u.slime_data || null
         }));
 
       DB.files = (filesRes.data || []).map(f => ({
@@ -4426,7 +4617,7 @@ async function doLogin() {
       await sb.from('profiles').insert(np);
       currentUser = { ...np, isAdmin: false };
     } else {
-      currentUser = { ...profile, email, isAdmin: profile.is_admin === true };
+      currentUser = { ...profile, email, isAdmin: profile.is_admin === true, teacherId: profile.teacher_id || null };
     }
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
@@ -4486,21 +4677,28 @@ function getSlimeData() {
   return data;
 }
 
-function saveSlimeData(data) {
+function saveSlimeData(data, immediate=false) {
   _slimeCache = { ...data };
-  if (currentUser?.id) _saveSlimeDataToDB(data);
+  if (currentUser?.id) _saveSlimeDataToDB(data, immediate);
 }
 
 let _slimeDBTimer = null;
-function _saveSlimeDataToDB(data) {
+function _saveSlimeDataToDB(data, immediate=false) {
   clearTimeout(_slimeDBTimer);
-  _slimeDBTimer = setTimeout(async () => {
+  const doSave = async () => {
     try {
       const update = { slime_data: JSON.stringify(data) };
       if (typeof data.jelly === 'number') update.jelly = data.jelly;
-      await sb.from('profiles').update(update).eq('id', currentUser.id);
-    } catch(e) {}
-  }, 300);
+      console.log('[SlimeSave] DB저장:', data.colorId, 'stage:', data.stage, 'immediate:', immediate);
+      const res = await sb.from('profiles').update(update).eq('id', currentUser.id);
+      console.log('[SlimeSave] 저장결과:', res.error ? '❌ '+res.error.message : '✅ 성공');
+    } catch(e) { console.error('[SlimeSave] 저장오류:', e); }
+  };
+  if (immediate) {
+    doSave();
+  } else {
+    _slimeDBTimer = setTimeout(doSave, 300);
+  }
 }
 
 // 탭 닫힘 직전 즉시 저장
@@ -4529,6 +4727,7 @@ async function loadSlimeFromDB() {
     const { data } = await sb.from('profiles').select('slime_data, jelly').eq('id', currentUser.id).single();
     if (data?.slime_data) {
       const fromDB = JSON.parse(data.slime_data);
+      console.log('[SlimeLoad] DB에서 로드:', fromDB.colorId, 'stage:', fromDB.stage);
       if (typeof data.jelly === 'number') fromDB.jelly = data.jelly;
       _slimeCache = fromDB;
     } else {
@@ -5255,7 +5454,7 @@ function buildStudentTopbar() {
   const col = getSlimeColor(slime.colorId);
 
   right.innerHTML = `
-    <div style="display:flex;align-items:center;gap:20px;position:relative">
+    <div style="display:flex;align-items:center;gap:clamp(4px,2vw,12px);position:relative;flex-shrink:0">
       <!-- 슬라임 챗봇 바 -->
       <div class="slime-chat-bar" id="slime-chat-bar" onmousedown="event.stopPropagation();stOpenChat()" style="padding:0;overflow:hidden;gap:0;">
         <div class="slime-chat-bar-avatar" style="border-radius:0;background:#f1f5f9;border:none;border-right:1px solid #e2e8f0;padding:0 12px 0 8px;height:100%;gap:6px;" title="슬라임과 대화하기">
@@ -6740,12 +6939,12 @@ async function checkSession() {
 
     if (!profile) return; // profiles 없으면 로그인 화면 유지
 
-    currentUser = { ...profile, email: session.user.email };
+    currentUser = { ...profile, email: session.user.email, teacherId: profile.teacher_id || null };
     _slimeChatHistory = []; // 사용자 전환 시 챗봇 히스토리 초기화
     // 독립 쿼리들을 loadDB와 병렬 실행 (RTT 단축)
     await Promise.all([
       loadAIKeysFromDB(),   // AI 키 (app_settings + profiles — 2 RTT → 이미 내부 병렬화됨)
-      loadJellyFromDB(),    // 젤리 (profiles)
+      loadSlimeFromDB(),    // 슬라임 전체 (색/이름/꾸미기/젤리) ← 새로고침 시 필수
       loadDB(),             // 메인 데이터
     ]);
     document.getElementById('login-screen').style.display = 'none';
@@ -6855,7 +7054,7 @@ sb.auth.onAuthStateChange((event, session) => {
 const teacherNav = [
   { group:'Material', items:[
     {id:'pg-dashboard',icon:'dashboard',label:'Dashboard'},
-    {id:'pg-library',icon:'library',label:'Word'},
+    {id:'pg-library',icon:'library',label:'Voca'},
     {id:'pg-sentences',icon:'sentences',label:'Reading'},
     {id:'pg-filevault',icon:'filevault',label:'Edit'},
   ]},
@@ -6872,7 +7071,7 @@ const studentNav = [
     {id:'pg-slime-home',icon:'slime',label:'My Slime'},
   ]},
   { group:'Learning', items:[
-    {id:'pg-mybooks',icon:'library',label:'Word'},
+    {id:'pg-mybooks',icon:'library',label:'Voca'},
     {id:'pg-sentence-study',icon:'sentences',label:'Reading'},
     {id:'pg-progress',icon:'progress',label:'Record'},
     {id:'pg-messages',icon:'messages',label:'Message'},
@@ -6915,9 +7114,9 @@ function buildNav() {
 }
 
 const pageTitles = {
-  'pg-dashboard':'Dashboard','pg-library':'Word',
+  'pg-dashboard':'Dashboard','pg-library':'Voca',
   'pg-assign':'Student & Class','pg-ai':'AI 단어 생성','pg-filevault':'Edit',
-  'pg-mybooks':'Word','pg-flashcard':'암기 학습',
+  'pg-mybooks':'Voca','pg-flashcard':'암기 학습',
   'pg-quiz':'퀴즈 테스트','pg-progress':'Record',
   'pg-sentences':'Reading','pg-sentence-study':'Reading',
   'pg-classes':'Student & Class','pg-messages':'Message',
@@ -11081,7 +11280,7 @@ function sentStudyBackToList() {
   const ov = document.getElementById('sent-book-overlay');
   if (ov) ov.remove();
   const titleEl = document.getElementById('topbar-title');
-  if (titleEl) titleEl.textContent = 'Sentences';
+  if (titleEl) titleEl.textContent = 'Reading';
 }
 
 async function openSentStudyBook(bookId) {
@@ -11790,7 +11989,7 @@ async function renderSentenceStudy() {
   if (!body) return;
   body.style.display = '';
   const titleEl2 = document.getElementById('topbar-title');
-  if (titleEl2) titleEl2.textContent = 'Sentences';
+  if (titleEl2) titleEl2.textContent = 'Reading';
 
   function _renderSentStudyGrid() {
     if (!DB_sentBooks.length) {
@@ -12152,12 +12351,7 @@ function renderSentStudyCard() {
               ontouchend="setTimeout(()=>document.getElementById('sst-slime-bubble').style.opacity='0',1200)">
               ${buildMiniSlimeSVG(slime.stage, 60)}
             </div>
-            <!-- LV 뱃지 -->
-            <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
-              background:${col.b};color:#fff;font-size:12px;font-weight:800;
-              padding:1px 6px;border-radius:99px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15)">
-              LV.${slime.stage+1}
-            </div>
+
           </div>
 
           <!-- 진행 정보 -->
@@ -13243,9 +13437,18 @@ function sttBuildHtml(reshuffle) {
   function sheetHTML(ans) {
     const colW = (100/cols).toFixed(1);
     const rows = [];
-    for (let i = 0; i < qList.length; i += cols) {
-      const slice = qList.slice(i, i+cols);
-      while (slice.length < cols) slice.push(null);
+    // 열 우선 배치: 1열을 먼저 채운 뒤 2열로 넘어감
+    const nRows = Math.ceil(qList.length / cols);
+    const colFirst = [];
+    for (let r = 0; r < nRows; r++) {
+      const slice = [];
+      for (let c = 0; c < cols; c++) {
+        const idx = c * nRows + r;
+        slice.push(idx < qList.length ? qList[idx] : null);
+      }
+      colFirst.push(slice);
+    }
+    for (const slice of colFirst) {
       const tds = slice.map(q => q
         ? `<td style="padding:${cp}pt 8pt;vertical-align:top;width:${colW}%;border:none;border-right:0.5pt dashed #ccc">
             <div style="display:flex;gap:5pt;align-items:flex-start;flex:1">
@@ -15486,21 +15689,16 @@ async function deleteStudent(uid) {
 
 // 학생 슬라임 표시용 — ID 해시로 색상/단계 일관되게 결정
 function getStudentSlimeSVG(studentId, size=44) {
-  // ID 문자열을 해시해서 색상과 단계 결정
-  let hash = 0;
-  for (let i = 0; i < studentId.length; i++) hash = studentId.charCodeAt(i) + ((hash << 5) - hash);
-  const colors = ['mint','blue','pink','gold','purple','red'];
-  const colorId = colors[Math.abs(hash) % colors.length];
-  // progress 기반으로 단계 결정
-  const allScores = Object.entries(DB.progress)
-    .filter(([k]) => k.startsWith(studentId))
-    .flatMap(([,v]) => v.quizScores||[]);
-  const totalRounds = Object.entries(DB.progress)
-    .filter(([k]) => k.startsWith(studentId))
-    .reduce((s,[,v]) => s+(v.rounds||0), 0);
-  const exp = totalRounds * 2 + allScores.reduce((s,sc) => s + (sc>=70?20:0), 0);
-  const stage = calcStage(exp);
-  return buildMiniSlimeSVG(stage, size, {colorId, eyeStyle:'round', accessory:'none'});
+  const student = (DB.users || []).find(u => u.id === studentId);
+  if (!student) {
+    return buildMiniSlimeSVG(0, size, { colorId: 'mint', eyeStyle: 'round', accessory: 'none' });
+  }
+  const sd = _getStudentSlimeData(student);
+  return buildMiniSlimeSVG(sd.stage || 0, size, {
+    colorId:   sd.colorId   || 'mint',
+    eyeStyle:  sd.eyeStyle  || 'round',
+    accessory: sd.accessory || 'none',
+  });
 }
 
 // ── 학생 현황 + 반 관리 통합 렌더 ──
@@ -15508,8 +15706,18 @@ function renderStudentsMgmt() {
   const body = document.getElementById('students-mgmt-body');
   if (!body) return;
 
-  // DB_classes 로드 후 렌더
-  loadClasses().then(() => _renderStudentsMgmtInner(body));
+  const sids = (DB.users || []).filter(u => u.role === 'student').map(u => u.id);
+  const fetchSlime = sids.length
+    ? sb.from('profiles').select('id,slime_data').in('id', sids)
+        .then(({ data }) => {
+          (data || []).forEach(p => {
+            const u = DB.users.find(u => u.id === p.id);
+            if (u) u.slime_data = p.slime_data;
+          });
+        }).catch(() => {})
+    : Promise.resolve();
+
+  Promise.all([loadClasses(), fetchSlime]).then(() => _renderStudentsMgmtInner(body));
 }
 
 function _renderStudentsMgmtInner(body) {
@@ -15655,8 +15863,20 @@ function _applyStudentFilter() {
     const assigned = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
     const sentAssigned = (DB_sentAssigns||[]).filter(a => a.student_id === s.id);
     const totalHw = assigned.length + sentAssigned.length;
-    const allScores = assigned.flatMap(b => DB.progress[s.id+'_'+b.id]?.quizScores || []);
-    const pct = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+    // 수행도: task_options 기준으로 계산 (flashcard=암기회독, quiz는 progress.quizScores 횟수 활용)
+    let taskGoal = 0, taskDone = 0, hasOpts = false;
+    assigned.forEach(b => {
+      const opts = (DB.taskOptions||{})[s.id+'_'+b.id];
+      if (!opts) return;
+      hasOpts = true;
+      const p = DB.progress[s.id+'_'+b.id] || {};
+      const rounds = p.rounds || 0;
+      const quizCount = (p.quizScores||[]).length;
+      const quizGoal = (opts.quiz_choice_en2ko||0)+(opts.quiz_choice_ko2en||0)+(opts.quiz_input_en2ko||0)+(opts.quiz_input_ko2en||0)+(opts.test||0);
+      if (opts.flashcard > 0) { taskGoal += opts.flashcard; taskDone += Math.min(rounds, opts.flashcard); }
+      if (quizGoal > 0) { taskGoal += quizGoal; taskDone += Math.min(quizCount, quizGoal); }
+    });
+    const pct = hasOpts && taskGoal > 0 ? Math.round(taskDone / taskGoal * 100) : 0;
     return { totalHw, pct };
   }
 
@@ -15786,9 +16006,21 @@ function _renderClassListView() {
   // 반 섹션 HTML 생성 — 미니 카드
   function studentCardHTML(s, palette) {
     const assigned  = (s.assigned || []).map(bid => DB.books.find(b => b.id === bid)).filter(Boolean);
-    const allScores = assigned.flatMap(b => DB.progress[s.id+'_'+b.id]?.quizScores || []);
-    const pct       = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
     const pal       = palette || { fill:'#F1EFE8', text:'#5F5E5A', bar:'#888780' };
+    // 수행도: task_options 기준 (flashcard=암기회독, quiz=quizScores 총 횟수로 근사)
+    let taskGoal = 0, taskDone = 0, hasOpts = false;
+    assigned.forEach(b => {
+      const opts = (DB.taskOptions||{})[s.id+'_'+b.id];
+      if (!opts) return;
+      hasOpts = true;
+      const p = DB.progress[s.id+'_'+b.id] || {};
+      const rounds = p.rounds || 0;
+      const quizCount = (p.quizScores||[]).length;
+      const quizGoal = (opts.quiz_choice_en2ko||0)+(opts.quiz_choice_ko2en||0)+(opts.quiz_input_en2ko||0)+(opts.quiz_input_ko2en||0)+(opts.test||0);
+      if (opts.flashcard > 0) { taskGoal += opts.flashcard; taskDone += Math.min(rounds, opts.flashcard); }
+      if (quizGoal > 0) { taskGoal += quizGoal; taskDone += Math.min(quizCount, quizGoal); }
+    });
+    const pct = hasOpts && taskGoal > 0 ? Math.round(taskDone / taskGoal * 100) : 0;
     // 문장집 배포 현황 — DB_sentAssigns에서 동적 계산
     const sentAssigned = (DB_sentAssigns||[])
       .filter(a => a.student_id === s.id)
@@ -15815,8 +16047,8 @@ function _renderClassListView() {
     const hwBadge = totalHw > 0
       ? `<div data-hwpop="${popData}" onclick="event.stopPropagation();_toggleHwPopover(this,'${s.id}')" style="position:absolute;top:7px;right:7px;font-size:10px;font-weight:700;background:var(--accent);color:white;border-radius:10px;padding:2px 7px;line-height:1.5;cursor:pointer;transition:opacity 0.12s" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'">${totalHw}</div>`
       : '';
-    // 미완료 강조: 과제 있는데 수행률 낮은 경우 → 프로그레스바 색상으로 표시
-    const hasIncomplete = totalHw > 0 && pct < 50;
+    // 미완료 강조: 과제(task_options)가 설정된 경우에만 수행률로 색상 결정
+    const hasIncomplete = hasOpts && taskGoal > 0 && pct < 50;
     const barColor = hasIncomplete ? '#f87171' : pal.bar;
     const pctColor = hasIncomplete ? '#ef4444' : 'var(--t1)';
     return `
@@ -16221,13 +16453,13 @@ async function openStudentDetailInline(studentId) {
           ? '<span style="font-size:13px;color:#1e4db7;font-weight:600">누적 오답 없음 ✓</span>'
           : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
               ${wrongWords.slice(0,20).map(w=>`
-                <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:5px 12px;font-size:14px">
+                <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:4px 10px;font-size:13px">
                   <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#f87171">${w.en}</span>
                   <span style="color:#94a3b8">→</span>
                   <span style="color:#0f172a">${w.ko}</span>
-                  ${(w.count||1)>1?`<span style="background:#ef4444;color:white;border-radius:99px;padding:1px 6px;font-size:12px;font-weight:700">×${w.count}</span>`:''}
+                  ${(w.count||1)>1?`<span style="background:#ef4444;color:white;border-radius:99px;padding:0 5px;font-size:11px;font-weight:700">×${w.count}</span>`:''}
                 </span>`).join('')}
-              ${wrongWords.length>20?`<span style="font-size:14px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
+              ${wrongWords.length>20?`<span style="font-size:13px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
             </div>`;
 
         // 과제 현황 섹션
@@ -16290,12 +16522,15 @@ async function openStudentDetailInline(studentId) {
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
                   <span style="font-size:11px;color:#1e4db7;flex-shrink:0">■</span>
-                  <div style="font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+                  <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
                   ${b.collectionName?`<span style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.collectionName}</span>`:''}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-                ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
+                ${taskDefs.length
+                  ? `<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${progPct>=100?'#1e4db7':progPct>=50?'#1e4db7':'#ef4444'}">${progPct}%</span>`
+                  : best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''
+                }
                 <span style="font-size:13px;color:#818cf8;background:rgba(129,140,248,0.1);padding:3px 10px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
                 <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
                 <button onclick="confirmResetStudentProgress('${s.id}','${esc(s.name)}','${b.id}','${esc(b.name)}')"
@@ -17321,6 +17556,14 @@ function renderMyBooks() {
   const grid = document.getElementById('mybooks-grid');
   if (!grid) return;
 
+  // DB_quizLogs 없으면 백그라운드 로드 후 재렌더 (과제 수행도 정확도 위해)
+  if (DB_quizLogs === null && currentUser?.id) {
+    sb.from('quiz_logs').select('*').eq('student_id', currentUser.id)
+      .order('taken_at', { ascending: false }).limit(500)
+      .then(({ data }) => { DB_quizLogs = data || []; renderMyBooks(); })
+      .catch(() => { DB_quizLogs = []; });
+  }
+
   // 슬라임 배너
   const banner = document.getElementById('mybooks-slime-banner');
   const _wbNextLv = slime.stage + 2;
@@ -17377,30 +17620,23 @@ function renderMyBooks() {
         const taskOpts = (DB.taskOptions||{})[b.id] || null;
         const hasTask = taskOpts && Object.values(taskOpts).some(v => v > 0);
 
-        // ── 과제 기반 진도 계산
+        // ── 과제 기반 진도 계산 (DB_quizLogs 기반 — Record 탭과 동일한 소스)
         function calcProgress() {
           if (!hasTask) {
-            // 과제 없으면 기존 방식 (암기 5회독 기준)
             return { pct: rounds>0 ? Math.min(100, Math.round((rounds/5)*100)) : 0, detail: '' };
           }
-          let totalGoal = 0, totalDone = 0;
           const pProgress = DB.progress[key] || {};
-          // 암기
-          if (taskOpts.flashcard > 0) {
+          const ql = (mode, dir) => (DB_quizLogs||[]).filter(l => l.book_id===b.id && l.mode===mode && l.direction===dir).length;
+          let totalGoal = 0, totalDone = 0;
+          if ((taskOpts.flashcard||0) > 0) {
             totalGoal += taskOpts.flashcard;
             totalDone += Math.min(pProgress.rounds||0, taskOpts.flashcard);
           }
-          // 퀴즈 (quizScores 배열 길이 = 총 퀴즈 횟수로 근사)
-          const quizRounds = (pProgress.quizScores||[]).length;
-          const quizTypes = ['quiz_choice_en2ko','quiz_choice_ko2en','quiz_input_en2ko','quiz_input_ko2en'];
-          quizTypes.forEach(qt => {
-            if (taskOpts[qt] > 0) {
-              totalGoal += taskOpts[qt];
-              // 각 유형별 완료 수는 localStorage에서 추적
-              const done = parseInt(localStorage.getItem('task_done_'+currentUser.id+'_'+b.id+'_'+qt)||'0');
-              totalDone += Math.min(done, taskOpts[qt]);
-            }
-          });
+          if ((taskOpts.quiz_choice_en2ko||0) > 0) { totalGoal += taskOpts.quiz_choice_en2ko; totalDone += Math.min(ql('choice','en2ko'), taskOpts.quiz_choice_en2ko); }
+          if ((taskOpts.quiz_choice_ko2en||0) > 0) { totalGoal += taskOpts.quiz_choice_ko2en; totalDone += Math.min(ql('choice','ko2en'), taskOpts.quiz_choice_ko2en); }
+          if ((taskOpts.quiz_input_en2ko||0)  > 0) { totalGoal += taskOpts.quiz_input_en2ko;  totalDone += Math.min(ql('input','en2ko'),  taskOpts.quiz_input_en2ko);  }
+          if ((taskOpts.quiz_input_ko2en||0)  > 0) { totalGoal += taskOpts.quiz_input_ko2en;  totalDone += Math.min(ql('input','ko2en'),  taskOpts.quiz_input_ko2en);  }
+          if ((taskOpts.test||0) > 0) { totalGoal += taskOpts.test; totalDone += Math.min(ql('essay','mixed'), taskOpts.test); }
           const pct = totalGoal > 0 ? Math.min(100, Math.round((totalDone/totalGoal)*100)) : 0;
           return { pct, detail: totalDone + '/' + totalGoal + ' 완료' };
         }
@@ -17552,19 +17788,19 @@ function _makeOverlayHeader(opts) {
   const slime = getSlimeData();
   const slimeCol = getSlimeColor(slime.colorId);
   return `
-    <div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:0 clamp(14px,3vw,24px) 0 clamp(14px,3vw,24px);height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 0 rgba(3,22,56,0.04),0 2px 12px rgba(15,23,42,0.05);">
+    <div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:0 clamp(10px,3vw,24px) 0 clamp(10px,3vw,24px);height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 0 rgba(3,22,56,0.04),0 2px 12px rgba(15,23,42,0.05);min-width:0;overflow:hidden;">
       <!-- 왼쪽: 뒤로가기 + 타이틀 -->
-      <div style="display:flex;align-items:center;gap:14px">
-        <button onclick="speakAllStop();${opts.backFn}" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:1;overflow:hidden;">
+        <button onclick="speakAllStop();${opts.backFn}" style="display:flex;align-items:center;gap:5px;padding:6px 10px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>${opts.backLabel}
         </button>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a;letter-spacing:-0.4px;line-height:1.1">${opts.title}</div>
-          ${opts.subtitle ? `<div style="font-size:14px;color:#b0bec5;font-weight:400">${opts.subtitle}</div>` : ''}
+        <div style="min-width:0;overflow:hidden;">
+          <div style="font-size:clamp(13px,3.5vw,16px);font-weight:800;color:#0f172a;letter-spacing:-0.4px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${opts.title}</div>
+          ${opts.subtitle ? `<div style="font-size:clamp(11px,2.8vw,13px);color:#b0bec5;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${opts.subtitle}</div>` : ''}
         </div>
       </div>
       <!-- 우측: 슬라임 챗봇바 + 아이콘 -->
-      <div style="display:flex;align-items:center;gap:20px;position:relative">
+      <div style="display:flex;align-items:center;gap:clamp(6px,2vw,16px);position:relative;flex-shrink:0;margin-left:8px;">
         <div class="slime-chat-bar" id="overlay-slime-chat-bar" onmousedown="event.stopPropagation();stOpenChat()" style="padding:0;overflow:hidden;gap:0;">
           <div class="slime-chat-bar-avatar" style="border-radius:0;background:#f1f5f9;border:none;border-right:1px solid #e2e8f0;padding:0 12px 0 8px;height:100%;gap:6px;" title="슬라임과 대화하기">
             ${buildMiniSlimeSVG(slime.stage, 22, {colorId: slime.colorId})}
@@ -17632,7 +17868,7 @@ function _makeOverlayHeader(opts) {
         </div>
       </div>
     </div>
-    ${opts.row2HTML ? `<div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:10px clamp(14px,3vw,24px);display:flex;align-items:center;gap:10px;flex-shrink:0;min-height:52px;flex-wrap:wrap;overflow-x:hidden">${opts.row2HTML}</div>` : ''}
+    ${opts.row2HTML ? `<div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:8px clamp(10px,3vw,20px);display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:50px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none" class="overlay-row2">${opts.row2HTML}</div>` : ''}
   `;
 }
 
@@ -17816,11 +18052,7 @@ async function openStudentWordView(bookId) {
         <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">암기</button>
         <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">퀴즈</button>
         <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
-        <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          프린트
-        </button>
-        <button onclick="document.getElementById('word-view-overlay').remove();bookMakeTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">시험지</button>
+
       </div>
 
     </div>
@@ -18017,7 +18249,7 @@ function renderFC() {
             <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col.a},${col.b});
               border-radius:99px;transition:width 0.5s ease"></div>
           </div>
-          <div style="width:32px;height:32px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite">
+          <div id="fc-ind-slime" style="width:32px;height:32px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite;position:relative">
             ${buildMiniSlimeSVG(slime.stage, 32)}
           </div>
         </div>
@@ -18162,31 +18394,7 @@ function renderFC() {
 
       </div>
 
-      <!-- ── 하단 슬라임 패널 (모바일 전용) ── -->
-      ${isMobile ? `
-      <div class="mobile-slime-panel" id="fc-mobile-panel">
-        <div class="msp-char" onclick="_mspBounce('fc-msp-char')" title="클릭해봐요!">
-          <div class="msp-bubble" id="fc-msp-bubble"></div>
-          <div class="msp-anim" id="fc-msp-char">
-            ${_buildMspSVG(slime.stage, 80)}
-          </div>
-        </div>
-        <div class="msp-info">
-          <div class="msp-top">
-            <span class="msp-name">${slime.slimeName||'내 슬라임'}</span>
-            <span class="msp-lv">Lv. ${slime.stage+1}</span>
-          </div>
-          <div class="msp-xp-row">
-            <div class="msp-xp-track"><div class="msp-xp-fill" id="fc-msp-xp" style="width:${xpPct}%"></div></div>
-            <span class="msp-xp-num">${slime.exp.toLocaleString()} / ${xpMax.toLocaleString()} XP</span>
-          </div>
-          <div class="msp-chips">
-            <div class="msp-chip streak">🔥 ${streak}일</div>
-            <div class="msp-chip score" id="fc-msp-score">✓ ${fcIdx} / ${fcWords.length}</div>
-            <div class="msp-chip xpgain" id="fc-msp-xpgain">+0 XP</div>
-          </div>
-        </div>
-      </div>` : ''}
+
 
     </div>
   `;
@@ -18204,7 +18412,7 @@ function fcKnow() {
     localStorage.setItem('wl_check_'+bookId, JSON.stringify([...window._fcChecked]));
   }
   // 모바일 하단 패널 표정 업데이트
-  if (window.innerWidth <= 600) _mspReact('fc', 'know');
+  _hdrSlimeReact(true);
   setSlimeMood('sparkle', 900);
   setTimeout(() => fcNext(), 600);
 }
@@ -18217,7 +18425,7 @@ function fcDontKnow() {
   window._fcChecked.add(wordKey);
   localStorage.setItem('wl_check_'+bookId, JSON.stringify([...window._fcChecked]));
   // 모바일 하단 패널 표정 업데이트
-  if (window.innerWidth <= 600) _mspReact('fc', 'dont');
+  _hdrSlimeReact(false);
   setSlimeMood('tears', 900);
   setTimeout(() => fcNext(), 600);
 }
@@ -18252,6 +18460,56 @@ function _buildMspSVG(stageIdx, size) {
   return svg
     .replace(/(<svg\b[^>]*)\bwidth="[^"]*"/g, '$1width="'+size+'"')
     .replace(/(<svg\b[^>]*)\bheight="[^"]*"/g, '$1height="'+size+'"');
+}
+
+// ── 헤더 슬라임 리액션 (모바일: 하단 패널 대체) ──────────────
+// ── 인디케이터 슬라임 리액션 (암기/퀴즈 오버레이 상단 진행바) ──────────────
+// fc: 표정+애니메이션만 (말풍선 없음)
+// quiz: 표정+애니메이션만 (말풍선 없음)
+// 표정 원복은 window 타이머로 관리 — renderFC()로 DOM 교체 후에도 fresh lookup
+function _hdrSlimeReact(isGood) {
+  const fcWrap   = document.getElementById('fc-ind-slime');
+  const quizWrap = document.getElementById('quiz-ind-slime');
+  const avatarWrap = quizWrap || fcWrap;
+  if (!avatarWrap) return;
+
+  const slime = getSlimeData();
+  const col   = getSlimeColor(slime.colorId);
+  const size  = quizWrap ? 30 : 32;
+  const mood  = isGood ? 'sparkle' : 'tears';
+
+  // ── 표정 교체 ──
+  function _swapFace(m) {
+    // 매 호출 시 getElementById로 fresh lookup (DOM 교체 대응)
+    const wrap = document.getElementById('fc-ind-slime') || document.getElementById('quiz-ind-slime');
+    if (!wrap) return;
+    try {
+      const sz = document.getElementById('quiz-ind-slime') ? 30 : 32;
+      const svg = slimeSVG({ size:sz, core:[col.a,col.b], eyeStyle:slime.eyeStyle||'round', stageIdx:slime.stage, accessory:slime.accessory||'none', mood:m });
+      const el = wrap.querySelector('svg');
+      if (el) { const t=document.createElement('div'); t.innerHTML=svg; const n=t.querySelector('svg'); if(n) el.replaceWith(n); }
+    } catch(e) {}
+  }
+  _swapFace(mood);
+
+  // ── 애니메이션 ──
+  if (isGood) {
+    avatarWrap.style.transition = 'transform .08s';
+    avatarWrap.style.transform  = 'scale(1.3,.8)';
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='scale(.88,1.18)';} }, 80);
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='scale(1.08,.95)';} }, 160);
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='scale(1,1)';w.style.transition='';} }, 240);
+  } else {
+    avatarWrap.style.transition = 'transform .09s';
+    avatarWrap.style.transform  = 'translateX(-4px)';
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='translateX(4px)';} }, 90);
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='translateX(-2px)';} }, 180);
+    setTimeout(()=>{ const w=document.getElementById('fc-ind-slime')||document.getElementById('quiz-ind-slime'); if(w){w.style.transform='translateX(0)';w.style.transition='';} }, 270);
+  }
+
+  // ── 표정 원복 (window 타이머 — DOM 재생성 무관) ──
+  clearTimeout(window._indSlimeFaceTimer);
+  window._indSlimeFaceTimer = setTimeout(()=>{ _swapFace('normal'); }, 1800);
 }
 
 function _mspBounce(elId) {
@@ -18724,7 +18982,7 @@ function renderQuiz(){
     <div style="display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:10px;
       background:${colorDefQ.b}12;border:1.5px solid ${colorDefQ.b}30;border-radius:16px;padding:10px 16px">
-      <div style="width:30px;height:30px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite">
+      <div id="quiz-ind-slime" style="width:30px;height:30px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite;position:relative">
         ${buildMiniSlimeSVG(slimeQ.stage,30)}
       </div>
       <div style="flex:1">
@@ -18791,31 +19049,7 @@ function renderQuiz(){
       </div>
     </div>
 
-    <!-- ── 하단 슬라임 패널 (모바일 전용) ── -->
-    ${isMobileQ ? `
-    <div class="mobile-slime-panel" id="quiz-mobile-panel">
-      <div class="msp-char" onclick="_mspBounce('quiz-msp-char')" title="클릭해봐요!">
-        <div class="msp-bubble" id="quiz-msp-bubble"></div>
-        <div class="msp-anim" id="quiz-msp-char">
-          ${_buildMspSVG(slimeQ.stage, 80)}
-        </div>
-      </div>
-      <div class="msp-info">
-        <div class="msp-top">
-          <span class="msp-name">${slimeQ.slimeName||'내 슬라임'}</span>
-          <span class="msp-lv">Lv. ${slimeQ.stage+1}</span>
-        </div>
-        <div class="msp-xp-row">
-          <div class="msp-xp-track"><div class="msp-xp-fill" id="quiz-msp-xp" style="width:${xpPctQ}%"></div></div>
-          <span class="msp-xp-num" >${slimeQ.exp.toLocaleString()} / ${xpMaxQ.toLocaleString()} XP</span>
-        </div>
-        <div class="msp-chips">
-          <div class="msp-chip streak">🔥 ${streakQ}일</div>
-          <div class="msp-chip score" id="quiz-msp-score">✓ ${quizScore} / ${quizWords.length}</div>
-          <div class="msp-chip pct" id="quiz-msp-pct">${quizIdx>0?Math.round(quizScore/quizIdx*100):0}%</div>
-        </div>
-      </div>
-    </div>` : ''}
+
 
   </div>`;
   if(mode==='input') setTimeout(()=>document.getElementById('quiz-inp')?.focus(),80);
@@ -18831,7 +19065,7 @@ function answerChoice(btn,selId,corrId){
     btn.classList.add('correct');quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! 슬라임이 기뻐해요 🎉';
-    if(window.innerWidth<=600) _mspReact('quiz','correct');
+    _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
     // 퀴즈 하단 칩 업데이트
     const sc=document.getElementById('quiz-msp-score');
@@ -18846,7 +19080,7 @@ function answerChoice(btn,selId,corrId){
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML=`❌ 오답 — 정답: <strong>${dir==='en2ko'?cw.ko:cw.en}</strong>`;
     quizWrong.push(cw);
-    if(window.innerWidth<=600) _mspReact('quiz','wrong');
+    _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
@@ -18876,7 +19110,7 @@ function checkInput(wid, dir, mode){
     quizScore++;
     fb.className='quiz-feedback correct-fb';
     fb.innerHTML='✅ 정답! <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
-    if(window.innerWidth<=600) _mspReact('quiz','correct');
+    _hdrSlimeReact(true);
     setSlimeMood('happy', 2000);
     const sc=document.getElementById('quiz-msp-score');
     const pc=document.getElementById('quiz-msp-pct');
@@ -18886,7 +19120,7 @@ function checkInput(wid, dir, mode){
     fb.className='quiz-feedback wrong-fb';
     fb.innerHTML='❌ 오답 — 정답: <strong>'+(dir==='en2ko'?w.ko:w.en)+'</strong>';
     quizWrong.push(w);
-    if(window.innerWidth<=600) _mspReact('quiz','wrong');
+    _hdrSlimeReact(false);
     setSlimeMood('sad', 2000);
     const pc=document.getElementById('quiz-msp-pct');
     if(pc&&quizIdx>=0) pc.textContent=Math.round(quizScore/(quizIdx+1)*100)+'%';
@@ -19151,6 +19385,8 @@ function progSetTab(tab) {
   if (!isWord) renderSentProgress();
 }
 
+// renderSentProgress — 실제 함수는 아래에 정의됨 (중복 제거됨)
+
 async function renderSentProgress() {
   const body = document.getElementById('progress-sent-body');
   if (!body) return;
@@ -19219,456 +19455,19 @@ async function renderSentProgress() {
       const best   = pcts.length ? Math.max(...pcts) : null;
       const avg    = pcts.length ? Math.round(pcts.reduce((a,c)=>a+c,0)/pcts.length) : null;
       const bestC  = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-      const progPct= best!==null ? best : 0;
 
-      function miniStat(typeSubs, label, dotColor) {
-        if (!typeSubs.length) return '';
-        const p   = getPcts(typeSubs);
-        const bst = p.length ? Math.max(...p) : null;
-        const av  = p.length ? Math.round(p.reduce((a,c)=>a+c,0)/p.length) : null;
-        const c   = bst>=80?'#059669':bst>=60?'#d97706':'#ef4444';
-        return `
-          <div style="flex:1;background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;padding:10px 12px;text-align:center;min-width:100px">
-            <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:5px">
-              
-              <div style="font-size:12px;color:#94a3b8;font-weight:600">${label}</div>
-            </div>
-            <div class="slime-stat-val" style="color:${c};font-size:20px">${bst!==null?bst+'%':'-'}</div>
-            <div style="font-size:12px;color:#94a3b8;margin-top:2px">평균 ${av!==null?av+'%':'-'} · ${typeSubs.length}회</div>
-          </div>`;
+      // 과제 수행도 계산 (DB_sentTaskOpts 기준, 없으면 최고점수로 fallback)
+      const _sOpts2 = DB_sentTaskOpts[b.id] || null;
+      let progPct = 0;
+      if (_sOpts2 && Object.values(_sOpts2).some(v => v > 0)) {
+        let _sGoal2 = 0, _sDone2 = 0;
+        if ((_sOpts2.unscramble||0) > 0) { _sGoal2 += _sOpts2.unscramble; _sDone2 += Math.min(unscSubs.length, _sOpts2.unscramble); }
+        if ((_sOpts2.dictation ||0) > 0) { _sGoal2 += _sOpts2.dictation;  _sDone2 += Math.min(dictSubs.length, _sOpts2.dictation);  }
+        if ((_sOpts2.record    ||0) > 0) { _sGoal2 += _sOpts2.record;     _sDone2 += Math.min(recSubs.length,  _sOpts2.record);      }
+        progPct = _sGoal2 > 0 ? Math.round(_sDone2 / _sGoal2 * 100) : 0;
+      } else {
+        progPct = best !== null ? best : 0;
       }
-
-      const recentPcts = pcts.slice(-10);
-      const barChart = recentPcts.length ? `
-        <div style="display:flex;align-items:flex-end;gap:3px;height:36px;margin-top:8px">
-          ${recentPcts.map(sc=>{
-            const h=Math.max(4,Math.round((sc/100)*32));
-            const c=sc>=80?'#10b981':sc>=60?'#f59e0b':'#ef4444';
-            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px">
-              <div style="font-size:12px;color:#94a3b8;line-height:1">${sc}</div>
-              <div style="width:100%;height:${h}px;background:${c};border-radius:2px 2px 0 0"></div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:4px">최근 ${recentPcts.length}회 · 평균 ${avg!==null?avg+'%':'-'}</div>` : '';
-
-      // 학습유형별 통합 세부 테이블
-      const sentTypeRows = [
-        { subs: unscSubs, label: '문장 배열' },
-        { subs: dictSubs, label: '빈칸 채우기' },
-      ].filter(r => r.subs.length > 0).map(r => {
-        const p   = getPcts(r.subs);
-        const bst = p.length ? Math.max(...p) : null;
-        const av  = p.length ? Math.round(p.reduce((a,c)=>a+c,0)/p.length) : null;
-        const sc  = bst>=80?'#059669':bst>=60?'#d97706':'#ef4444';
-        const avc = av>=80?'#059669':av>=60?'#d97706':'#ef4444';
-        return `
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:13px">
-            <span style="font-weight:600;color:#334155">${r.label}</span>
-            <span style="font-weight:700;color:${sc};text-align:center">${bst!==null?bst+'%':'-'}</span>
-            <span style="color:#94a3b8;text-align:right">평균 ${av!==null?av+'%':'-'} · ${r.subs.length}회</span>
-          </div>`;
-      }).join('');
-
-      const recTypeRow = recSubs.length ? `
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;padding:7px 10px;font-size:13px">
-            <span style="font-weight:600;color:#334155">낭독</span>
-            <span style="font-weight:700;color:#475569;text-align:center">${recSubs.length}개</span>
-            <span style="color:#94a3b8;text-align:right">최근 ${new Date(recSubs[0].created_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'})}</span>
-          </div>` : '';
-
-      const sentBreakdown = (sentTypeRows || recTypeRow) ? `
-        <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden;margin-bottom:20px">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
-            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
-            <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
-          </div>
-          ${sentTypeRows}${recTypeRow}
-        </div>` : '';
-
-      const recList = recSubs.length ? `
-        <div style="border-top:1px solid #f1f5f9;margin-top:20px;padding-top:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="display:flex;align-items:center;gap:6px">
-              
-              <span style="font-size:12px;font-weight:700;color:#94a3b8">낭독 기록</span>
-              <span style="font-size:12px;color:#94a3b8">${recSubs.length}개</span>
-            </div>
-            <button onclick="deleteSentRec('${b.id}')"
-              style="padding:4px 10px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
-              onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
-              전체 삭제
-            </button>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:5px">
-            ${recSubs.slice(0,5).map((s,i)=>`
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:10px">
-                <span style="font-size:12px;color:#94a3b8;min-width:18px;font-weight:600">${i+1}</span>
-                <span style="font-size:13px;color:#64748b;flex:1">${new Date(s.created_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
-                ${s.recorded_url
-                  ? `<audio src="${s.recorded_url}" controls style="height:26px;flex:2;min-width:120px;border-radius:6px"></audio>`
-                  : `<span style="font-size:12px;color:#059669;font-weight:600;background:#f0fdf4;padding:2px 8px;border-radius:6px">✓ 완료</span>`}
-                <button onclick="deleteSentRecOne('${s.id}')"
-                  style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.12s"
-                  onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">×</button>
-              </div>`).join('')}
-            ${recSubs.length>5?`<div style="font-size:12px;color:#94a3b8;text-align:center;padding:4px 0">... 외 ${recSubs.length-5}개</div>`:''}
-          </div>
-        </div>` : '';
-
-      return `
-        <div class="slime-study-section" style="margin-bottom:14px">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
-                <div class="slime-section-dot" style="background:#059669;flex-shrink:0"></div>
-                <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
-              </div>
-              ${b.tag?`<div style="font-size:12px;color:#94a3b8;padding-left:15px">${b.tag}</div>`:''}
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${bestC}">${best}%</span>`:''}
-              ${studySubs.length?`<span style="font-size:12px;color:#475569;background:#f1f5f9;padding:2px 8px;border-radius:6px;font-weight:600">학습 ${studySubs.length}회</span>`:''}
-              ${recSubs.length?`<span style="font-size:12px;color:#475569;background:#f1f5f9;padding:2px 8px;border-radius:6px;font-weight:600">🎙 ${recSubs.length}</span>`:''}
-            </div>
-          </div>
-
-          <div style="margin-bottom:${(unscSubs.length||dictSubs.length||recSubs.length)?'14px':'0'}">
-            <div class="slime-book-prog-wrap">
-              <div class="slime-book-prog" style="width:${progPct}%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(5,150,105,0.35)"></div>
-            </div>
-            ${barChart}
-          </div>
-
-          ${sentBreakdown}
-
-          ${recList}
-
-          ${!studySubs.length&&!recSubs.length?`<div class="slime-empty">아직 학습 기록이 없어요</div>`:''}
-        </div>`;
-    }).join('');
-
-    body.innerHTML = summaryHTML + bookCards;
-
-  } catch(e) { body.innerHTML = emptyHTML('기록을 불러오지 못했습니다'); console.error(e); }
-}
-// 낭독 전체 삭제 (책 단위)
-async function deleteSentRec(bookId) {
-  if (!confirm('이 문장집의 낭독 기록을 모두 삭제할까요?')) return;
-  try {
-    await sb.from('sentence_submissions')
-      .delete()
-      .eq('student_id', currentUser.id)
-      .eq('book_id', bookId)
-      .in('type', ['record_full', 'record']);
-    showToast('낭독 기록이 삭제됐습니다.', 'success');
-    renderSentProgress();
-  } catch(e) { showToast('오류: ' + e.message, 'error'); }
-}
-
-// 낭독 개별 삭제
-async function deleteSentRecOne(subId) {
-  try {
-    await sb.from('sentence_submissions').delete().eq('id', subId);
-    showToast('삭제됐습니다.', 'success');
-    renderSentProgress();
-  } catch(e) { showToast('오류: ' + e.message, 'error'); }
-}
-
-
-// =========================================================
-//  PROGRESS
-// =========================================================
-async function renderProgress(){
-  const body = document.getElementById('progress-body');
-  const assigned = getAssignedBooks();
-  if (!assigned.length) { body.innerHTML = emptyHTML('배포된 단어장이 없습니다'); return; }
-
-  // 슬라임 배너
-  body.innerHTML = '';
-
-  async function _buildProgressSections(quizLogs) {
-    const modeLabel = { choice:'4지선다', input:'단답형', essay:'주관식' };
-    const dirLabel  = { en2ko:'영→한', ko2en:'한→영' };
-
-    const allScores  = assigned.flatMap(b=>(DB.progress[currentUser.id+'_'+b.id]?.quizScores||[]));
-    const totalRounds= assigned.reduce((s,b)=>s+(DB.progress[currentUser.id+'_'+b.id]?.rounds||0),0);
-    const overallAvg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : null;
-    const overallBest= allScores.length ? Math.max(...allScores) : null;
-
-    const summaryStatItems = [
-      { icon:'📖', label:'총 회독', val: totalRounds,                              color:'#818cf8' },
-      { icon:'📊', label:'전체 평균', val: overallAvg!==null ? overallAvg+'%' : '-', color:'#1e4db7' },
-      { icon:'🏆', label:'최고 점수', val: overallBest!==null ? overallBest+'%':'-', color:'#d97706' },
-      { icon:'📝', label:'퀴즈 횟수', val: quizLogs.length,                         color:'#059669' },
-    ];
-    const summaryGrid = `
-      <div class="slime-study-section" style="margin-bottom:14px">
-        <div class="slime-study-section-head" style="margin-bottom:12px">
-          <div class="slime-study-section-title">
-            <div class="slime-section-dot" style="background:#1e4db7"></div>
-            단어 학습 요약
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          ${summaryStatItems.map(s=>`
-            <div class="slime-stat-box">
-              <div class="slime-stat-val" style="color:${s.color}">${s.val}</div>
-              <div class="slime-stat-lbl">${s.icon} ${s.label}</div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-
-    const sections = assigned.map(b => {
-      const key   = currentUser.id+'_'+b.id;
-      const prog  = DB.progress[key]||{studied:0,quizScores:[],rounds:0,wrongWords:[]};
-      const scores= prog.quizScores||[];
-      const rounds= prog.rounds||0;
-      const wrongWords = (prog.wrongWords||[]).sort((a,c)=>(c.count||1)-(a.count||1));
-      const best  = scores.length ? Math.max(...scores) : null;
-      const avg   = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-      const bestC = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-      const progPct = best!==null ? best : 0;
-      const bookLogs= quizLogs.filter(l=>l.book_id===b.id);
-
-      // 점수 추이 바 차트 (제거됨)
-      const barChart = '';
-
-      // 유형 × 방향 통합 세분화 통계
-      const modeDirRows = ['choice','input','essay'].flatMap(m=>{
-        return ['en2ko','ko2en'].map(d=>{
-          const ml = bookLogs.filter(l=>l.mode===m && l.direction===d);
-          if (!ml.length) return null;
-          const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
-          const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
-          const scoreC = mBest>=80?'#059669':mBest>=60?'#d97706':'#ef4444';
-          const avgC   = mAvg>=80?'#059669':mAvg>=60?'#d97706':'#ef4444';
-          return { m, d, mAvg, mBest, scoreC, avgC, cnt: ml.length };
-        });
-      }).filter(Boolean);
-
-      const quizBreakdown = modeDirRows.length ? (() => {
-        const rows = modeDirRows.map(r=>`
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:14px">
-            <span style="font-weight:600;color:#334155">${modeLabel[r.m]}</span>
-            <span style="color:#64748b">${dirLabel[r.d]}</span>
-            <span style="font-weight:700;color:${r.scoreC};text-align:center">${r.mBest}%</span>
-            <span style="color:#94a3b8;text-align:right">평균 ${r.mAvg}% · ${r.cnt}회</span>
-          </div>`).join('');
-        return `
-          <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-              <span style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:0.2px">유형</span>
-              <span style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:0.2px">방향</span>
-              <span style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:0.2px;text-align:center">최고</span>
-              <span style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:0.2px;text-align:right">통계</span>
-            </div>
-            ${rows}
-          </div>`;
-      })() : '';
-
-      const modeStats = quizBreakdown;
-      const dirStats  = '';
-
-      // 최근 퀴즈 기록 5개
-      const recentLogs = bookLogs.slice(0,5).map(l=>{
-        const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
-        const isAbandoned = isWordTest && l.force_submit;
-        const pct   = Math.round(l.score/l.total*100);
-        const c     = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
-        const date  = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const wrongW= l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
-        const hasSnapshot = !!(l.questions_json);
-        const _logId2 = l.id || (l.student_id + '_' + (l.taken_at||''));
-        if (hasSnapshot) window._gradedLogMap[_logId2] = l;
-        return `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned ? '-' : pct+'%'}</span>
-            <span style="color:#64748b">${l.score}/${l.total}문제</span>
-            ${isWordTest
-              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
-              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
-            }
-            ${isAbandoned
-              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
-              : wrongW.length
-                ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-                : `<span style="color:#059669;font-size:13px;font-weight:600">✓ 전부 정답</span>`
-            }
-            <span style="margin-left:auto;color:#94a3b8;font-size:13px">${date}</span>
-            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId2}')" style="padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
-          </div>`;
-      }).join('');
-
-      // 누적 오답 단어
-      const wrongSection = wrongWords.length===0
-        ? '<span style="font-size:13px;color:#10b981;font-weight:600">누적 오답 없음 ✓</span>'
-        : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-            ${wrongWords.slice(0,20).map(w=>`
-              <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:5px 12px;font-size:14px">
-                <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#f87171">${w.en}</span>
-                <span style="color:#94a3b8">→</span>
-                <span style="color:#0f172a">${w.ko}</span>
-                ${(w.count||1)>1?`<span style="background:#ef4444;color:white;border-radius:99px;padding:1px 6px;font-size:12px;font-weight:700">×${w.count}</span>`:''}
-              </span>`).join('')}
-            ${wrongWords.length>20?`<span style="font-size:14px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
-          </div>`;
-
-      return `
-        <div class="slime-study-section" style="margin-bottom:14px">
-          <!-- 헤더 -->
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
-                <div class="slime-section-dot" style="background:#1e4db7;flex-shrink:0"></div>
-                <div style="font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
-              <span style="font-size:13px;color:#818cf8;background:rgba(129,140,248,0.1);padding:3px 10px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
-              <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
-              <button onclick="confirmResetProgress('${b.id}','${esc(b.name)}')"
-                style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:4px"
-                onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg>
-                초기화
-              </button>
-            </div>
-          </div>
-
-          <!-- 진행 바 + 바 차트 -->
-          <div style="margin-bottom:${(modeStats||dirStats||recentLogs)?'20px':'0'}">
-            <div class="slime-book-prog-wrap">
-              <div class="slime-book-prog" style="width:${progPct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(30,77,183,0.35)"></div>
-            </div>
-            ${barChart}
-          </div>
-
-          <!-- 퀴즈 세부 기록 (유형 × 방향 통합) -->
-          ${modeStats?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">퀴즈 세부 기록</span>
-            </div>
-            ${modeStats}
-          </div>`:''}
-
-          <!-- 최근 퀴즈 기록 -->
-          ${recentLogs?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">최근 퀴즈 기록</span>
-            </div>
-            <div>${recentLogs}</div>
-          </div>`:''}
-
-          <!-- 오답 단어 -->
-          <div style="padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:#475569">누적 오답 단어</span>
-            </div>
-            ${wrongSection}
-          </div>
-        </div>`;
-    }).join('');
-
-    body.innerHTML = summaryGrid + sections;
-  }
-
-  if (DB_quizLogs !== null) {
-    _buildProgressSections(DB_quizLogs);
-    sb.from('quiz_logs').select('*').eq('student_id', currentUser.id)
-      .order('taken_at', { ascending: false }).limit(500)
-      .then(({ data }) => { DB_quizLogs = data || []; _buildProgressSections(DB_quizLogs); })
-      .catch(() => {});
-  } else {
-    body.innerHTML += `<div style="padding:32px 0;text-align:center;color:#94a3b8">
-      <div style="display:inline-flex;gap:6px;align-items:center">
-        <div style="width:7px;height:7px;border-radius:50%;background:#1e4db7;animation:loader 0.9s ease-in-out infinite"></div>
-        <div style="width:7px;height:7px;border-radius:50%;background:#1e4db7;animation:loader 0.9s ease-in-out 0.2s infinite"></div>
-        <div style="width:7px;height:7px;border-radius:50%;background:#1e4db7;animation:loader 0.9s ease-in-out 0.4s infinite"></div>
-      </div>
-    </div>`;
-    const { data: logs } = await sb.from('quiz_logs').select('*')
-      .eq('student_id', currentUser.id).order('taken_at', { ascending: false }).limit(500);
-    DB_quizLogs = logs || [];
-    _buildProgressSections(DB_quizLogs);
-  }
-}
-// 학습 현황 초기화
-
-async function renderSentProgress() {
-  const body = document.getElementById('progress-sent-body');
-  if (!body) return;
-  body.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:14px">불러오는 중...</div>';
-
-  try {
-    await loadSentenceBooks();
-    if (!DB_sentBooks.length) { body.innerHTML = emptyHTML('배포된 문장집이 없습니다'); return; }
-
-    const { data: subs, error: subsErr } = await sb.from('sentence_submissions')
-      .select('id, book_id, type, answer, correct, recorded_url, created_at')
-      .eq('student_id', currentUser.id)
-      .order('created_at', { ascending: false });
-    if (subsErr) console.error('🔴 sentence_submissions 오류:', subsErr.message, subsErr.code);
-    const submissions = subs || [];
-
-    function getPcts(typeSubs) {
-      return typeSubs.map(s => {
-        try { const d = JSON.parse(s.answer||'{}'); return d.total ? Math.round(d.correct/d.total*100) : null; }
-        catch { return null; }
-      }).filter(v => v !== null);
-    }
-
-    // ── 상단 요약 통계 ──
-    const allStudySubs = submissions.filter(s => s.type==='unscramble'||s.type==='dictation');
-    const allRecSubs   = submissions.filter(s => s.type==='record_full'||s.type==='record');
-    const allPcts      = getPcts(allStudySubs);
-    const overallAvg   = allPcts.length ? Math.round(allPcts.reduce((a,b)=>a+b,0)/allPcts.length) : null;
-    const overallBest  = allPcts.length ? Math.max(...allPcts) : null;
-
-    const allUnscSubs = submissions.filter(s => s.type==='unscramble');
-    const allDictSubs = submissions.filter(s => s.type==='dictation');
-    const statItems = [
-      { icon:'📗', label:'문장집', val: DB_sentBooks.length, color:'#1e4db7' },
-      { icon:'📊', label:'전체 평균', val: overallAvg!==null ? overallAvg+'%' : '-', color:'#1e4db7' },
-      { icon:'🏆', label:'최고 점수', val: overallBest!==null ? overallBest+'%' : '-', color:'#d97706' },
-      { icon:'🎙', label:'낭독 횟수', val: allRecSubs.length, color:'#475569' },
-    ];
-
-    const summaryHTML = `
-      <div class="slime-study-section" style="margin-bottom:14px">
-        <div class="slime-study-section-head" style="margin-bottom:12px">
-          <div class="slime-study-section-title">
-            <div class="slime-section-dot" style="background:#059669"></div>
-            문장 학습 요약
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          ${statItems.map(s=>`
-            <div class="slime-stat-box">
-              <div class="slime-stat-val" style="color:${s.color}">${s.val}</div>
-              <div class="slime-stat-lbl">${s.icon} ${s.label}</div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-
-    // ── 문장집별 카드 ──
-    const bookCards = DB_sentBooks.map(b => {
-      const bookSubs  = submissions.filter(s => s.book_id === b.id);
-      const recSubs   = bookSubs.filter(s => s.type==='record_full'||s.type==='record');
-      const studySubs = bookSubs.filter(s => s.type==='unscramble'||s.type==='dictation');
-      const unscSubs  = studySubs.filter(s => s.type==='unscramble');
-      const dictSubs  = studySubs.filter(s => s.type==='dictation');
-
-      const pcts   = getPcts(studySubs);
-      const best   = pcts.length ? Math.max(...pcts) : null;
-      const avg    = pcts.length ? Math.round(pcts.reduce((a,c)=>a+c,0)/pcts.length) : null;
-      const bestC  = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-      const progPct= best!==null ? best : 0;
 
       function miniStat(typeSubs, label, dotColor) {
         if (!typeSubs.length) return '';
@@ -19777,7 +19576,7 @@ async function renderSentProgress() {
               ${b.tag?`<div style="font-size:12px;color:#94a3b8;padding-left:15px">${b.tag}</div>`:''}
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
+              ${progPct>0?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${progPct>=100?'#059669':progPct>=50?'#d97706':'#ef4444'}">${progPct}%</span>`:''}
               ${studySubs.length?`<span style="font-size:13px;color:#475569;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">학습 ${studySubs.length}회</span>`:''}
               ${recSubs.length?`<span style="font-size:13px;color:#475569;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">🎙 ${recSubs.length}</span>`:''}
             </div>
@@ -19876,85 +19675,122 @@ async function renderProgress(){
       const rounds= prog.rounds||0;
       const wrongWords = (prog.wrongWords||[]).sort((a,c)=>(c.count||1)-(a.count||1));
       const best  = scores.length ? Math.max(...scores) : null;
-      const avg   = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-      const bestC = best===null?'#94a3b8':best>=80?'#059669':best>=60?'#d97706':'#ef4444';
-      const progPct = best!==null ? best : 0;
+      const bestC = best===null?'#94a3b8':best>=80?'#1e4db7':best>=60?'#1e4db7':'#ef4444';
       const bookLogs= quizLogs.filter(l=>l.book_id===b.id);
 
-      // 점수 추이 바 차트 (제거됨)
-      const barChart = '';
+      // 과제 현황 (학생용 DB.taskOptions는 bookId 단독 키)
+      const taskOpts = (DB.taskOptions||{})[b.id] || null;
+      const taskDefs = taskOpts ? [
+        { key:'flashcard',         label:'암기',        done: rounds,                                                                  goal: taskOpts.flashcard||0 },
+        { key:'quiz_choice_en2ko', label:'객관식 영→한', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='en2ko').length,     goal: taskOpts.quiz_choice_en2ko||0 },
+        { key:'quiz_choice_ko2en', label:'객관식 한→영', done: bookLogs.filter(l=>l.mode==='choice'&&l.direction==='ko2en').length,     goal: taskOpts.quiz_choice_ko2en||0 },
+        { key:'quiz_input_en2ko',  label:'주관식 영→한', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='en2ko').length,      goal: taskOpts.quiz_input_en2ko||0 },
+        { key:'quiz_input_ko2en',  label:'주관식 한→영', done: bookLogs.filter(l=>l.mode==='input'&&l.direction==='ko2en').length,      goal: taskOpts.quiz_input_ko2en||0 },
+        { key:'test',              label:'단어 테스트',  done: bookLogs.filter(l=>l.mode==='essay'&&l.direction==='mixed').length,      goal: taskOpts.test||0 },
+      ].filter(t => t.goal > 0) : [];
 
-      // 유형 × 방향 통합 세분화 통계
-      const modeDirRows = ['choice','input','essay'].flatMap(m=>{
-        return ['en2ko','ko2en'].map(d=>{
-          const ml = bookLogs.filter(l=>l.mode===m && l.direction===d);
+      const taskTotalGoal = taskDefs.reduce((s,t) => s + t.goal, 0);
+      const taskTotalDone = taskDefs.reduce((s,t) => s + Math.min(t.done, t.goal), 0);
+      const progPct = taskDefs.length
+        ? Math.round(taskTotalDone / taskTotalGoal * 100)
+        : (best !== null ? best : 0);
+
+      const taskSectionHtml = taskDefs.length ? (() => {
+        const allDone = taskDefs.every(t => t.done >= t.goal);
+        const rows = taskDefs.map(t => {
+          const pct  = Math.min(100, Math.round(t.done / t.goal * 100));
+          const done = t.done >= t.goal;
+          const textC = done ? '#1e4db7' : pct > 0 ? '#1e4db7' : '#94a3b8';
+          const status = done
+            ? `<span style="font-size:12px;font-weight:700;color:#1e4db7;white-space:nowrap">✓ 완료</span>`
+            : t.done > 0
+              ? `<span style="font-size:12px;color:#1e4db7;white-space:nowrap">${t.done}/${t.goal}회</span>`
+              : `<span style="font-size:12px;color:#94a3b8;white-space:nowrap">0/${t.goal}회</span>`;
+          return `<div style="display:grid;grid-template-columns:90px 1fr 56px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+            <span style="font-size:13px;font-weight:600;color:${textC}">${t.label}</span>
+            <div class="slime-book-prog-wrap">
+              <div class="slime-book-prog" style="width:${pct}%;background:${done?'linear-gradient(90deg,#334155 0%,#475569 50%,#64748b 100%)':'linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#cbd5e1 100%)'};transition:width 0.6s ease;box-shadow:0 0 4px ${done?'rgba(51,65,85,0.35)':'rgba(100,116,139,0.3)'}"></div>
+            </div>
+            ${status}
+          </div>`;
+        }).join('');
+        return `<div style="font-size:13px;font-weight:700;color:${allDone?'#1e4db7':'#475569'};margin-bottom:10px">${allDone?'✓ 과제 완료':'과제 현황'}</div>${rows}`;
+      })() : '';
+
+      // 퀴즈 세부 기록
+      const modeDirRows = [
+        ...['choice','input'].flatMap(m =>
+          ['en2ko','ko2en'].map(d => {
+            const ml = bookLogs.filter(l => l.mode===m && l.direction===d);
+            if (!ml.length) return null;
+            const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
+            const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
+            const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+            return { m, d, mAvg, mBest, scoreC, cnt: ml.length };
+          })
+        ),
+        (() => {
+          const ml = bookLogs.filter(l => l.mode==='essay' && l.direction==='mixed');
           if (!ml.length) return null;
-          const mAvg  = Math.round(ml.reduce((a,l)=>a+(l.score/l.total*100),0)/ml.length);
-          const mBest = Math.max(...ml.map(l=>Math.round(l.score/l.total*100)));
-          const scoreC = mBest>=80?'#059669':mBest>=60?'#d97706':'#ef4444';
-          const avgC   = mAvg>=80?'#059669':mAvg>=60?'#d97706':'#ef4444';
-          return { m, d, mAvg, mBest, scoreC, avgC, cnt: ml.length };
-        });
-      }).filter(Boolean);
+          const nonAbandoned = ml.filter(l => !l.force_submit);
+          if (!nonAbandoned.length) return null;
+          const mAvg  = Math.round(nonAbandoned.reduce((a,l)=>a+(l.score/l.total*100),0)/nonAbandoned.length);
+          const mBest = Math.max(...nonAbandoned.map(l=>Math.round(l.score/l.total*100)));
+          const scoreC = mBest>=80?'#1e4db7':mBest>=60?'#1e4db7':'#ef4444';
+          return { m:'test', d:'', mAvg, mBest, scoreC, cnt: ml.length, label:'테스트' };
+        })()
+      ].filter(Boolean);
 
-      const quizBreakdown = modeDirRows.length ? (() => {
+      const modeStats = modeDirRows.length ? (() => {
         const rows = modeDirRows.map(r=>`
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:13px">
-            <span style="font-weight:600;color:#334155">${modeLabel[r.m]}</span>
-            <span style="color:#64748b">${dirLabel[r.d]}</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:14px">
+            <span style="font-weight:600;color:#334155">${r.label || modeLabel[r.m] || r.m}</span>
+            <span style="color:#64748b">${r.d ? (dirLabel[r.d]||r.d) : '-'}</span>
             <span style="font-weight:700;color:${r.scoreC};text-align:center">${r.mBest}%</span>
             <span style="color:#94a3b8;text-align:right">평균 ${r.mAvg}% · ${r.cnt}회</span>
           </div>`).join('');
-        return `
-          <div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">유형</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px">방향</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:center">최고</span>
-              <span style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:0.3px;text-align:right">통계</span>
-            </div>
-            ${rows}
-          </div>`;
+        return `<div style="background:#f8fafc;border:1px solid #e8eef8;border-radius:12px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:6px 10px;background:#f1f5f9;border-bottom:1px solid #e8eef8">
+            <span style="font-size:12px;font-weight:700;color:#64748b">유형</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b">방향</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b;text-align:center">최고</span>
+            <span style="font-size:12px;font-weight:700;color:#64748b;text-align:right">통계</span>
+          </div>
+          ${rows}
+        </div>`;
       })() : '';
 
-      const modeStats = quizBreakdown;
-      const dirStats  = '';
-
       // 최근 퀴즈 기록 5개
-      const recentLogs = bookLogs.slice(0,5).map(l=>{
-        const isWordTest = (l.mode === 'essay' && l.direction === 'mixed');
+      const recentLogs = bookLogs.slice(0,5).map(l => {
+        const isWordTest  = l.mode==='essay' && l.direction==='mixed';
         const isAbandoned = isWordTest && l.force_submit;
-        const pct   = Math.round(l.score/l.total*100);
-        const c     = isAbandoned ? '#64748b' : pct>=80?'#059669':pct>=60?'#d97706':'#ef4444';
-        const date  = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const wrongW= l.wrong_words_json ? JSON.parse(l.wrong_words_json) : [];
+        const pct  = Math.round(l.score/l.total*100);
+        const c    = isAbandoned?'#64748b':pct>=80?'#1e4db7':pct>=60?'#1e4db7':'#ef4444';
+        const date = new Date(l.taken_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const wrongW = l.wrong_words_json ? (() => { try { return JSON.parse(l.wrong_words_json); } catch { return []; } })() : [];
         const hasSnapshot = !!(l.questions_json);
-        const _logId3 = l.id || (l.student_id + '_' + (l.taken_at||''));
+        const _logId3 = l.id || (l.student_id+'_'+(l.taken_at||''));
         if (hasSnapshot) window._gradedLogMap[_logId3] = l;
-        return `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap">
-            <span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${c};min-width:44px">${isAbandoned ? '-' : pct+'%'}</span>
-            <span style="color:#64748b">${l.score}/${l.total}문제</span>
-            ${isWordTest
-              ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700">테스트</span>`
-              : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
-                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`
-            }
-            ${isAbandoned
-              ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
-              : wrongW.length
-                ? `<span style="color:#ef4444;font-size:12px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
-                : isWordTest ? `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
-                : `<span style="color:#059669;font-size:12px;font-weight:600">✓ 전부 정답</span>`
-            }
-            <span style="margin-left:auto;color:#94a3b8;font-size:12px">${date}</span>
-            ${hasSnapshot ? `<button onclick="openGradedTestView('${_logId3}')" style="padding:2px 9px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>` : ''}
-          </div>`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;flex-wrap:wrap">
+          <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${c};min-width:48px">${isAbandoned?'-':pct+'%'}</span>
+          <span style="color:#64748b">${l.score}/${l.total}문제</span>
+          ${isWordTest
+            ? `<span style="background:#fff7ed;color:#c2410c;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:700">테스트</span>`
+            : `<span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${modeLabel[l.mode]||l.mode}</span>
+               <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600">${dirLabel[l.direction]||l.direction}</span>`}
+          ${isAbandoned
+            ? `<span style="background:#fef2f2;color:#dc2626;border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;border:1px solid #fecaca">⚠ 테스트 이탈</span>`
+            : wrongW.length
+              ? `<span style="color:#ef4444;font-size:13px">✗ ${wrongW.map(w=>w.en).join(', ')}</span>`
+              : `<span style="color:#1e4db7;font-size:13px;font-weight:600">✓ 전부 정답</span>`}
+          ${hasSnapshot?`<button onclick="openGradedTestView('${_logId3}')" style="margin-left:auto;padding:3px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">📋 시험지</button>`:``}
+          <span style="${hasSnapshot?'':'margin-left:auto;'}color:#94a3b8;font-size:13px">${date}</span>
+        </div>`;
       }).join('');
 
       // 누적 오답 단어
-      const wrongSection = wrongWords.length===0
-        ? '<span style="font-size:13px;color:#10b981;font-weight:600">누적 오답 없음 ✓</span>'
+      const wrongSection = wrongWords.length === 0
+        ? '<span style="font-size:13px;color:#1e4db7;font-weight:600">누적 오답 없음 ✓</span>'
         : `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
             ${wrongWords.slice(0,20).map(w=>`
               <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:4px 10px;font-size:13px">
@@ -19966,62 +19802,59 @@ async function renderProgress(){
             ${wrongWords.length>20?`<span style="font-size:13px;color:#94a3b8">... 외 ${wrongWords.length-20}개</span>`:''}
           </div>`;
 
+      const bid_ = 'st_' + b.id.replace(/-/g,''); // student mode
+      const hasTasks = !!taskSectionHtml;
+      const hasQuiz  = !!modeStats;
+      const hasLogs  = recentLogs.length > 0;
+      const defaultPill = hasTasks ? 'task' : hasQuiz ? 'quiz' : hasLogs ? 'recent' : 'wrong';
+
+      const pillBtn = (key, label, hasContent) => {
+        if (!hasContent && key !== 'wrong') return '';
+        return `<button onclick="_sdmPill('${bid_}','${key}',this)"
+          id="pill_${bid_}_${key}"
+          style="padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid ${key===defaultPill?'#1e4db7':'var(--border)'};background:${key===defaultPill?'#1e4db7':'var(--surface)'};color:${key===defaultPill?'#fff':'var(--t2)'};cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s">
+          ${label}
+        </button>`;
+      };
+
       return `
         <div class="slime-study-section" style="margin-bottom:14px">
-          <!-- 헤더 -->
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
                 <div class="slime-section-dot" style="background:#1e4db7;flex-shrink:0"></div>
                 <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+                ${b.collectionName?`<span style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.collectionName}</span>`:''}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${best!==null?`<span style="font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:${bestC}">${best}%</span>`:''}
-              <span style="font-size:12px;color:#818cf8;background:rgba(129,140,248,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
-              <span style="font-size:12px;color:#94a3b8;background:rgba(148,163,184,0.1);padding:2px 8px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
+              ${taskDefs.length?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${progPct>=100?'#1e4db7':progPct>=50?'#1e4db7':'#ef4444'}">${progPct}%</span>`:best!==null?`<span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${bestC}">${best}%</span>`:''}
+              <span style="font-size:13px;color:#818cf8;background:rgba(129,140,248,0.1);padding:3px 10px;border-radius:6px;font-weight:600">📖 ${rounds}회독</span>
+              <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
               <button onclick="confirmResetProgress('${b.id}','${esc(b.name)}')"
-                style="padding:4px 10px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;display:flex;align-items:center;gap:4px"
+                style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif"
                 onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg>
-                초기화
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg> 초기화
               </button>
             </div>
           </div>
-
-          <!-- 진행 바 + 바 차트 -->
-          <div style="margin-bottom:${(modeStats||dirStats||recentLogs)?'20px':'0'}">
+          <div style="margin-bottom:16px">
             <div class="slime-book-prog-wrap">
               <div class="slime-book-prog" style="width:${progPct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(30,77,183,0.35)"></div>
             </div>
-            ${barChart}
           </div>
-
-          <!-- 퀴즈 세부 기록 (유형 × 방향 통합) -->
-          ${modeStats?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">퀴즈 세부 기록</span>
-            </div>
-            ${modeStats}
-          </div>`:''}
-
-          <!-- 최근 퀴즈 기록 -->
-          ${recentLogs?`
-          <div style="margin-bottom:20px;padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">최근 퀴즈 기록</span>
-            </div>
-            <div>${recentLogs}</div>
-          </div>`:''}
-
-          <!-- 오답 단어 -->
-          <div style="padding-top:6px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-              <span style="font-size:12px;font-weight:700;color:#475569;letter-spacing:0.5px">누적 오답 단어</span>
-            </div>
-            ${wrongSection}
+          <!-- pill nav -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+            ${pillBtn('task','과제 현황', hasTasks)}
+            ${pillBtn('quiz','퀴즈 세부 기록', hasQuiz)}
+            ${pillBtn('recent','최근 퀴즈 기록', hasLogs)}
+            ${pillBtn('wrong','누적 오답 단어', true)}
           </div>
+          <!-- sections -->
+          <div id="sec_${bid_}_task" style="display:${defaultPill==='task'?'block':'none'}">${taskSectionHtml}</div>
+          <div id="sec_${bid_}_quiz" style="display:${defaultPill==='quiz'?'block':'none'}">${modeStats||''}</div>
+          <div id="sec_${bid_}_recent" style="display:${defaultPill==='recent'?'block':'none'}">${recentLogs||''}</div>
+          <div id="sec_${bid_}_wrong" style="display:${defaultPill==='wrong'?'block':'none'}">${wrongSection}</div>
         </div>`;
     }).join('');
 
@@ -21727,16 +21560,19 @@ async function openWordPrintStudio(bookId) {
       </td>`;
     }
 
-    // cols 단으로 행 구성 (가로 방향으로 채움)
+    // 열 우선 배치: 1열을 먼저 채운 뒤 2열로 넘어감
     const rows = [];
-    for (let i = 0; i < wList.length; i += cols) {
-      const slice = wList.slice(i, i + cols);
-      while (slice.length < cols) slice.push(null);
-      const tds = slice.map((w, ci) => w
-        ? itemHTML(w, i + ci + 1)
-        : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
-      ).join('');
-      rows.push(`<tr>${tds}</tr>`);
+    const nRows_wps = Math.ceil(wList.length / cols);
+    for (let r = 0; r < nRows_wps; r++) {
+      const tds = [];
+      for (let c = 0; c < cols; c++) {
+        const idx = c * nRows_wps + r;
+        tds.push(idx < wList.length
+          ? itemHTML(wList[idx], idx + 1)
+          : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`
+        );
+      }
+      rows.push(`<tr>${tds.join('')}</tr>`);
     }
 
     const titleSize = Math.min(16, fs * 1.4).toFixed(1);
@@ -22420,9 +22256,18 @@ function tsBuiltHtml(autoPrint) {
   function sheetHTML(ans) {
     const colW = (100/cols).toFixed(1);
     const rows = [];
-    for (let i = 0; i < qList.length; i += cols) {
-      const slice = qList.slice(i, i + cols);
-      while (slice.length < cols) slice.push(null);
+    // 열 우선 배치: 1열을 먼저 채운 뒤 2열로 넘어감
+    const nRows = Math.ceil(qList.length / cols);
+    const colFirst = [];
+    for (let r = 0; r < nRows; r++) {
+      const slice = [];
+      for (let c = 0; c < cols; c++) {
+        const idx = c * nRows + r;
+        slice.push(idx < qList.length ? qList[idx] : null);
+      }
+      colFirst.push(slice);
+    }
+    for (const slice of colFirst) {
       const tds = slice.map(q => q
         ? `<td style="padding:${cellPad};vertical-align:top;width:${colW}%;border:none;border-right:0.5pt dashed #ccc">
             <div style="display:flex;gap:6pt;align-items:flex-start;${onePage?'':' flex:1;'}">
@@ -25356,9 +25201,14 @@ function slpBuildHtml() {
     </td>`;
   });
   const rows = [];
-  for (let i = 0; i < cells.length; i += cols) {
-    const sl = cells.slice(i, i+cols);
-    while (sl.length < cols) sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+  // 열 우선 배치: 1열을 먼저 채운 뒤 2열로 넘어감
+  const nRows_slp = Math.ceil(cells.length / cols);
+  for (let r = 0; r < nRows_slp; r++) {
+    const sl = [];
+    for (let c = 0; c < cols; c++) {
+      const idx = c * nRows_slp + r;
+      sl.push(idx < cells.length ? cells[idx] : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+    }
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
   const mm = 12;
@@ -25624,9 +25474,14 @@ function wlpBuildHtml() {
   });
 
   const rows = [];
-  for (let i = 0; i < cells.length; i += cols) {
-    const sl = cells.slice(i, i + cols);
-    while (sl.length < cols) sl.push(`<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+  // 열 우선 배치: 1열을 먼저 채운 뒤 2열로 넘어감
+  const nRows_wlp = Math.ceil(cells.length / cols);
+  for (let r = 0; r < nRows_wlp; r++) {
+    const sl = [];
+    for (let c = 0; c < cols; c++) {
+      const idx = c * nRows_wlp + r;
+      sl.push(idx < cells.length ? cells[idx] : `<td style="border:none;border-bottom:0.5pt dashed #ccc;border-right:0.5pt dashed #ccc;width:${colW}%"></td>`);
+    }
     rows.push(`<tr>${sl.join('')}</tr>`);
   }
 
@@ -25869,6 +25724,7 @@ var _chatTargetId    = null;
 var _chatTargetName  = '';
 var _chatTargetSlime = null;
 var _msgStudentTarget = null;
+var _chatPeerCache = {}; // 대화탭 peer 캐시
 var DB_msgInbox = null;
 var DB_msgSent  = null;
 
@@ -25938,17 +25794,30 @@ function _renderStudentSlime(student, size) {
 async function renderMessages() {
   const isTeacher = currentUser?.role === 'teacher';
   const tabbar = document.getElementById('msg-tabbar');
-  if (tabbar) tabbar.style.display = isTeacher ? 'flex' : 'none';
+  if (tabbar) tabbar.style.display = 'flex'; // 선생님·학생 모두 탭바 표시
 
-  if (!isTeacher) {
-    // 학생: 대화목록만
+  // 탭 레이블 조정
+  const friendsLabel = document.getElementById('msgtab-friends-label');
+  if (friendsLabel) friendsLabel.textContent = isTeacher ? '학생' : '친구';
+
+  // 학생: 친구 추가 버튼 표시
+  const addFriendBtn = document.getElementById('msg-add-friend-btn');
+  if (addFriendBtn) addFriendBtn.style.display = isTeacher ? 'none' : 'block';
+
+  // 검색 placeholder 조정
+  const searchInput = document.getElementById('msg-friends-search');
+  if (searchInput) searchInput.placeholder = isTeacher ? '학생 이름 검색…' : '친구 이름 검색…';
+
+  // 현재 탭에 따라 패널 표시
+  if (_msgMainTab === 'chats') {
     document.getElementById('msg-panel-friends').style.display = 'none';
     document.getElementById('msg-panel-chats').style.display  = 'flex';
     renderChatsPanel();
   } else {
     document.getElementById('msg-panel-friends').style.display = 'flex';
     document.getElementById('msg-panel-chats').style.display  = 'none';
-    renderFriendsList();
+    if (isTeacher) renderFriendsList();
+    else renderStudentFriendsList();
   }
   updateUnreadBadge();
 }
@@ -25959,6 +25828,7 @@ async function renderMessages() {
 function switchMsgMainTab(tab) {
   _msgMainTab = tab;
   const isFriends = tab === 'friends';
+  const isTeacher = currentUser?.role === 'teacher';
   document.getElementById('msg-panel-friends').style.display = isFriends ? 'flex' : 'none';
   document.getElementById('msg-panel-chats').style.display  = isFriends ? 'none'  : 'flex';
   document.getElementById('msgtab-friends').classList.toggle('active', isFriends);
@@ -25967,7 +25837,14 @@ function switchMsgMainTab(tab) {
   const track = document.getElementById('msg-tab-track');
   if (track) track.classList.toggle('on-chats', !isFriends);
   if (!isFriends) renderChatsPanel();
-  else renderFriendsList();
+  else if (isTeacher) renderFriendsList();
+  else renderStudentFriendsList();
+}
+
+/* ── 친구 검색 핸들러 ── */
+function msgFriendsSearchHandler() {
+  if (currentUser?.role === 'teacher') renderFriendsList();
+  else renderStudentFriendsList();
 }
 
 /* ══════════════════════════════════════
@@ -26052,7 +25929,7 @@ async function renderFriendsList() {
           { done: ql('choice','ko2en'),  goal: opts.quiz_choice_ko2en || 0 },
           { done: ql('input','en2ko'),   goal: opts.quiz_input_en2ko  || 0 },
           { done: ql('input','ko2en'),   goal: opts.quiz_input_ko2en  || 0 },
-          { done: 0,                     goal: opts.test              || 0 },
+          { done: ql('essay','mixed'),    goal: opts.test              || 0 },
         ].filter(d => d.goal > 0);
         taskGoalTotal += taskDefs.reduce((acc, d) => acc + d.goal, 0);
         taskDoneTotal += taskDefs.reduce((acc, d) => acc + Math.min(d.done, d.goal), 0);
@@ -26074,11 +25951,11 @@ async function renderFriendsList() {
         <div class="msg-friend-row" onclick="openMsgStudentPopup('${s.id}')" style="overflow:visible">
           <div class="msg-friend-avatar">
             ${svg}
-            <span class="msg-lv-badge stage-${Math.min(sd.stage || 0, 3)}">Lv.${sd.stage || 0}</span>
+            <span class="msg-lv-badge stage-${Math.min(sd.stage || 0, 3)}">Lv.${(sd.stage || 0) + 1}</span>
           </div>
           <div class="msg-friend-info">
             <div class="msg-friend-name">${_esc(s.name)}</div>
-            <div class="msg-friend-sub">Lv.${sd.stage || 0} ${stage.name}${grade ? ' · ' + grade : ''}</div>
+            <div class="msg-friend-sub">Lv.${(sd.stage || 0) + 1} ${stage.name}${grade ? ' · ' + grade : ''}</div>
           </div>
           ${taskBarHtml}
           <svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -26119,27 +25996,22 @@ async function renderChatsPanel() {
   if (isTeacher) {
     peers = (DB.users || []).filter(u => u.role === 'student');
   } else {
-    // 학생: 대화 상대(선생님)만
-    const teacherIds = new Set(
-      Object.keys(lastMap).filter(id => {
-        const m = lastMap[id];
-        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
-        return other?.role === 'teacher';
-      })
-    );
-    peers = (DB.users || []).filter(u => teacherIds.has(u.id));
-    // DB.users에 없으면 메시지에서 직접 추출
-    if (!peers.length) {
-      const seen = new Set();
-      peers = [];
-      (msgs || []).forEach(m => {
-        const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
-        if (other?.role === 'teacher' && !seen.has(other.id)) {
-          seen.add(other.id);
-          peers.push({ ...other });
-        }
-      });
+    // 학생: 선생님 + 친구 (대화 기록 있는 사람들)
+    const peerIds = new Set(Object.keys(lastMap));
+    const seen = new Set();
+    peers = [];
+    for (const id of peerIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const m = lastMap[id];
+      const other = m.sender_id === currentUser.id ? m.receiver : m.sender;
+      if (other) peers.push({ ...other });
     }
+    // DB.users에서 보완
+    peers = peers.map(p => {
+      const fromDB = (DB.users||[]).find(u => u.id === p.id);
+      return fromDB ? { ...fromDB, ...p } : p;
+    });
   }
 
   // 마지막 대화 기준 정렬
@@ -26170,16 +26042,27 @@ async function renderChatsPanel() {
         eyeStyle: sd.eyeStyle || 'round',
         accessory: sd.accessory || 'none',
       });
-      const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
       avatarHTML = `${svg}`;
     } else {
-      avatarHTML = `<span style="font-size:26px">👩‍🏫</span>`;
+      // 학생: 상대방 역할에 따라 아바타 표시
+      if (peer.role === 'teacher') {
+        const tsd = peer.slime_data ? (typeof peer.slime_data === 'string' ? JSON.parse(peer.slime_data) : peer.slime_data) : null;
+        if (tsd) {
+          avatarHTML = buildMiniSlimeSVG(tsd.stage || 0, 42, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' });
+        } else {
+          avatarHTML = `<span style="font-size:26px">👩‍🏫</span>`;
+        }
+      } else {
+        const sd  = peer.slime_data ? (typeof peer.slime_data === 'string' ? JSON.parse(peer.slime_data) : peer.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        avatarHTML = buildMiniSlimeSVG(sd.stage || 0, 42, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+      }
     }
 
-    const peerLabel = isTeacher ? _esc(peer.name) : _esc(peer.name) + ' 선생님';
+    const peerLabel = isTeacher ? _esc(peer.name) : (peer.role === 'teacher' ? _esc(peer.name) + ' 선생님' : _esc(peer.name));
+    _chatPeerCache[peer.id] = peer.name;
 
     html += `
-      <div class="msg-chat-row${unread ? ' msg-chat-row-unread' : ''}" onclick="openChatView('${peer.id}','${_esc(peer.name)}')">
+      <div class="msg-chat-row${unread ? ' msg-chat-row-unread' : ''}" onclick="openChatViewById('${peer.id}')">
         <div class="msg-chat-row-avatar" style="position:relative">${avatarHTML}</div>
         <div class="msg-chat-row-info">
           <div class="msg-chat-row-top">
@@ -26221,15 +26104,55 @@ async function openChatView(userId, userName) {
       avatarEl.innerHTML = svg;
       const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
       nameEl.textContent = userName;
-      subEl.textContent  = `Lv.${sd.stage || 0} ${stage.name}` + (student.grade ? '  ·  ' + student.grade : '');
+      subEl.textContent  = `Lv.${(sd.stage || 0) + 1} ${stage.name}` + (student.grade ? '  ·  ' + student.grade : '');
     }
   } else {
-    avatarEl.innerHTML = '<span style="font-size:22px">👩‍🏫</span>';
-    nameEl.textContent  = userName + ' 선생님';
-    subEl.textContent   = '';
+    // 학생: 일단 기본값으로 표시 후 fetch로 업데이트
+    avatarEl.innerHTML = '<span style="font-size:22px">👤</span>';
+    nameEl.textContent = userName;
+    subEl.textContent  = '';
+
+    // 슬라이드인 먼저 (fetch 결과 기다리지 않음)
+    const chatView = document.getElementById('msg-chat-view');
+    chatView.style.display = 'flex';
+    requestAnimationFrame(() => chatView.classList.add('open'));
+
+    await loadChatMessages(userId);
+    closeMsgStudentPopup();
+    closeMsgFriendPopup();
+
+    // 아바타/이름은 백그라운드에서 업데이트
+    try {
+      const res = await sb.from('profiles')
+        .select('id, name, role, slime_data, grade')
+        .eq('id', userId)
+        .single();
+      const peerProfile = res?.data;
+      if (peerProfile?.role === 'teacher') {
+        const tsd = peerProfile.slime_data ? (typeof peerProfile.slime_data === 'string' ? JSON.parse(peerProfile.slime_data) : peerProfile.slime_data) : null;
+        if (tsd) {
+          const tsvg = buildMiniSlimeSVG(tsd.stage || 0, 38, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' });
+          avatarEl.innerHTML = tsvg;
+          const tStage = SLIME_STAGES[Math.min(tsd.stage || 0, SLIME_STAGES.length - 1)];
+          subEl.textContent  = `Lv.${tsd.stage||0} ${tStage.name} · 담당 선생님`;
+        } else {
+          avatarEl.innerHTML = '<span style="font-size:22px">👩‍🏫</span>';
+          subEl.textContent   = '담당 선생님';
+        }
+        nameEl.textContent = (peerProfile.name || userName) + ' 선생님';
+      } else if (peerProfile) {
+        const sd  = peerProfile.slime_data ? (typeof peerProfile.slime_data === 'string' ? JSON.parse(peerProfile.slime_data) : peerProfile.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 38, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        avatarEl.innerHTML = svg;
+        const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+        nameEl.textContent = peerProfile.name || userName;
+        subEl.textContent  = `Lv.${(sd.stage || 0) + 1} ${stage.name}` + (peerProfile.grade ? '  ·  ' + peerProfile.grade : '');
+      }
+    } catch(e) { /* 아바타 업데이트 실패해도 채팅뷰는 유지 */ }
+    return;
   }
 
-  // 슬라이드인
+  // 슬라이드인 (선생님 경로)
   const chatView = document.getElementById('msg-chat-view');
   chatView.style.display = 'flex';
   requestAnimationFrame(() => chatView.classList.add('open'));
@@ -26239,10 +26162,109 @@ async function openChatView(userId, userName) {
 }
 
 function closeChatView() {
+  exitMsgSelectMode();
   const chatView = document.getElementById('msg-chat-view');
   chatView.classList.remove('open');
   setTimeout(() => { chatView.style.display = 'none'; }, 260);
   _chatTargetId = null;
+}
+
+function deleteChatConfirm() {
+  if (!_chatTargetId) return;
+  const name = document.getElementById('msg-chat-name')?.textContent || '상대방';
+  showModal(`
+    <div class="modal-title" style="color:#ef4444">대화 삭제</div>
+    <p style="font-size:14px;color:var(--text-muted);margin:12px 0 20px">
+      <b>${name}</b>와의 대화를 모두 삭제할까요?<br>
+      <span style="font-size:12px;opacity:0.7">삭제된 메시지는 복구할 수 없습니다.</span>
+    </p>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" style="flex:1;background:#ef4444;color:#fff;border:none" onclick="deleteChat()">삭제</button>
+    </div>
+  `);
+}
+
+// ── 메시지 선택 삭제 ──────────────────────────────
+function enterMsgSelectMode() {
+  document.body.classList.add('msg-select-mode');
+  document.getElementById('msg-select-bar')?.classList.add('active');
+  _updateMsgSelCount();
+}
+
+function exitMsgSelectMode() {
+  document.body.classList.remove('msg-select-mode');
+  document.getElementById('msg-select-bar')?.classList.remove('active');
+  // 선택 해제
+  document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#msg-chat-messages .msg-bubble-checkbox').forEach(el => el.checked = false);
+  _updateMsgSelCount();
+}
+
+function toggleMsgSelect(wrapEl) {
+  if (!document.body.classList.contains('msg-select-mode')) return;
+  wrapEl.classList.toggle('selected');
+  const chk = wrapEl.querySelector('.msg-bubble-checkbox');
+  if (chk) chk.checked = wrapEl.classList.contains('selected');
+  _updateMsgSelCount();
+}
+
+function _updateMsgSelCount() {
+  const selected = document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected');
+  const countEl = document.getElementById('msg-sel-count');
+  const delBtn = document.getElementById('msg-sel-delete-btn');
+  if (countEl) countEl.textContent = `${selected.length}개 선택`;
+  if (delBtn) delBtn.disabled = selected.length === 0;
+}
+
+async function deleteSelectedMsgs() {
+  const selected = [...document.querySelectorAll('#msg-chat-messages .msg-bubble-wrap.selected')];
+  if (!selected.length) return;
+  const ids = selected.map(el => el.dataset.msgId).filter(Boolean);
+  const name = document.getElementById('msg-chat-name')?.textContent || '상대방';
+  showModal(`
+    <div class="modal-title" style="color:#ef4444">선택 메시지 삭제</div>
+    <p style="font-size:14px;color:var(--text-muted);margin:12px 0 20px">
+      선택한 <b style="color:#ef4444">${ids.length}개</b>의 메시지를 삭제할까요?<br>
+      <span style="font-size:12px;opacity:0.7">삭제된 메시지는 복구할 수 없습니다.</span>
+    </p>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" style="flex:1;background:#ef4444;color:#fff;border:none" onclick="_confirmDeleteSelectedMsgs(${JSON.stringify(ids).replace(/"/g, '&quot;')})">삭제</button>
+    </div>
+  `);
+}
+
+async function _confirmDeleteSelectedMsgs(ids) {
+  closeModal();
+  try {
+    const { error } = await sb.from('messages').delete().in('id', ids);
+    if (error) throw error;
+    exitMsgSelectMode();
+    showToast(`${ids.length}개 메시지가 삭제됐습니다.`, 'success');
+    await loadChatMessages(_chatTargetId);
+    DB_msgInbox = null; DB_msgSent = null;
+    renderChatsPanel();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+async function deleteChat() {
+  if (!_chatTargetId) return;
+  closeModal();
+  try {
+    const { error } = await sb.from('messages')
+      .delete()
+      .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${_chatTargetId}),and(sender_id.eq.${_chatTargetId},receiver_id.eq.${currentUser.id})`);
+    if (error) throw error;
+    closeChatView();
+    showToast('대화가 삭제됐습니다.', 'success');
+    // 대화목록 새로고침
+    renderChatsPanel();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
 }
 
 async function loadChatMessages(userId) {
@@ -26282,10 +26304,12 @@ async function loadChatMessages(userId) {
     }
 
     html += `
-      <div class="msg-bubble-wrap ${isMine ? 'mine' : 'theirs'}">
+      <div class="msg-bubble-wrap ${isMine ? 'mine' : 'theirs'}" data-msg-id="${m.id}" onclick="toggleMsgSelect(this)">
         <div class="msg-bubble-row ${isMine ? 'mine' : 'theirs'}">
+          ${isMine ? '' : '<input type="checkbox" class="msg-bubble-checkbox" onclick="event.stopPropagation()">'}
           <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${_esc(m.body)}</div>
           <span class="msg-bubble-time">${timeStr}</span>
+          ${isMine ? '<input type="checkbox" class="msg-bubble-checkbox" onclick="event.stopPropagation()">' : ''}
         </div>
       </div>`;
   });
@@ -26338,7 +26362,7 @@ function openMsgStudentPopup(studentId) {
   document.getElementById('msp-meta').textContent = [student.grade, student.email].filter(Boolean).join(' · ') || '학생';
   document.getElementById('msp-badge').innerHTML  = `
     <span class="msg-bs-stage-chip" style="background:${col.light};color:${col.dark}">
-      Lv.${sd.stage || 0} ${stage.name}
+      Lv.${(sd.stage || 0) + 1} ${stage.name}
     </span>`;
 
   // EXP 바
@@ -26364,6 +26388,410 @@ function closeMsgStudentPopup() {
   }, 300);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   학생 친구 시스템
+══════════════════════════════════════════════════════════════ */
+
+var _msgFriendTarget = null; // 현재 바텀시트에 열린 친구 데이터
+var _msgFriendCache  = {};   // id → profile 캐시 (onclick에 JSON 안 넘기기 위해)
+
+/* ── 친구목록 렌더 (학생용) ── */
+async function renderStudentFriendsList() {
+  const body = document.getElementById('msg-friends-body');
+  if (!body) return;
+  body.innerHTML = `<div class="msg-empty" style="padding:30px 20px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>불러오는 중…</div>`;
+
+  const q = (document.getElementById('msg-friends-search')?.value || '').trim().toLowerCase();
+
+  try {
+    // 친구 관계 fetch (수락된 것만)
+    const { data: friendRows } = await sb.from('friendships')
+      .select('id, requester_id, receiver_id, status, created_at')
+      .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+    const accepted = (friendRows || []).filter(f => f.status === 'accepted');
+    const pending  = (friendRows || []).filter(f => f.status === 'pending');
+
+    // 수락 대기 중인 요청 (내가 받은 것)
+    const incomingPending = pending.filter(f => f.receiver_id === currentUser.id);
+    // 내가 보낸 대기 중인 요청
+    const outgoingPending = pending.filter(f => f.requester_id === currentUser.id);
+
+    // 친구 프로필 fetch
+    const friendIds = accepted.map(f =>
+      f.requester_id === currentUser.id ? f.receiver_id : f.requester_id
+    );
+    const incomingIds  = incomingPending.map(f => f.requester_id);
+    const outgoingIds  = outgoingPending.map(f => f.receiver_id);
+    const allNeedIds   = [...new Set([...friendIds, ...incomingIds, ...outgoingIds])];
+
+    // 담당 선생님 ID (DB.users 또는 currentUser.teacherId)
+    const teacherId = currentUser.teacherId || null;
+    const teacherProfile = teacherId
+      ? (DB.users || []).find(u => u.id === teacherId) || null
+      : null;
+
+    // teacherId도 함께 fetch (slime_data 포함)
+    const allFetchIds = teacherId ? [...new Set([...allNeedIds, teacherId])] : allNeedIds;
+    let profiles = {};
+    if (allFetchIds.length) {
+      const { data: profs } = await sb.from('profiles')
+        .select('id, name, role, slime_data, grade')
+        .in('id', allFetchIds);
+      (profs || []).forEach(p => { profiles[p.id] = p; });
+    }
+
+    let html = '';
+
+    // ── 담당 선생님 (고정 상단) ──
+    {
+      // profiles 캐시에서 바로 가져오기 (이미 위에서 fetch됨)
+      let teacher = teacherId ? (profiles[teacherId] || teacherProfile) : null;
+      const teacherName = teacher?.name || '담당 선생님';
+      // 선생님 슬라임 렌더링
+      let teacherAvatarHTML;
+      let teacherSubText;
+      const tRawSd = teacher?.slime_data;
+      if (tRawSd) {
+        const tsd = typeof tRawSd === 'string' ? JSON.parse(tRawSd) : tRawSd;
+        const tStage = SLIME_STAGES[Math.min(tsd.stage || 0, SLIME_STAGES.length - 1)];
+        teacherAvatarHTML = buildMiniSlimeSVG(tsd.stage || 0, 40, { colorId: tsd.colorId || 'mint', eyeStyle: tsd.eyeStyle || 'round', accessory: tsd.accessory || 'none' })
+          + '<span class="msg-lv-badge stage-' + Math.min(tsd.stage||0,3) + '">Lv.' + (tsd.stage||0) + '</span>';
+        teacherSubText = 'Lv.' + (tsd.stage||0) + ' ' + tStage.name + ' · 담당 선생님';
+      } else {
+        teacherAvatarHTML = '<span style="font-size:26px;line-height:1">👩‍🏫</span>';
+        teacherSubText = '담당 선생님';
+      }
+      // 선생님 정보를 전역 캐시에 저장 → onclick에서 ID만 참조
+      // teacherId가 있으면 항상 클릭 가능 (teacher 객체 유무 무관)
+      window._teacherChatCache = teacherId ? { id: teacherId, name: teacherName } : null;
+      const _safeTeacherId = teacherId || '';
+      const _teacherStyle = _safeTeacherId ? 'overflow:visible;cursor:pointer' : 'overflow:visible;opacity:0.5;cursor:default';
+      const _teacherChevron = _safeTeacherId ? '<svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' : '';
+      const _teacherClick = _safeTeacherId ? 'openChatWithTeacher()' : '';
+      html += '<div class="msg-group-header">담당 선생님</div>'
+        + '<div class="msg-friend-row" onclick="' + _teacherClick + '" style="' + _teacherStyle + '">'
+        + '<div class="msg-friend-avatar">' + teacherAvatarHTML + '</div>'
+        + '<div class="msg-friend-info">'
+        + '<div class="msg-friend-name">' + _esc(teacherName) + ' 선생님</div>'
+        + '<div class="msg-friend-sub">' + teacherSubText + '</div>'
+        + '</div>'
+        + _teacherChevron
+        + '</div>';
+    }
+
+    // ── 수락 대기 중인 친구 요청 (내가 받은 것) ──
+    if (incomingPending.length) {
+      html += `<div class="msg-group-header">친구 요청 <span style="color:#ef4444;font-weight:900">${incomingPending.length}</span></div>`;
+      incomingPending.forEach(f => {
+        const p = profiles[f.requester_id];
+        if (!p) return;
+        if (q && !p.name?.toLowerCase().includes(q)) return;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" style="overflow:visible">
+            <div class="msg-friend-avatar">${svg}</div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">친구 요청을 보냈습니다</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onclick="acceptFriendRequest('${f.id}','${p.id}','${_esc(p.name)}')" style="padding:5px 11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">수락</button>
+              <button onclick="declineFriendRequest('${f.id}')" style="padding:5px 9px;border-radius:8px;border:1.5px solid var(--border2);background:none;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif">거절</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    // ── 내가 보낸 대기 중인 요청 ──
+    if (outgoingPending.length) {
+      html += `<div class="msg-group-header">요청 보냄</div>`;
+      outgoingPending.forEach(f => {
+        const p = profiles[f.receiver_id];
+        if (!p) return;
+        if (q && !p.name?.toLowerCase().includes(q)) return;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const svg = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" style="overflow:visible;opacity:0.75">
+            <div class="msg-friend-avatar">${svg}</div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">수락 대기 중…</div>
+            </div>
+            <button onclick="cancelFriendRequest('${f.id}')" style="padding:5px 9px;border-radius:8px;border:1.5px solid var(--border2);background:none;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0">취소</button>
+          </div>`;
+      });
+    }
+
+    // ── 친구 목록 ──
+    const filteredFriends = friendIds
+      .map(id => profiles[id])
+      .filter(Boolean)
+      .filter(p => !q || p.name?.toLowerCase().includes(q));
+
+    if (filteredFriends.length) {
+      html += `<div class="msg-group-header">친구 ${filteredFriends.length}명</div>`;
+      filteredFriends.forEach(p => {
+        _msgFriendCache[p.id] = p;
+        const sd = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+        const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+        const svg   = buildMiniSlimeSVG(sd.stage || 0, 40, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+        html += `
+          <div class="msg-friend-row" onclick="openMsgFriendPopupById('${p.id}')" style="overflow:visible">
+            <div class="msg-friend-avatar">
+              ${svg}
+              <span class="msg-lv-badge stage-${Math.min(sd.stage||0,3)}">Lv.${(sd.stage||0)+1}</span>
+            </div>
+            <div class="msg-friend-info">
+              <div class="msg-friend-name">${_esc(p.name)}</div>
+              <div class="msg-friend-sub">Lv.${(sd.stage||0)+1} ${stage.name}${p.grade ? ' · ' + p.grade : ''}</div>
+            </div>
+            <svg class="msg-friend-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`;
+      });
+    }
+
+    if (!incomingPending.length && !outgoingPending.length && !filteredFriends.length && !q) {
+      html += `<div class="msg-empty" style="margin-top:8px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        친구를 추가해보세요!
+      </div>`;
+    } else if (!incomingPending.length && !outgoingPending.length && !filteredFriends.length && q) {
+      html += `<div class="msg-empty" style="margin-top:8px">검색 결과가 없습니다</div>`;
+    }
+
+    body.innerHTML = html;
+  } catch(e) {
+    console.warn('renderStudentFriendsList 오류', e);
+    body.innerHTML = `<div class="msg-empty">불러오기 실패</div>`;
+  }
+}
+
+/* ── 친구 추가 모달 ── */
+function openAddFriendModal() {
+  showModal(`
+    <div class="modal-title">친구 추가</div>
+    <div style="font-size:13.5px;color:var(--t2);margin-bottom:14px">추가할 친구의 이름을 입력하세요</div>
+    <input id="add-friend-name-input" type="text" placeholder="친구 이름 입력…"
+      style="width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;color:var(--t1);background:var(--surface);box-sizing:border-box"
+      oninput="searchFriendByName()"
+      onkeydown="if(event.key==='Enter') document.getElementById('add-friend-search-btn')?.click()">
+    <button id="add-friend-search-btn" onclick="searchFriendByName(true)"
+      style="width:100%;margin-top:9px;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+      검색
+    </button>
+    <div id="add-friend-results" style="margin-top:10px"></div>
+    <div class="modal-actions" style="margin-top:4px">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+    </div>`);
+  setTimeout(() => document.getElementById('add-friend-name-input')?.focus(), 80);
+}
+
+async function searchFriendByName(force) {
+  const inp = document.getElementById('add-friend-name-input');
+  const q = inp?.value.trim();
+  if (!q || (!force && q.length < 2)) return;
+  const resultsEl = document.getElementById('add-friend-results');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = `<div style="text-align:center;color:var(--t3);font-size:13px;padding:8px">검색 중…</div>`;
+
+  try {
+    // 이름으로 학생 검색 (본인 제외)
+    const { data: users } = await sb.from('profiles')
+      .select('id, name, role, slime_data, grade')
+      .eq('role', 'student')
+      .ilike('name', `%${q}%`)
+      .limit(10);
+
+    const candidates = (users || []).filter(u => u.id !== currentUser.id);
+
+    if (!candidates.length) {
+      resultsEl.innerHTML = `<div style="text-align:center;color:var(--t3);font-size:13px;padding:8px">검색 결과가 없습니다</div>`;
+      return;
+    }
+
+    // 기존 친구 관계 확인
+    const { data: existing } = await sb.from('friendships')
+      .select('requester_id, receiver_id, status')
+      .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+    const existingMap = {};
+    (existing || []).forEach(f => {
+      const otherId = f.requester_id === currentUser.id ? f.receiver_id : f.requester_id;
+      existingMap[otherId] = f.status;
+    });
+
+    let html = '';
+    candidates.forEach(u => {
+      const sd = u.slime_data ? (typeof u.slime_data === 'string' ? JSON.parse(u.slime_data) : u.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+      const svg = buildMiniSlimeSVG(sd.stage || 0, 36, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+      const rel = existingMap[u.id];
+      let actionBtn = '';
+      if (rel === 'accepted') {
+        actionBtn = `<span style="font-size:12px;color:#22c55e;font-weight:700">✓ 친구</span>`;
+      } else if (rel === 'pending') {
+        actionBtn = `<span style="font-size:12px;color:var(--t3)">대기 중</span>`;
+      } else {
+        actionBtn = `<button onclick="sendFriendRequest('${u.id}','${_esc(u.name)}',this)"
+          style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),#818cf8);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">
+          친구 추가</button>`;
+      }
+      html += `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+          <div style="width:40px;height:40px;border-radius:13px;overflow:hidden;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0">${svg}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:650;color:var(--t1)">${_esc(u.name)}</div>
+            ${u.grade ? `<div style="font-size:12px;color:var(--t3)">${_esc(u.grade)}</div>` : ''}
+          </div>
+          ${actionBtn}
+        </div>`;
+    });
+    resultsEl.innerHTML = html;
+  } catch(e) {
+    resultsEl.innerHTML = `<div style="text-align:center;color:#ef4444;font-size:13px;padding:8px">오류가 발생했습니다</div>`;
+  }
+}
+
+async function sendFriendRequest(receiverId, receiverName, btn) {
+  try {
+    btn.disabled = true;
+    btn.textContent = '요청 중…';
+    await sb.from('friendships').insert({
+      requester_id: currentUser.id,
+      receiver_id:  receiverId,
+      status:       'pending'
+    });
+    btn.textContent = '요청 완료!';
+    btn.style.background = '#22c55e';
+    showToast(`${receiverName}님께 친구 요청을 보냈습니다!`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '친구 추가';
+    showToast('요청 실패: ' + e.message, 'error');
+  }
+}
+
+async function acceptFriendRequest(friendshipId, requesterId, requesterName) {
+  try {
+    await sb.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
+    showToast(`${requesterName}님과 친구가 되었습니다! 🎉`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('수락 실패: ' + e.message, 'error');
+  }
+}
+
+async function declineFriendRequest(friendshipId) {
+  try {
+    await sb.from('friendships').delete().eq('id', friendshipId);
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('거절 실패: ' + e.message, 'error');
+  }
+}
+
+async function cancelFriendRequest(friendshipId) {
+  try {
+    await sb.from('friendships').delete().eq('id', friendshipId);
+    showToast('친구 요청을 취소했습니다.', 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('취소 실패: ' + e.message, 'error');
+  }
+}
+
+async function removeFriend() {
+  if (!_msgFriendTarget) return;
+  const name = _msgFriendTarget.name;
+  showModal(`
+    <div class="modal-title">친구 삭제</div>
+    <div style="font-size:14px;color:var(--t2);margin-bottom:20px">${_esc(name)}님을 친구 목록에서 삭제할까요?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" onclick="closeModal();_doRemoveFriend('${_msgFriendTarget.id}','${_esc(name)}')">삭제</button>
+    </div>`);
+  closeMsgFriendPopup();
+}
+
+async function _doRemoveFriend(friendId, friendName) {
+  try {
+    await sb.from('friendships')
+      .delete()
+      .or(`and(requester_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(requester_id.eq.${friendId},receiver_id.eq.${currentUser.id})`);
+    showToast(`${friendName}님과 친구를 끊었습니다.`, 'success');
+    renderStudentFriendsList();
+  } catch(e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+/* ── 친구 바텀시트 팝업 ── */
+function openMsgFriendPopupById(id) {
+  const p = _msgFriendCache[id];
+  if (!p) return;
+  openMsgFriendPopup(p);
+}
+
+function openMsgFriendPopup(friendData) {
+  const p = typeof friendData === 'string' ? JSON.parse(friendData) : friendData;
+  _msgFriendTarget = p;
+
+  const sd    = p.slime_data ? (typeof p.slime_data === 'string' ? JSON.parse(p.slime_data) : p.slime_data) : { stage:0, colorId:'mint', eyeStyle:'round', accessory:'none' };
+  const stage = SLIME_STAGES[Math.min(sd.stage || 0, SLIME_STAGES.length - 1)];
+  const prog  = _expProgress(sd);
+  const col   = getSlimeColor(sd.colorId || 'mint');
+
+  const svg = buildMiniSlimeSVG(sd.stage || 0, 64, { colorId: sd.colorId || 'mint', eyeStyle: sd.eyeStyle || 'round', accessory: sd.accessory || 'none' });
+  document.getElementById('mfp-avatar').innerHTML = svg;
+  document.getElementById('mfp-name').textContent = p.name;
+  document.getElementById('mfp-meta').textContent = p.grade || '학생';
+  document.getElementById('mfp-badge').innerHTML  = `
+    <span class="msg-bs-stage-chip" style="background:${col.light};color:${col.dark}">
+      Lv.${(sd.stage || 0) + 1} ${stage.name}
+    </span>`;
+
+  document.getElementById('mfp-stage-name').textContent = stage.badge + ' 단계';
+  document.getElementById('mfp-exp-val').textContent     = `EXP ${prog.cur}`;
+  document.getElementById('mfp-exp-fill').style.width    = prog.pct + '%';
+  document.getElementById('mfp-exp-fill').style.background = `linear-gradient(90deg, ${col.b}, ${col.a})`;
+
+  document.getElementById('msg-friend-bs-backdrop').style.display = 'block';
+  requestAnimationFrame(() => {
+    document.getElementById('msg-friend-bs-backdrop').style.opacity = '1';
+    document.getElementById('msg-friend-bs').classList.add('open');
+  });
+}
+
+function closeMsgFriendPopup(callback) {
+  const bs = document.getElementById('msg-friend-bs');
+  const bd = document.getElementById('msg-friend-bs-backdrop');
+  bs.classList.remove('open');
+  bd.style.opacity = '0';
+  setTimeout(() => {
+    bd.style.display = 'none';
+    if (callback) callback();
+  }, 320);
+}
+
+function openChatWithTeacher() {
+  const t = window._teacherChatCache;
+  if (!t || !t.id) return;
+  openChatView(t.id, t.name);
+}
+
+function openChatViewById(id) {
+  const name = _chatPeerCache[id] || '';
+  openChatView(id, name);
+}
+
+function openChatWithFriend() {
+  if (!_msgFriendTarget) return;
+  const target = { id: _msgFriendTarget.id, name: _msgFriendTarget.name };
+  closeMsgFriendPopup(() => openChatView(target.id, target.name));
+}
+
 function openStudentStatus() {
   if (!_msgStudentTarget) return;
   closeMsgStudentPopup();
@@ -26371,7 +26799,9 @@ function openStudentStatus() {
 }
 function openChatWithStudent() {
   if (!_msgStudentTarget) return;
-  openChatView(_msgStudentTarget.id, _msgStudentTarget.name);
+  const target = _msgStudentTarget;
+  closeMsgStudentPopup();
+  setTimeout(() => openChatView(target.id, target.name), 180);
 }
 
 /* ══════════════════════════════════════
@@ -26543,7 +26973,7 @@ async function openStudentProgressModal(studentId) {
     <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${col.light};border-radius:12px;margin-bottom:12px;border:1px solid ${col.a}22">
       <div style="width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center">${svg}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:${col.dark}">Lv.${sd.stage || 0} ${stage.name} · EXP ${sd.exp || 0}</div>
+        <div style="font-size:13px;font-weight:600;color:${col.dark}">Lv.${(sd.stage || 0) + 1} ${stage.name} · EXP ${sd.exp || 0}</div>
         <div style="margin-top:5px;height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${eprog.pct}%;background:${col.b};border-radius:3px;transition:width 0.5s"></div>
         </div>
@@ -26626,14 +27056,15 @@ function saveSlimeCustomize() {
     slime.accessory = window._cust.accessory;
     slime.effect    = window._cust.effect;
   }
-  saveSlimeData(slime);
+  saveSlimeData(slime, true); // immediate=true: 디바운스 없이 즉시 DB 저장
   closeModal();
-  renderSlimeHome();
   applySlimeTheme();
-  const av = document.getElementById('user-avatar');
-  if (av && currentUser?.role==='student') {
-    av.innerHTML = buildMiniSlimeSVG(slime.stage,28,{colorId:slime.colorId,bodyType:slime.bodyType,accessory:slime.accessory});
-    av.style.cssText = 'width:30px;height:30px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent;padding:0';
+  // topbar 슬라임 아이콘 즉시 업데이트 (buildStudentTopbar 전체 재빌드)
+  buildStudentTopbar();
+  // My Slime 페이지가 열려있으면 재렌더
+  const slimeHomePage = document.getElementById('pg-slime-home');
+  if (slimeHomePage && slimeHomePage.style.display !== 'none') {
+    renderSlimeHome();
   }
   showToast('슬라임이 꾸며졌어요! 🎉','success');
 }
@@ -26694,7 +27125,18 @@ function renderSlimeHome() {
     slime.exp = Math.max(slime.exp, 2000);
   }
   slime=checkBadges(slime);
-  saveSlimeData(slime);
+  // exp/stage/streak/badge만 캐시에 반영 — colorId/eyeStyle/accessory 등 커스텀은 건드리지 않음
+  const _prevStreak = _slimeCache?.streak;
+  const _prevBadges = JSON.stringify(_slimeCache?.badges || []);
+  _slimeCache = { ...(_slimeCache || {}), ...slime };
+  // streak이나 badge가 바뀐 경우에만 DB 저장 (커스텀 저장과 충돌 없이 안전하게)
+  if (_prevStreak !== slime.streak || _prevBadges !== JSON.stringify(slime.badges || [])) {
+    _saveSlimeDataToDB(_slimeCache, true);
+  }
+
+  // 사이드바 레벨 뱃지 동기화 (My Slime 재계산 결과와 일치)
+  const lvEl = document.getElementById('user-level-display');
+  if (lvEl) { lvEl.textContent = 'Lv.' + (slime.stage + 1); lvEl.style.display = 'inline'; }
 
   const stageData = SLIME_STAGES[slime.stage];
   const nextStage = SLIME_STAGES[Math.min(slime.stage+1, SLIME_STAGES.length-1)];
@@ -26710,7 +27152,13 @@ function renderSlimeHome() {
   const body = document.getElementById('slime-home-body');
   if (!body) return;
 
-  const doneMissions = missions.filter(m=>m.current>=m.target).length;
+  // DB_quizLogs 없으면 백그라운드 로드 후 재렌더 (과제 수행도 정확도)
+  if (DB_quizLogs === null && currentUser?.id && currentUser.role !== 'teacher') {
+    sb.from('quiz_logs').select('*').eq('student_id', currentUser.id)
+      .order('taken_at', { ascending: false }).limit(500)
+      .then(({ data }) => { DB_quizLogs = data || []; renderSlimeHome(); })
+      .catch(() => { DB_quizLogs = []; });
+  }
   const earnedBadges = (slime.badges||[]).length;
 
   // 배포된 단어장 (최대 4개)
@@ -26725,7 +27173,22 @@ function renderSlimeHome() {
     const p = (DB.progress||{})[key]||{};
     const rounds = p.rounds||0;
     const wc = b.wordCount||b.words?.length||0;
-    const pct = rounds>0?Math.min(100,Math.round((rounds/5)*100)):0;
+    // 과제 수행도 계산 (DB_quizLogs 기반, renderMyBooks와 동일 방식)
+    const taskOpts = (DB.taskOptions||{})[b.id] || null;
+    let pct = 0;
+    if (taskOpts && Object.values(taskOpts).some(v => v > 0)) {
+      const ql = (mode, dir) => (DB_quizLogs||[]).filter(l => l.book_id===b.id && l.mode===mode && l.direction===dir).length;
+      let goal = 0, done = 0;
+      if ((taskOpts.flashcard||0)          > 0) { goal += taskOpts.flashcard;         done += Math.min(rounds,                  taskOpts.flashcard);         }
+      if ((taskOpts.quiz_choice_en2ko||0)  > 0) { goal += taskOpts.quiz_choice_en2ko; done += Math.min(ql('choice','en2ko'),    taskOpts.quiz_choice_en2ko); }
+      if ((taskOpts.quiz_choice_ko2en||0)  > 0) { goal += taskOpts.quiz_choice_ko2en; done += Math.min(ql('choice','ko2en'),    taskOpts.quiz_choice_ko2en); }
+      if ((taskOpts.quiz_input_en2ko||0)   > 0) { goal += taskOpts.quiz_input_en2ko;  done += Math.min(ql('input','en2ko'),     taskOpts.quiz_input_en2ko);  }
+      if ((taskOpts.quiz_input_ko2en||0)   > 0) { goal += taskOpts.quiz_input_ko2en;  done += Math.min(ql('input','ko2en'),     taskOpts.quiz_input_ko2en);  }
+      if ((taskOpts.test||0)               > 0) { goal += taskOpts.test;              done += Math.min(ql('essay','mixed'),      taskOpts.test);              }
+      pct = goal > 0 ? Math.min(100, Math.round(done/goal*100)) : 0;
+    } else {
+      pct = rounds > 0 ? Math.min(100, Math.round((rounds/5)*100)) : 0;
+    }
     const bg = COVER_COLORS[idx % COVER_COLORS.length];
     const uid = 'wd-'+b.id;
     return `
@@ -26756,13 +27219,28 @@ function renderSlimeHome() {
   function sentBookHTML(b, idx) {
     const cnt = b.item_count||0;
     const uid = 'st-'+b.id;
+    // 과제 수행도 계산 (DB_sentTaskOpts 기반)
+    const sOpts = DB_sentTaskOpts[b.id] || null;
+    let sPct = 0;
+    if (sOpts && Object.values(sOpts).some(v => v > 0)) {
+      // sentence_submissions는 이 시점에 없으므로 localStorage 기반 (stask_done)
+      let sGoal = 0, sDone = 0;
+      ['unscramble','dictation','record'].forEach(mode => {
+        const g = sOpts[mode]||0;
+        if (g > 0) {
+          sGoal += g;
+          sDone += Math.min(parseInt(localStorage.getItem('stask_done_'+currentUser.id+'_'+b.id+'_'+mode)||'0'), g);
+        }
+      });
+      sPct = sGoal > 0 ? Math.min(100, Math.round(sDone/sGoal*100)) : 0;
+    }
     return `
     <div class="slime-book-item">
       <div class="slime-book-info">
         <div class="slime-book-name">${b.name}</div>
         <div class="slime-book-meta">${b.tag?b.tag+' · ':''}${cnt}개 문장</div>
         <div class="slime-book-prog-wrap">
-          <div class="slime-book-prog" style="width:0%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);box-shadow:0 0 6px rgba(5,150,105,0.4)"></div>
+          <div class="slime-book-prog" style="width:${sPct}%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);box-shadow:0 0 6px rgba(5,150,105,0.4)"></div>
         </div>
       </div>
       <div class="slime-book-actions">
