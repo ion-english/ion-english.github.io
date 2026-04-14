@@ -289,7 +289,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
-[data-theme="dark"] .msg-chat-row:hover { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] @media (hover: hover) { .msg-chat-row:hover { background: rgba(255,255,255,0.06); } }
 .msg-chat-row:active { transform: scale(0.985); }
 .msg-chat-row-avatar {
   width: 50px;
@@ -397,8 +397,8 @@
   flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
 }
-.msg-back-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
-[data-theme="dark"] .msg-back-btn:hover { background: rgba(255,255,255,0.08); }
+@media (hover: hover) { .msg-back-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); } }
+[data-theme="dark"] @media (hover: hover) { .msg-back-btn:hover { background: rgba(255,255,255,0.08); } }
 .msg-chat-avatar-wrap {
   width: 38px;
   height: 38px;
@@ -596,7 +596,7 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
   cursor: pointer;
   transition: background 0.12s, transform 0.1s;
 }
-.msg-select-delete-btn:hover { background: rgba(239,68,68,0.10); }
+@media (hover: hover) { .msg-select-delete-btn:hover { background: rgba(239,68,68,0.10); } }
 .msg-select-delete-btn:active { transform: scale(0.93); }
 
 /* 입력바 — 글래스 */
@@ -656,7 +656,7 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
   transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s;
   box-shadow: 0 2px 10px rgba(99,102,241,0.35);
 }
-.msg-send-btn:hover { opacity: .88; box-shadow: 0 4px 16px rgba(99,102,241,0.45); }
+@media (hover: hover) { .msg-send-btn:hover { opacity: .88; box-shadow: 0 4px 16px rgba(99,102,241,0.45); } }
 .msg-send-btn:active { transform: scale(.91); }
 
 /* ── 바텀시트 — 글래스 ── */
@@ -800,14 +800,14 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
   border-color: rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.06);
 }
-.msg-bs-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+@media (hover: hover) { .msg-bs-btn.ghost:hover { border-color: var(--accent); color: var(--accent); } }
 .msg-bs-btn.primary {
   border: none;
   background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
   color: white;
   box-shadow: 0 2px 12px rgba(99,102,241,0.35);
 }
-.msg-bs-btn.primary:hover { opacity: .87; box-shadow: 0 4px 18px rgba(99,102,241,0.45); }
+@media (hover: hover) { .msg-bs-btn.primary:hover { opacity: .87; box-shadow: 0 4px 18px rgba(99,102,241,0.45); } }
 .msg-bs-btn:active { transform: scale(.97); }
 
 /* 빈 상태 */
@@ -880,7 +880,7 @@ body.msg-select-mode .msg-chat-inputbar { display: none !important; }
   flex:0 0 auto;justify-content:center;
   box-shadow:0 1px 4px rgba(59,130,246,0.10);
 }
-.mgmt-tab-btn:hover{background:#dbeafe;color:#2563eb;border-color:#93c5fd}
+@media (hover: hover) { .mgmt-tab-btn:hover{background:#dbeafe;color:#2563eb;border-color:#93c5fd} }
 .mgmt-tab-btn.active{
   background:#eff6ff;
   color:#2563eb;font-weight:600;
@@ -981,7 +981,7 @@ body.app-initializing{visibility:hidden}
 .login-btn{width:100%;padding:16px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
   border:none;border-radius:13px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#fff;
   cursor:pointer;transition:all 0.2s;margin-top:10px;box-shadow:0 4px 20px rgba(59,130,246,0.38);letter-spacing:-0.2px}
-.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(59,130,246,0.5)}
+@media (hover: hover) { .login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(59,130,246,0.5)} }
 .login-btn:active{transform:translateY(0)}
 .login-btn:disabled{opacity:0.65;cursor:not-allowed;transform:none}
 .login-hint{display:none}
@@ -1071,7 +1071,7 @@ body.app-initializing{visibility:hidden}
   text-align:left;border-radius:9px;position:relative;margin-bottom:1px;
   letter-spacing:-0.1px;
 }
-.nav-item:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05)}
+@media (hover: hover) { .nav-item:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05)} }
 .nav-item.active{color:#fff;font-weight:500;background:rgba(99,130,255,0.2)}
 .nav-item.active::before{
   content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
@@ -1093,7 +1093,7 @@ body.app-initializing{visibility:hidden}
 .logout-btn{width:100%;padding:11px 16px;background:none;border:1px solid rgba(255,255,255,0.09);
   border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;color:var(--sb-t);
   display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;min-height:40px}
-.logout-btn:hover{border-color:rgba(239,68,68,0.35);color:#fca5a5;background:rgba(239,68,68,0.07)}
+@media (hover: hover) { .logout-btn:hover{border-color:rgba(239,68,68,0.35);color:#fca5a5;background:rgba(239,68,68,0.07)} }
 
 /* ════ MAIN ════ */
 .main{margin-left:240px;min-height:100vh;background:#f8f9fa}
@@ -1141,7 +1141,7 @@ body.app-initializing{visibility:hidden}
   padding:3px 8px 3px 4px;flex-shrink:0;
   cursor:pointer;transition:background 0.12s;
 }
-.slime-chat-bar-avatar:hover{background:#E0DCFC}
+@media (hover: hover) { .slime-chat-bar-avatar:hover{background:#E0DCFC} }
 .slime-chat-bar-avatar-name{
   font-size:13px;font-weight:600;color:#1e3a5f;letter-spacing:0.01em;
   font-family:'Outfit',sans-serif;
@@ -1162,7 +1162,7 @@ body.app-initializing{visibility:hidden}
   opacity:0;pointer-events:none;
 }
 .slime-chat-bar-send.visible{opacity:1;pointer-events:auto}
-.slime-chat-bar-send:hover{background:#5E52D4;transform:scale(1.08)}
+@media (hover: hover) { .slime-chat-bar-send:hover{background:#5E52D4;transform:scale(1.08)} }
 
 /* 이미지 첨부 버튼 — 채팅 패널 푸터 내부 */
 .slime-chat-img-btn{
@@ -1171,7 +1171,7 @@ body.app-initializing{visibility:hidden}
   color:#94a3b8;display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:all 0.15s;padding:0;
 }
-.slime-chat-img-btn:hover{color:#7C6FF7;background:#EEF0FE;border-color:#C8C4F8;}
+@media (hover: hover) { .slime-chat-img-btn:hover{color:#7C6FF7;background:#EEF0FE;border-color:#C8C4F8;} }
 .slime-chat-img-btn.has-image{color:#7C6FF7;background:#EEF0FE;border-color:#7C6FF7;}
 
 /* 채팅 이미지 미리보기 말풍선 */
@@ -1180,7 +1180,7 @@ body.app-initializing{visibility:hidden}
   border:2px solid rgba(59,130,246,0.2);display:block;cursor:pointer;
   transition:opacity 0.15s;
 }
-.slime-chat-img-preview:hover{opacity:0.88}
+@media (hover: hover) { .slime-chat-img-preview:hover{opacity:0.88} }
 /* 이미지 대기 배지 */
 .slime-img-pending-badge{
   display:inline-flex;align-items:center;gap:5px;
@@ -1188,7 +1188,7 @@ body.app-initializing{visibility:hidden}
   padding:3px 10px;font-size:13px;font-weight:600;color:#534AB7;
   margin-top:4px;cursor:pointer;
 }
-.slime-img-pending-badge:hover{background:#E0DCFC}
+@media (hover: hover) { .slime-img-pending-badge:hover{background:#E0DCFC} }
 
 /* 챗봇 드롭다운 패널 */
 .slime-chat-panel{
@@ -1247,7 +1247,7 @@ body.app-initializing{visibility:hidden}
   background:#eff6ff;color:#2563eb;font-size:13px;font-weight:600;
   cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;white-space:nowrap;
 }
-.slime-chat-quick:hover{background:#dbeafe}
+@media (hover: hover) { .slime-chat-quick:hover{background:#dbeafe} }
 
 .content{padding:20px 32px 36px}
 .page{display:none}
@@ -1258,17 +1258,17 @@ body.app-initializing{visibility:hidden}
   font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;
   transition:all 0.14s;white-space:nowrap;letter-spacing:-0.1px}
 .btn-primary{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:var(--sh-b)}
+@media (hover: hover) { .btn-primary:hover{transform:translateY(-1px);box-shadow:var(--sh-b)} }
 .btn-secondary{background:#fff;color:var(--t1);border:1.5px solid var(--border);box-shadow:var(--sh)}
-.btn-secondary:hover{border-color:var(--blue);background:var(--blue-dim)}
+@media (hover: hover) { .btn-secondary:hover{border-color:var(--blue);background:var(--blue-dim)} }
 .btn-ghost{background:none;color:var(--t2);border:1.5px solid transparent}
-.btn-ghost:hover{background:var(--blue-dim);color:var(--blue);border-color:var(--border)}
+@media (hover: hover) { .btn-ghost:hover{background:var(--blue-dim);color:var(--blue);border-color:var(--border)} }
 .btn-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)}
-.btn-success:hover{background:var(--green);color:#fff}
+@media (hover: hover) { .btn-success:hover{background:var(--green);color:#fff} }
 .btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,0.2)}
-.btn-danger:hover{background:var(--red);color:#fff}
+@media (hover: hover) { .btn-danger:hover{background:var(--red);color:#fff} }
 .btn-gold{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(180,83,9,0.2)}
-.btn-gold:hover{background:var(--amber);color:#fff}
+@media (hover: hover) { .btn-gold:hover{background:var(--amber);color:#fff} }
 .btn-sm{padding:6px 13px;font-size:13px;border-radius:8px}
 .btn-icon{padding:8px;width:34px;height:34px}
 .btn:disabled{opacity:0.4;cursor:not-allowed}
@@ -1279,7 +1279,7 @@ body.app-initializing{visibility:hidden}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
 .stat-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:22px;
   position:relative;overflow:hidden;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);box-shadow:var(--sh)}
-.stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)}
+@media (hover: hover) { .stat-card:hover{border-color:var(--blue);box-shadow:var(--sh-b);transform:translateY(-3px)} }
 .stat-card-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:0.07}
 .stat-value{font-family:'Fraunces',serif;font-size:38px;font-weight:900;line-height:1;margin-bottom:4px}
 .stat-label{font-size:14px;color:var(--t2);font-weight:500}
@@ -1297,7 +1297,7 @@ body.app-initializing{visibility:hidden}
 #sent-books-grid-student.cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
 .book-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   cursor:default;transition:all 0.2s cubic-bezier(0.34,1.1,0.64,1);position:relative;box-shadow:var(--sh)}
-.book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)}
+@media (hover: hover) { .book-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--sh-b)} }
 .book-card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
 .book-emoji{font-size:28px;margin-bottom:10px}
 .book-name{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-0.2px}
@@ -1365,7 +1365,7 @@ tbody tr:last-child td{border-bottom:none}
   box-shadow:0 2px 10px rgba(59,130,246,0.4);
   transition:all 0.12s;
 }
-.row-insert-btn:hover{background:var(--blue2);transform:scale(1.08);}
+@media (hover: hover) { .row-insert-btn:hover{background:var(--blue2);transform:scale(1.08);} }
 .row-del-inline-btn{
   display:inline-flex;align-items:center;gap:3px;
   padding:2px 9px;border-radius:20px;border:1.5px solid rgba(220,38,38,0.22);cursor:pointer;
@@ -1374,13 +1374,13 @@ tbody tr:last-child td{border-bottom:none}
   box-shadow:0 2px 8px rgba(220,38,38,0.1);
   transition:all 0.12s;
 }
-.row-del-inline-btn:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08);}
+@media (hover: hover) { .row-del-inline-btn:hover{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.08);} }
 
 /* ── 단어 에디터 드래그 핸들 ── */
 .word-drag-handle{
   cursor:grab;color:var(--t3);text-align:center;user-select:none;padding:0 4px;transition:color 0.12s;
 }
-.word-drag-handle:hover{color:var(--blue);}
+@media (hover: hover) { .word-drag-handle:hover{color:var(--blue);} }
 .word-drag-handle:active{cursor:grabbing;}
 tr.word-row-wrap.word-dragging{opacity:0.45;}
 tr.word-drag-over-top{border-top:2.5px solid var(--blue)!important;}
@@ -1524,7 +1524,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
   box-shadow:0 4px 16px rgba(var(--slime-accent-rgb,110,231,183),0.4);
   display:flex;align-items:center;gap:6px;
 }
-.fc-btn-next:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.5)}
+@media (hover: hover) { .fc-btn-next:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.5)} }
 .fc-btn-sound{
   width:40px;height:40px;border-radius:50%;
   background:rgba(var(--slime-accent-rgb,110,231,183),0.1);
@@ -1532,7 +1532,7 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;transition:all 0.18s;color:var(--slime-dark,#047857);
 }
-.fc-btn-sound:hover{background:rgba(var(--slime-accent-rgb,110,231,183),0.2);transform:scale(1.1)}
+@media (hover: hover) { .fc-btn-sound:hover{background:rgba(var(--slime-accent-rgb,110,231,183),0.2);transform:scale(1.1)} }
 
 /* 미암기 체크 */
 .fc-memorized-label{
@@ -1713,7 +1713,7 @@ select.form-input{cursor:pointer}
 /* ════ SPEAK ════ */
 .speak-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;color:var(--blue);
   display:inline-flex;align-items:center;justify-content:center;transition:all 0.14s;opacity:0.55}
-.speak-btn:hover{background:var(--blue-dim);opacity:1;transform:scale(1.1)}
+@media (hover: hover) { .speak-btn:hover{background:var(--blue-dim);opacity:1;transform:scale(1.1)} }
 
 /* ════ TOAST ════ */
 .toast{position:fixed;bottom:28px;right:28px;background:#0d1b2a;color:#f8fafc;
@@ -1767,7 +1767,7 @@ input:checked+.toggle-slider:before{transform:translateX(18px)}
 .fv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .fv-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px;
   transition:all 0.18s;position:relative;overflow:hidden;box-shadow:var(--sh)}
-.fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)}
+@media (hover: hover) { .fv-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:var(--sh-b)} }
 .fv-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
 .fv-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border)}
 .fv-name{font-size:15px;font-weight:600;margin-bottom:3px;word-break:break-word;letter-spacing:-0.1px}
@@ -1892,7 +1892,7 @@ body.student-mode {
   font-size:17px;transition:background 0.15s;position:relative;flex-shrink:0;
   color:#1e3a5f;
 }
-.student-topbar-btn:hover { background:#f1f5f9; }
+@media (hover: hover) { .student-topbar-btn:hover { background:#f1f5f9; } }
 .student-topbar-notif-dot {
   position:absolute;top:5px;right:5px;width:7px;height:7px;
   border-radius:50%;background:#ef4444;border:1.5px solid #fff;
@@ -1908,7 +1908,7 @@ body.student-mode {
   font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;color:#1e3a5f;
   cursor:pointer;transition:background 0.12s;border:none;background:none;width:100%;text-align:left;
 }
-.student-profile-menu-item:hover { background:var(--surface2); }
+@media (hover: hover) { .student-profile-menu-item:hover { background:var(--surface2); } }
 
 /* ════ SLIME SYSTEM ════ */
 @keyframes collEditShake {
@@ -2170,7 +2170,7 @@ body.student-mode {
   color:#0f172a;cursor:pointer;display:flex;flex-direction:column;align-items:center;
   gap:3px;transition:all 0.15s;
 }
-.slime-popup-btn:hover { background:#eef2ff;border-color:#818cf8; }
+@media (hover: hover) { .slime-popup-btn:hover { background:#eef2ff;border-color:#818cf8; } }
 .slime-popup-btn-icon { font-size:16px; }
 .slime-popup-btn-sub { font-size:12px;color:#94a3b8;font-weight:400; }
 
@@ -2180,7 +2180,7 @@ body.student-mode {
   font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#4338ca;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;
 }
-.slime-deco-btn:hover { background:#eef2ff;border-color:#818cf8; }
+@media (hover: hover) { .slime-deco-btn:hover { background:#eef2ff;border-color:#818cf8; } }
 
 /* ── 우: 학습 카드 패널 ── */
 .slime-study-panel { display:flex;flex-direction:column;gap:14px; }
@@ -2203,7 +2203,7 @@ body.student-mode {
   background:none;border:none;font-family:'Outfit',sans-serif;
   transition:color 0.15s;
 }
-.slime-study-more:hover { color:#6366f1; }
+@media (hover: hover) { .slime-study-more:hover { color:#6366f1; } }
 
 /* 책 아이템 */
 .slime-book-item {
@@ -2212,7 +2212,7 @@ body.student-mode {
   transition:all 0.15s;border-radius:10px;
 }
 .slime-book-item:last-child { border-bottom:none; }
-.slime-book-item:hover { background:#f8fafc;padding-left:14px; }
+@media (hover: hover) { .slime-book-item:hover { background:#f8fafc;padding-left:14px; } }
 .slime-book-info { flex:1;min-width:0; }
 .slime-book-name { font-size:17px;font-weight:700;color:#0f172a;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .slime-book-meta { font-size:14px;color:#94a3b8;font-weight:500; }
@@ -2243,7 +2243,7 @@ body.student-mode {
   cursor:pointer;font-family:'Outfit',sans-serif;border:none;background:none;
   text-align:left;color:#0f172a;transition:background 0.12s;white-space:nowrap;
 }
-.slime-dropdown-item:hover { background:#f1f5f9; }
+@media (hover: hover) { .slime-dropdown-item:hover { background:#f1f5f9; } }
 
 /* 빈 상태 */
 .slime-empty { text-align:center;padding:20px 0;color:#b0c4d8;font-size:13px; }
@@ -2269,7 +2269,7 @@ body.student-mode {
   cursor:pointer;display:flex;align-items:center;justify-content:center;
   font-size:14px;color:#7ea8cc;transition:all 0.15s;
 }
-.slime-popup-close:hover { background:#e8f0fb;color:#1e3a5f; }
+@media (hover: hover) { .slime-popup-close:hover { background:#e8f0fb;color:#1e3a5f; } }
 /* 팝업 내 로드맵 */
 .slime-evo-stages { display:grid;grid-template-columns:repeat(4,1fr);gap:10px; }
 .slime-evo-stage { text-align:center;padding:12px 6px;border-radius:14px;border:1.5px solid #f1f5f9;background:#f8fafb;position:relative;transition:all 0.2s; }
@@ -2283,7 +2283,7 @@ body.student-mode {
 .slime-achievement-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px; }
 .slime-badge-item { text-align:center;padding:10px 4px;border-radius:12px;border:1.5px solid #f8f9fa;background:#f8fafb;transition:all 0.2s;cursor:default; }
 .slime-badge-item.earned { border-color:rgba(251,191,36,0.4);background:linear-gradient(145deg,#fffbeb,#fef9c3);box-shadow:0 2px 8px rgba(251,191,36,0.2); }
-.slime-badge-item.earned:hover { transform:translateY(-3px);box-shadow:0 5px 14px rgba(251,191,36,0.3); }
+@media (hover: hover) { .slime-badge-item.earned:hover { transform:translateY(-3px);box-shadow:0 5px 14px rgba(251,191,36,0.3); } }
 .slime-badge-icon { font-size:22px;margin-bottom:4px }
 .slime-badge-name { font-size:12px;font-weight:700;color:#7ea8cc }
 /* 하트 이펙트 */
@@ -2629,7 +2629,7 @@ body.student-mode {
 @media print{.sidebar,.topbar,#modal-bg,.toast{display:none !important}.main{margin-left:0 !important;padding-bottom:0 !important}.content{padding:0 !important}}
 
 .fav-toggle{display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;padding:4px 2px;border-radius:8px;background:none;border:none;transition:opacity 0.15s}
-.fav-toggle:hover{opacity:0.8}
+@media (hover: hover) { .fav-toggle:hover{opacity:0.8} }
 .fav-track{width:28px;height:16px;border-radius:20px;position:relative;transition:background 0.2s;flex-shrink:0}
 .fav-track.on{background:#3b82f6}
 .fav-track.off{background:#cbd5e1}
@@ -2692,36 +2692,36 @@ body.student-mode {
    ──────────────────────────────────────────────────────── */
 @media (hover: none), (pointer: coarse) {
   * { -webkit-tap-highlight-color: transparent; }
-  .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; }
-  .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; }
-  .nav-item:hover { color:inherit !important;background:inherit !important; }
+  @media (hover: hover) { .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; } }
+  @media (hover: hover) { .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; } }
+  @media (hover: hover) { .nav-item:hover { color:inherit !important;background:inherit !important; } }
   .nav-item:hover .nav-icon { opacity:inherit !important; }
-  .logout-btn:hover,.student-topbar-btn:hover,.student-profile-menu-item:hover { background:inherit !important;border-color:inherit !important;color:inherit !important; }
-  .msg-friend-row:hover,.msg-chat-row:hover { background:inherit !important; }
+  @media (hover: hover) { .logout-btn:hover,.student-topbar-btn:hover,.student-profile-menu-item:hover { background:inherit !important;border-color:inherit !important;color:inherit !important; } }
+  @media (hover: hover) { .msg-friend-row:hover,.msg-chat-row:hover { background:inherit !important; } }
   .msg-friend-row:hover .msg-friend-chevron { opacity:0 !important;transform:none !important; }
-  .msg-back-btn:hover { background:inherit !important;color:inherit !important; }
+  @media (hover: hover) { .msg-back-btn:hover { background:inherit !important;color:inherit !important; } }
   tbody tr:hover td { background:inherit !important; }
   .slime-stage:hover .slime-body { animation:none !important; }
-  .slime-chat-bar-avatar:hover { background:inherit !important; }
-  .slime-chat-bar-send:hover { background:#7C6FF7 !important;transform:none !important; }
-  .slime-study-more:hover,.slime-book-item:hover,.slime-dropdown-item:hover { color:inherit !important;background:inherit !important;padding-left:inherit !important; }
-  .slime-popup-close:hover { background:inherit !important;color:inherit !important; }
-  .slime-badge-item.earned:hover { transform:none !important;box-shadow:none !important; }
-  .slime-chat-quick:hover { background:inherit !important; }
+  @media (hover: hover) { .slime-chat-bar-avatar:hover { background:inherit !important; } }
+  @media (hover: hover) { .slime-chat-bar-send:hover { background:#7C6FF7 !important;transform:none !important; } }
+  @media (hover: hover) { .slime-study-more:hover,.slime-book-item:hover,.slime-dropdown-item:hover { color:inherit !important;background:inherit !important;padding-left:inherit !important; } }
+  @media (hover: hover) { .slime-popup-close:hover { background:inherit !important;color:inherit !important; } }
+  @media (hover: hover) { .slime-badge-item.earned:hover { transform:none !important;box-shadow:none !important; } }
+  @media (hover: hover) { .slime-chat-quick:hover { background:inherit !important; } }
   .quiz-opt:hover:not(.locked) { background:inherit !important;border-color:inherit !important; }
   .quiz-opt:hover::before { opacity:0 !important; }
   .chip:hover:not(.active) { border-color:inherit !important;background:inherit !important;color:inherit !important;font-weight:inherit !important; }
-  .row-insert-btn:hover,.row-del-inline-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important;transform:none !important; }
-  .word-drag-handle:hover { color:inherit !important; }
-  .upload-zone:hover { border-color:inherit !important;background:inherit !important;transform:none !important; }
-  .mgmt-tab-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important; }
-  .speak-btn:hover { background:inherit !important;transform:none !important; }
-  .fav-toggle:hover { opacity:1 !important; }
-  .fc-btn-prev:hover:not(:disabled),.fc-btn-next:hover,.fc-btn-sound:hover { border-color:inherit !important;color:inherit !important;transform:none !important;box-shadow:none !important;background:inherit !important; }
-  .dash-recent-scroll:hover { background:inherit !important; }
+  @media (hover: hover) { .row-insert-btn:hover,.row-del-inline-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important;transform:none !important; } }
+  @media (hover: hover) { .word-drag-handle:hover { color:inherit !important; } }
+  @media (hover: hover) { .upload-zone:hover { border-color:inherit !important;background:inherit !important;transform:none !important; } }
+  @media (hover: hover) { .mgmt-tab-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important; } }
+  @media (hover: hover) { .speak-btn:hover { background:inherit !important;transform:none !important; } }
+  @media (hover: hover) { .fav-toggle:hover { opacity:1 !important; } }
+  @media (hover: hover) { .fc-btn-prev:hover:not(:disabled),.fc-btn-next:hover,.fc-btn-sound:hover { border-color:inherit !important;color:inherit !important;transform:none !important;box-shadow:none !important;background:inherit !important; } }
+  @media (hover: hover) { .dash-recent-scroll:hover { background:inherit !important; } }
   .dash-recent-scroll:hover::-webkit-scrollbar-thumb { background:inherit !important; }
-  .slime-chat-img-btn:hover { color:inherit !important;background:inherit !important;border-color:inherit !important; }
-  .slime-chat-bar-send:hover { transform:none !important; }
+  @media (hover: hover) { .slime-chat-img-btn:hover { color:inherit !important;background:inherit !important;border-color:inherit !important; } }
+  @media (hover: hover) { .slime-chat-bar-send:hover { transform:none !important; } }
   .row-hover-actions { display:none !important; }
   tr:hover .row-hover-actions { display:none !important; }
 }
@@ -3246,7 +3246,7 @@ body.student-mode {
               transition: all 0.15s;
               white-space: nowrap;
             }
-            .fvp-mode-btn:hover { color: var(--t1); }
+            @media (hover: hover) { .fvp-mode-btn:hover { color: var(--t1); } }
             .fvp-mode-btn.active {
               background: #fff;
               color: var(--t1);
@@ -3338,7 +3338,7 @@ body.student-mode {
               transition: background 0.1s;
             }
             .fvp-ai-result-row:last-child { border-bottom: none; }
-            .fvp-ai-result-row:hover { background: var(--surface2); }
+            @media (hover: hover) { .fvp-ai-result-row:hover { background: var(--surface2); } }
             .fvp-ai-num {
               min-width: 20px;
               font-size: 12px;
@@ -3356,7 +3356,7 @@ body.student-mode {
               transition: all 0.1s;
             }
             .fvp-ai-result-row:hover .fvp-ai-del { opacity: 1; }
-            .fvp-ai-del:hover { background: var(--red-dim); color: var(--red); }
+            @media (hover: hover) { .fvp-ai-del:hover { background: var(--red-dim); color: var(--red); } }
             .fvp-ai-cell {
               flex: 1;
               min-width: 0;
@@ -3438,7 +3438,7 @@ body.student-mode {
               transition: all 0.15s;
             }
             .fvp-type-btn .type-icon { font-size: 18px; line-height: 1; }
-            .fvp-type-btn:hover { border-color: var(--blue); color: var(--blue2); background: var(--blue-dim); }
+            @media (hover: hover) { .fvp-type-btn:hover { border-color: var(--blue); color: var(--blue2); background: var(--blue-dim); } }
             .fvp-type-btn.active {
               border-color: var(--blue2);
               background: var(--blue-dim);
@@ -3480,7 +3480,7 @@ body.student-mode {
               justify-content: center;
               gap: 8px;
             }
-            .fvp-create-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
+            @media (hover: hover) { .fvp-create-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); } }
             .fvp-create-btn:active { transform: translateY(0); }
 
             .fvp-reset-btn {
@@ -3496,7 +3496,7 @@ body.student-mode {
               cursor: pointer;
               transition: all 0.15s;
             }
-            .fvp-reset-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+            @media (hover: hover) { .fvp-reset-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); } }
 
             /* 섹션 헤더 */
             .fvp-section-title {
@@ -28166,63 +28166,33 @@ async function sendTaskReminderNotifs() {
 <div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
 
 <script>
-/* ── 모바일 터치 hover 잔상 방지 (iOS Safari sticky hover) ──
-   근본 원인: iOS Safari는 터치 후에도 마지막 터치한 요소에 :hover 상태를
-   유지함. transform/box-shadow가 있는 버튼에서 "잔상처럼" 보임.
-   안전한 해결책만 사용:
-   1) touchend 즉시 blur → 포커스 잔상 제거
-   2) 터치한 요소에 국소 repaint 적용 → 해당 요소의 hover 상태만 flush
-   (포괄 CSS 규칙은 사이드바/메뉴 등 :focus로 선택 상태 표시하는 UI를
-    망가뜨려서 사용하지 않음) */
+/* ── 모바일 터치 hover 잔상 방지 (iOS Safari 고착 버그 해결) ──
+   터치 이벤트 감지 후 touchstart/touchend 시 빈 클래스를 토글해
+   브라우저가 hover 상태를 강제로 flush하도록 함. */
 (function() {
   if (!('ontouchstart' in window)) return;
-  var lastTouchedEl = null;
-
   document.addEventListener('touchstart', function(e) {
-    lastTouchedEl = e.target;
-  }, { passive: true, capture: true });
-
-  document.addEventListener('touchend', function(e) {
-    // 1) 즉시 blur — 포커스가 남아서 생기는 잔상 제거
-    //    input/textarea/select/contenteditable은 제외 (키보드 내려가는 문제)
-    var ae = document.activeElement;
-    if (ae && ae !== document.body) {
-      var tag = ae.tagName;
-      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT'
-          && !ae.isContentEditable) {
-        try { ae.blur(); } catch(err) {}
-      }
+    // 터치 시작 시 타겟 요소에서 hover 상태 flush
+    var el = e.target;
+    while (el && el !== document.body) {
+      el.classList.add('_touch-active');
+      el = el.parentElement;
     }
-
-    // 2) 터치한 요소만 국소 repaint → 그 요소의 sticky hover flush
-    //    display:none으로 잠깐 숨겼다가 바로 복원 (한 프레임 안에 완료)
-    //    전역 body repaint는 레이아웃 flicker 위험이 있어 피함
-    var el = lastTouchedEl;
-    if (el && el.nodeType === 1 && el !== document.body) {
-      // 부모로 거슬러 올라가며 가장 가까운 "상호작용 가능한" 요소를 타겟으로
-      var target = el;
-      var depth = 0;
-      while (target && depth < 5 && target !== document.body) {
-        var tn = target.tagName;
-        if (tn === 'BUTTON' || tn === 'A' || target.classList.contains('btn-primary')
-            || target.classList.contains('btn-secondary') || target.classList.contains('quiz-opt')
-            || target.classList.contains('nav-item') || target.getAttribute('role') === 'button') {
-          break;
-        }
-        target = target.parentElement;
-        depth++;
+  }, { passive: true });
+  document.addEventListener('touchend', function() {
+    // 터치 종료 후 짧은 딜레이로 전체 hover 상태 해제
+    setTimeout(function() {
+      var els = document.querySelectorAll('._touch-active');
+      els.forEach(function(el) { el.classList.remove('_touch-active'); });
+      // blur로 포커스 강제 이동해 hover 잔상 제거
+      // input/textarea/select는 제외 (키보드가 내려가는 문제 방지)
+      var _tag = document.activeElement ? document.activeElement.tagName : '';
+      if (document.activeElement && document.activeElement !== document.body
+          && _tag !== 'INPUT' && _tag !== 'TEXTAREA' && _tag !== 'SELECT') {
+        document.activeElement.blur();
       }
-      if (target && target !== document.body && target.nodeType === 1) {
-        // repaint 트릭: visibility 토글 (display와 달리 레이아웃 안 바뀜)
-        var origVisibility = target.style.visibility;
-        target.style.visibility = 'hidden';
-        // 강제 reflow 트리거
-        void target.offsetHeight;
-        target.style.visibility = origVisibility;
-      }
-    }
-    lastTouchedEl = null;
-  }, { passive: true, capture: true });
+    }, 300);
+  }, { passive: true });
 })();
 </script>
 </body>
