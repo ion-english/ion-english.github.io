@@ -19437,33 +19437,21 @@ function _dataUriToArrayBuffer(dataUri) {
 const _sfxCorrectDataUri = _sfxCorrect.src;
 const _sfxWrongDataUri   = _sfxWrong.src;
 
-// ArrayBuffer 캐시 (ctx 무관하게 한 번만 변환)
-let _sfxCorrectRawBuf = null;
-let _sfxWrongRawBuf   = null;
-function _getRawBufs() {
-  if (!_sfxCorrectRawBuf) _sfxCorrectRawBuf = _dataUriToArrayBuffer(_sfxCorrectDataUri);
-  if (!_sfxWrongRawBuf)   _sfxWrongRawBuf   = _dataUriToArrayBuffer(_sfxWrongDataUri);
-}
-
 // 디코딩 (ctx 재생성 시마다 다시 해야 함 — AudioBuffer는 ctx에 종속)
-// Promise를 반환하여 decode 완료 시점을 외부에서 알 수 있게 함
 function _decodeSfxBuffers(ctx) {
-  _getRawBufs();
   const decode = (buf) => new Promise((resolve, reject) => {
-    // slice()로 복사본 전달 — ArrayBuffer는 한 번 transfer되면 재사용 불가
-    const copy = buf.slice(0);
-    const result = ctx.decodeAudioData(copy, resolve, reject);
+    const result = ctx.decodeAudioData(buf, resolve, reject);
     if (result && result.then) result.then(resolve, reject);
   });
-  const p1 = decode(_sfxCorrectRawBuf)
-    .then(b => { if (ctx === _sfxCtx) _sfxCorrectBuf = b; }).catch(()=>{});
-  const p2 = decode(_sfxWrongRawBuf)
-    .then(b => { if (ctx === _sfxCtx) _sfxWrongBuf = b; }).catch(()=>{});
-  return Promise.all([p1, p2]);
+  try {
+    decode(_dataUriToArrayBuffer(_sfxCorrectDataUri))
+      .then(b => { if (ctx === _sfxCtx) _sfxCorrectBuf = b; }).catch(()=>{});
+    decode(_dataUriToArrayBuffer(_sfxWrongDataUri))
+      .then(b => { if (ctx === _sfxCtx) _sfxWrongBuf = b; }).catch(()=>{});
+  } catch(e) {}
 }
 
 // AudioContext 생성 (기존 ctx가 있으면 close 후 재생성)
-let _sfxDecodeReady = Promise.resolve(); // decode 완료 대기용
 function _createSfxCtx() {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
@@ -19477,9 +19465,7 @@ function _createSfxCtx() {
     _sfxCtx = new Ctx();
   } catch(e) { _sfxCtx = null; return null; }
   _sfxCtxSampleRate = _sfxCtx.sampleRate;
-  try {
-    _sfxDecodeReady = _decodeSfxBuffers(_sfxCtx);
-  } catch(e) { _sfxDecodeReady = Promise.resolve(); }
+  _decodeSfxBuffers(_sfxCtx);
   return _sfxCtx;
 }
 
@@ -19490,8 +19476,33 @@ function _markCtxInvalid() {
   _sfxUnlocked = false;
 }
 
-// iOS unlock: 제스처 안에서 resume + 빈 버퍼 재생
+// ── iOS 무음 스위치 우회 (v10) ────────────────────────────
+// iOS는 무음 스위치 ON일 때 Web Audio API 출력을 차단함 (HTMLAudio는 차단 안 함)
+// 사용자 대부분이 무음 모드라 이어폰 빼면 소리가 안 들림
+// 해결: 무음 HTMLAudio를 백그라운드 무한 루프 → iOS가 "미디어 재생 중"으로 인식
+//      → Web Audio API도 무음 스위치 무시하고 출력
+// 1초짜리 무음 WAV (data URI)
+const _silenceWavDataUri = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+let _silenceAudio = null;
+function _startSilenceLoop() {
+  if (_silenceAudio) return;
+  try {
+    _silenceAudio = new Audio(_silenceWavDataUri);
+    _silenceAudio.loop = true;
+    _silenceAudio.volume = 0.001;  // 거의 0이지만 0이면 iOS가 트릭 무시할 수 있음
+    _silenceAudio.preload = 'auto';
+    _silenceAudio.play().catch(() => {
+      // 실패해도 무시 (다음 제스처에서 재시도)
+      _silenceAudio = null;
+    });
+  } catch(e) { _silenceAudio = null; }
+}
+
+// iOS unlock: 제스처 안에서 resume + 빈 버퍼 재생 + 무음 루프 시작
 function _unlockSfxCtx() {
+  // 무음 루프 시작 (무음 스위치 우회용) — 가장 먼저
+  _startSilenceLoop();
+
   // ctx가 없거나 무효화됐으면 새로 생성
   if (!_sfxCtx || _sfxCtxInvalid) {
     _createSfxCtx();
@@ -19499,24 +19510,21 @@ function _unlockSfxCtx() {
   }
   const ctx = _sfxCtx;
   if (!ctx) return false;
-  const doUnlock = () => {
-    try {
-      const buf = ctx.createBuffer(1, 1, 22050);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      src.start(0);
-    } catch(e) {}
-    if (ctx.state === 'running') _sfxUnlocked = true;
-  };
   if (ctx.state === 'suspended') {
-    try {
-      ctx.resume().then(() => { doUnlock(); }).catch(() => { doUnlock(); });
-    } catch(e) { doUnlock(); }
-  } else {
-    doUnlock();
+    try { ctx.resume(); } catch(e) {}
   }
-  return ctx.state === 'running';
+  try {
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch(e) {}
+  if (ctx.state === 'running') {
+    _sfxUnlocked = true;
+    return true;
+  }
+  return false;
 }
 
 // 제스처 리스너: 항상 유지 (unlock + 라우팅 변경 후 재unlock)
@@ -19542,7 +19550,7 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   } catch(e) {}
 }
 
-// 백그라운드 복귀 시에도 라우팅이 바뀌었을 수 있음 → ctx 무효화
+// 백그라운드 복귀 시: 라우팅 변경 체크 + silence loop 재개
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     // sampleRate가 바뀌었으면 라우팅 변경된 것 (이어폰 연결/해제의 주요 신호)
@@ -19552,6 +19560,10 @@ document.addEventListener('visibilitychange', () => {
     // resume 시도
     if (_sfxCtx && _sfxCtx.state === 'suspended') {
       try { _sfxCtx.resume(); } catch(e) {}
+    }
+    // silence loop가 멈췄을 수 있으므로 재개 (무음 스위치 우회 유지)
+    if (_silenceAudio && _silenceAudio.paused) {
+      try { _silenceAudio.play().catch(()=>{}); } catch(e) {}
     }
   }
 });
@@ -19576,32 +19588,15 @@ function _playBuffer(buf) {
 }
 
 function _playCorrectSound() {
-  if (_sfxCorrectBuf && _playBuffer(_sfxCorrectBuf)) return;
-  // decode가 아직 안 끝났거나 ctx 무효화 → 최대 400ms 기다린 후 재시도
-  const attemptPlay = () => {
-    if (_sfxCorrectBuf && _playBuffer(_sfxCorrectBuf)) return;
-    // fallback: HTMLAudio (이어폰 없이 스피커일 때 iOS 무음모드 아니면 들림)
+  const ok = _sfxCorrectBuf && _playBuffer(_sfxCorrectBuf);
+  if (!ok) {
     try { _sfxCorrect.currentTime = 0; _sfxCorrect.play().catch(()=>{}); } catch(e) {}
-  };
-  if (_sfxDecodeReady && typeof _sfxDecodeReady.then === 'function') {
-    // 타임아웃 400ms 내 decode 완료 기다리기
-    const timeout = new Promise(r => setTimeout(r, 400));
-    Promise.race([_sfxDecodeReady, timeout]).then(attemptPlay).catch(attemptPlay);
-  } else {
-    setTimeout(attemptPlay, 50);
   }
 }
 function _playWrongSound() {
-  if (_sfxWrongBuf && _playBuffer(_sfxWrongBuf)) return;
-  const attemptPlay = () => {
-    if (_sfxWrongBuf && _playBuffer(_sfxWrongBuf)) return;
+  const ok = _sfxWrongBuf && _playBuffer(_sfxWrongBuf);
+  if (!ok) {
     try { _sfxWrong.currentTime = 0; _sfxWrong.play().catch(()=>{}); } catch(e) {}
-  };
-  if (_sfxDecodeReady && typeof _sfxDecodeReady.then === 'function') {
-    const timeout = new Promise(r => setTimeout(r, 400));
-    Promise.race([_sfxDecodeReady, timeout]).then(attemptPlay).catch(attemptPlay);
-  } else {
-    setTimeout(attemptPlay, 50);
   }
 }
 // ─────────────────────────────────────────────────────────
