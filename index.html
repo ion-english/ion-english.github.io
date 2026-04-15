@@ -18429,13 +18429,25 @@ async function openStudentWordView(bookId) {
 
 // ── 암기/퀴즈 오버레이 ────────────────────────────────────
 function openStudentStudy(id) {
+  _flushHover();
   _openStudyOverlay('flashcard', id);
 }
 function openStudentQuiz(id) {
   _openStudyOverlay('quiz', id);
 }
 
+function _flushHover() {
+  // iOS Safari hover 잔상 제거: 새 화면 렌더 시 터치 포인트에 hover가 붙는 버그 방지
+  document.body.style.pointerEvents = 'none';
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      document.body.style.pointerEvents = '';
+    });
+  });
+}
+
 function _openStudyOverlay(type, bookId) {
+  _flushHover();
   const b = DB.books.find(b => b.id === bookId);
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
@@ -19118,6 +19130,7 @@ function openStudentQuizPopup(bookId) {
 }
 
 function _launchQuizFromView(bookId, mode, dir) {
+  _flushHover();
   _quizDir  = dir;
   _quizMode = mode;
   document.getElementById('word-view-overlay')?.remove();
