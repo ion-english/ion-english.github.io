@@ -1621,13 +1621,13 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
   background:radial-gradient(ellipse at 50% 0%,rgba(var(--slime-accent-rgb,110,231,183),0.06),transparent 70%);
   opacity:0;transition:opacity 0.2s;
 }
-.quiz-opt:hover:not(.locked){
+.quiz-opt.quiz-opt--active:not(.locked){
   border-color:var(--slime-accent,#6ee7b7);
   color:var(--slime-dark,#047857);
   transform:translateY(-3px);
   box-shadow:0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.2);
 }
-.quiz-opt:hover::before{opacity:1}
+.quiz-opt.quiz-opt--active::before{opacity:1}
 .quiz-opt.correct{
   border-color:#10b981;
   background:linear-gradient(135deg,#ecfdf5,#d1fae5);
@@ -19181,9 +19181,48 @@ async function startQuiz(){
   renderQuiz();
 }
 
+// ── quiz-opt hover: iOS :hover 잔상 방지 ─────────────────────────────
+// :hover CSS를 쓰지 않고 JS mouseenter/mouseleave + touchstart/touchend로만 제어.
+// renderQuiz() 호출 직후 setTimeout(0)으로 실행돼 새로 생긴 버튼에 부착됨.
+function _attachQuizOptHover() {
+  var opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach(function(btn) {
+    // 이미 부착된 경우 skip
+    if (btn._quizHoverAttached) return;
+    btn._quizHoverAttached = true;
+
+    function _on() {
+      if (btn.classList.contains('locked')) return;
+      btn.classList.add('quiz-opt--active');
+      btn.style.borderColor = 'var(--slime-accent, #6ee7b7)';
+      btn.style.color = 'var(--slime-dark, #047857)';
+      btn.style.transform = 'translateY(-3px)';
+      btn.style.boxShadow = '0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.2)';
+    }
+    function _off() {
+      btn.classList.remove('quiz-opt--active');
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.style.transform = '';
+      btn.style.boxShadow = '';
+    }
+    function _touchEnd() {
+      setTimeout(_off, 200);
+    }
+
+    btn.addEventListener('mouseenter', _on);
+    btn.addEventListener('mouseleave', _off);
+    btn.addEventListener('touchstart', _on, { passive: true });
+    btn.addEventListener('touchend', _touchEnd, { passive: true });
+    btn.addEventListener('touchcancel', _off, { passive: true });
+  });
+}
+
 function renderQuiz(){
   const body=document.getElementById('quiz-body');
   if(!body) return;
+  // quiz-opt hover는 JS로만 제어 (iOS :hover 잔상 완전 차단)
+  // _attachQuizOptHover()가 렌더 후 각 버튼에 이벤트 직접 부착
   if(quizIdx>=quizWords.length){
     // ── 결과 화면 ──
     stopFocusGuard(); // 🔒 시험 완료 시 포커스 감시 OFF
@@ -19401,6 +19440,8 @@ function renderQuiz(){
 
 
   </div>`;
+  // iOS :hover 잔상 완전 차단: 렌더 직후 quiz-opt에 JS 이벤트 직접 부착
+  setTimeout(_attachQuizOptHover, 0);
   if(mode==='input') setTimeout(()=>document.getElementById('quiz-inp')?.focus(),80);
   if(mode==='essay') setTimeout(()=>document.getElementById('quiz-essay')?.focus(),80);
   const dir2 = _quizDir || (document.getElementById('quiz-dir')?.value) || 'en2ko';
