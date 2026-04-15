@@ -13100,6 +13100,7 @@ async function startSentRecording(bookId) {
   window._recBookId = bookId;
   window._recItems  = items;
   window._recBlob   = null;
+  window._recSaving = false;
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
   // 오버레이로 열기
@@ -13294,17 +13295,20 @@ function recOnStop() {
 
 function recRedo() {
   window._recBlob = null;
+  window._recSaving = false;
   document.getElementById('rec-result').style.display = 'none';
   document.getElementById('rec-status').textContent = '위 본문을 보면서 소리 내어 읽고 녹음 버튼을 누르세요';
 }
 
 async function recSaveWhole() {
+  if (window._recSaving) return;           // 중복 호출 방지
   if (!window._recBlob) {
     showToast('낭독 완료! 잘 했어요 🎉', 'success');
     sentFinish();
     return;
   }
 
+  window._recSaving = true;
   showToast('녹음 저장 중...', 'success');
 
   let savedUrl = null;
@@ -13359,6 +13363,8 @@ async function recSaveWhole() {
   }
 
   showToast('낭독 완료! 잘 했어요 🎉', 'success');
+  window._recBlob = null;
+  window._recSaving = false;
   sentFinish();
 }
 
