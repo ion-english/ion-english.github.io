@@ -1644,13 +1644,6 @@ tr.word-drag-over-bot{border-bottom:2.5px solid var(--blue)!important;}
 .quiz-opt.locked{cursor:not-allowed}
 
 /* 퀴즈 선택 팝업 버튼 - 데스크탑만 호버 */
-@media (hover: hover) {
-  .quiz-type-sel-btn:hover {
-    border-color: var(--slime-accent, #6ee7b7) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(110,231,183,0.18);
-  }
-}
 .quiz-type-sel-btn:active {
   transform: scale(0.97) !important;
   transition: transform 0.08s ease !important;
@@ -19092,7 +19085,7 @@ function openStudentQuizPopup(bookId) {
     }
     return `<button onclick="document.getElementById('quiz-type-popup').remove();_launchQuizFromView('${bookId}','${mode}','${dir}')"
       class="quiz-type-sel-btn"
-      style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.18s;text-align:left;width:100%">
+      style="padding:14px 12px;background:#f8fafb;border:1.5px solid #dde8f2;border-radius:16px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;text-align:left;width:100%">
       ${label}${badge}<br><span style="font-size:12px;font-weight:400;color:#64748b">${subLabel}</span>
     </button>`;
   }
