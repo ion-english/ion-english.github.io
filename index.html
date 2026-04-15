@@ -2699,61 +2699,67 @@ body.student-mode {
   #ov-jelly-badge { display:none !important; }
 }
 
-/* ── 모바일 hover 잔상 방지 ──────────────────────────────
-   터치 기기(hover: none)에서는 모든 :hover 스타일을 무효화.
-   + body.no-hover 클래스로 JS 터치 감지 후 추가 무효화.
+/* ── 모바일 터치 hover 효과 ──────────────────────────────
+   터치 기기에서도 hover 효과를 그대로 보여줌.
+   JS touchstart 시 .touch-hover 클래스를 부착,
+   touchend 후 300ms 뒤 제거해 잔상 없이 깔끔하게 처리.
    ──────────────────────────────────────────────────────── */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* touch-hover = hover와 동일 효과 (터치 기기용) */
+.stat-card.touch-hover { border-color:var(--blue) !important;box-shadow:var(--sh-b) !important;transform:translateY(-3px) !important; }
+.book-card.touch-hover { border-color:var(--blue) !important;transform:translateY(-4px) !important;box-shadow:var(--sh-b) !important; }
+.fv-card.touch-hover { border-color:var(--blue) !important;transform:translateY(-2px) !important;box-shadow:var(--sh-b) !important; }
+.btn-primary.touch-hover { transform:translateY(-1px) !important;box-shadow:var(--sh-b) !important; }
+.btn-secondary.touch-hover { border-color:var(--blue) !important;background:var(--blue-dim) !important; }
+.btn-ghost.touch-hover { background:var(--blue-dim) !important;color:var(--blue) !important; }
+.btn-success.touch-hover { background:var(--green) !important;color:#fff !important; }
+.btn-danger.touch-hover { background:var(--red) !important;color:#fff !important; }
+.btn-gold.touch-hover { background:var(--amber) !important;color:#fff !important; }
+.login-btn.touch-hover { transform:translateY(-1px) !important;box-shadow:0 8px 28px rgba(59,130,246,0.5) !important; }
+.slime-popup-btn.touch-hover { background:#eef2ff !important;border-color:#818cf8 !important; }
+.slime-deco-btn.touch-hover { background:#eef2ff !important;border-color:#818cf8 !important; }
+.nav-item.touch-hover { color:rgba(255,255,255,0.85) !important;background:rgba(255,255,255,0.05) !important; }
+.logout-btn.touch-hover { border-color:rgba(239,68,68,0.35) !important;color:#fca5a5 !important;background:rgba(239,68,68,0.07) !important; }
+.student-topbar-btn.touch-hover { background:#f1f5f9 !important; }
+.student-profile-menu-item.touch-hover { background:var(--surface2) !important; }
+.msg-friend-row.touch-hover { background:var(--surface2,#f1f5f9) !important; }
+.msg-chat-row.touch-hover { background:var(--surface2,#f1f5f9) !important; }
+.msg-friend-row.touch-hover .msg-friend-chevron { opacity:1 !important;transform:translateX(2px) !important; }
+.msg-back-btn.touch-hover { background:rgba(0,0,0,0.06) !important; }
+.slime-chat-bar-avatar.touch-hover { background:#E0DCFC !important; }
+.slime-chat-bar-send.touch-hover { background:#5E52D4 !important;transform:scale(1.08) !important; }
+.slime-chat-img-btn.touch-hover { color:#7C6FF7 !important;background:#EEF0FE !important;border-color:#C8C4F8 !important; }
+.slime-chat-quick.touch-hover { background:#dbeafe !important; }
+.slime-study-more.touch-hover { color:#6366f1 !important; }
+.slime-book-item.touch-hover { background:#f8fafc !important;padding-left:14px !important; }
+.slime-dropdown-item.touch-hover { background:#f1f5f9 !important; }
+.slime-popup-close.touch-hover { background:#e8f0fb !important;color:#1e3a5f !important; }
+.slime-badge-item.earned.touch-hover { transform:translateY(-3px) !important;box-shadow:0 5px 14px rgba(251,191,36,0.3) !important; }
+.slime-stage.touch-hover .slime-body { animation:slimeWiggle 0.6s ease both !important; }
+.quiz-opt.touch-hover:not(.locked) { background:rgba(var(--slime-accent-rgb,110,231,183),0.08) !important;border-color:var(--slime-accent,#6ee7b7) !important; }
+.chip.touch-hover:not(.active) { border-color:var(--blue) !important;background:var(--blue-dim) !important;color:var(--blue2) !important;font-weight:600 !important; }
+.row-insert-btn.touch-hover { background:var(--blue2) !important;transform:scale(1.08) !important; }
+.row-del-inline-btn.touch-hover { background:var(--red) !important;color:#fff !important;border-color:var(--red) !important;transform:scale(1.08) !important; }
+.word-drag-handle.touch-hover { color:var(--blue) !important; }
+.upload-zone.touch-hover { border-color:var(--blue) !important;background:var(--blue-dim) !important;transform:scale(1.005) !important; }
+.mgmt-tab-btn.touch-hover { background:#dbeafe !important;color:#2563eb !important;border-color:#93c5fd !important; }
+.speak-btn.touch-hover { background:var(--blue-dim) !important;opacity:1 !important;transform:scale(1.1) !important; }
+.fav-toggle.touch-hover { opacity:0.8 !important; }
+.fc-btn-prev.touch-hover:not(:disabled) { border-color:var(--slime-accent,#6ee7b7) !important;color:var(--slime-dark,#047857) !important;transform:translateX(-2px) !important; }
+.fc-btn-next.touch-hover { transform:translateY(-2px) !important;box-shadow:0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.5) !important; }
+.fc-btn-sound.touch-hover { background:rgba(var(--slime-accent-rgb,110,231,183),0.2) !important;transform:scale(1.1) !important; }
+.msg-bs-btn.ghost.touch-hover { border-color:var(--accent) !important;color:var(--accent) !important; }
+.msg-bs-btn.primary.touch-hover { opacity:.87 !important;box-shadow:0 4px 18px rgba(99,102,241,0.45) !important; }
+tbody tr.touch-hover td { background:var(--blue-dim) !important; }
+
+/* row-hover-actions: 모바일에서 touch-hover 시 표시 */
 @media (hover: none), (pointer: coarse) {
-  * { -webkit-tap-highlight-color: transparent; }
-  .stat-card:hover,.book-card:hover,.fv-card:hover { transform:none !important;box-shadow:none !important;border-color:inherit !important; }
-  .btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.btn-success:hover,.btn-danger:hover,.btn-gold:hover,.login-btn:hover,.slime-popup-btn:hover,.slime-deco-btn:hover,.msg-bs-btn.ghost:hover,.msg-bs-btn.primary:hover { transform:none !important;box-shadow:none !important;opacity:1 !important;background:inherit !important;border-color:inherit !important; }
-  .nav-item:hover { color:inherit !important;background:inherit !important; }
-  .nav-item:hover .nav-icon { opacity:inherit !important; }
-  .logout-btn:hover,.student-topbar-btn:hover,.student-profile-menu-item:hover { background:inherit !important;border-color:inherit !important;color:inherit !important; }
-  .msg-friend-row:hover,.msg-chat-row:hover { background:inherit !important; }
-  .msg-friend-row:hover .msg-friend-chevron { opacity:0 !important;transform:none !important; }
-  .msg-back-btn:hover { background:inherit !important;color:inherit !important; }
-  tbody tr:hover td { background:inherit !important; }
-  .slime-stage:hover .slime-body { animation:none !important; }
-  .slime-chat-bar-avatar:hover { background:inherit !important; }
-  .slime-chat-bar-send:hover { background:#7C6FF7 !important;transform:none !important; }
-  .slime-study-more:hover,.slime-book-item:hover,.slime-dropdown-item:hover { color:inherit !important;background:inherit !important;padding-left:inherit !important; }
-  .slime-popup-close:hover { background:inherit !important;color:inherit !important; }
-  .slime-badge-item.earned:hover { transform:none !important;box-shadow:none !important; }
-  .slime-chat-quick:hover { background:inherit !important; }
-  .quiz-opt:hover:not(.locked) { background:inherit !important;border-color:inherit !important; }
-  .quiz-opt:hover::before { opacity:0 !important; }
-  .chip:hover:not(.active) { border-color:inherit !important;background:inherit !important;color:inherit !important;font-weight:inherit !important; }
-  .row-insert-btn:hover,.row-del-inline-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important;transform:none !important; }
-  .word-drag-handle:hover { color:inherit !important; }
-  .upload-zone:hover { border-color:inherit !important;background:inherit !important;transform:none !important; }
-  .mgmt-tab-btn:hover { background:inherit !important;color:inherit !important;border-color:inherit !important; }
-  .speak-btn:hover { background:inherit !important;transform:none !important; }
-  .fav-toggle:hover { opacity:1 !important; }
-  .fc-btn-prev:hover:not(:disabled),.fc-btn-next:hover,.fc-btn-sound:hover { border-color:inherit !important;color:inherit !important;transform:none !important;box-shadow:none !important;background:inherit !important; }
-  .dash-recent-scroll:hover { background:inherit !important; }
-  .dash-recent-scroll:hover::-webkit-scrollbar-thumb { background:inherit !important; }
-  .slime-chat-img-btn:hover { color:inherit !important;background:inherit !important;border-color:inherit !important; }
-  .slime-chat-bar-send:hover { transform:none !important; }
   .row-hover-actions { display:none !important; }
   tr:hover .row-hover-actions { display:none !important; }
-
-  /* 모바일 터치 피드백 - :active로 대체 */
-  .quiz-opt:active:not(.locked) {
-    border-color:var(--slime-accent,#6ee7b7) !important;
-    background:rgba(var(--slime-accent-rgb,110,231,183),0.08) !important;
-    transform:scale(0.97) !important;
-    transition:transform 0.08s ease !important;
-  }
-  .btn-primary:active { transform:translateY(1px) scale(0.98) !important;box-shadow:none !important; }
-  .btn-secondary:active,.btn-ghost:active { transform:scale(0.97) !important; }
-  .book-card:active { transform:scale(0.98) !important;box-shadow:var(--sh-b) !important; }
-  .fc-btn-prev:active:not(:disabled),.fc-btn-next:active { transform:scale(0.95) !important; }
-  .fc-btn-sound:active { transform:scale(0.93) !important; }
-  .login-btn:active { transform:scale(0.98) !important; }
-  .mgmt-tab-btn:active { background:#dbeafe !important;color:#2563eb !important; }
-  .speak-btn:active { transform:scale(0.93) !important;background:var(--blue-dim) !important; }
-  .chip:active { border-color:var(--blue) !important;background:var(--blue-dim) !important;color:var(--blue2) !important; }
+  tr.touch-hover .row-hover-actions { display:inline-flex !important; }
+  .word-row-wrap.touch-hover .row-hover-actions,
+  .sent-row-wrap.touch-hover .row-hover-actions { display:flex !important; }
 }
 </style>
 
@@ -28202,32 +28208,30 @@ async function sendTaskReminderNotifs() {
 <div class="slime-chat-panel" id="slime-chat-panel" style="display:none"></div>
 
 <script>
-/* ── 모바일 터치 hover 잔상 방지 (iOS Safari 고착 버그 해결) ──
-   터치 이벤트 감지 후 touchstart/touchend 시 빈 클래스를 토글해
-   브라우저가 hover 상태를 강제로 flush하도록 함. */
+/* ── 모바일 터치 hover 효과 (touch-hover 클래스 토글) ──
+   터치 시작 시 대상 요소 + 부모 체인에 touch-hover 부착,
+   터치 종료 후 300ms 뒤 제거 → 잔상 없이 hover 효과 재현. */
 (function() {
   if (!('ontouchstart' in window)) return;
+  var _touchEls = [];
   document.addEventListener('touchstart', function(e) {
-    // 터치 시작 시 타겟 요소에서 hover 상태 flush
     var el = e.target;
+    _touchEls = [];
     while (el && el !== document.body) {
-      el.classList.add('_touch-active');
+      el.classList.add('touch-hover');
+      _touchEls.push(el);
       el = el.parentElement;
     }
   }, { passive: true });
   document.addEventListener('touchend', function() {
-    // 터치 종료 후 짧은 딜레이로 전체 hover 상태 해제
+    var toRemove = _touchEls.slice();
     setTimeout(function() {
-      var els = document.querySelectorAll('._touch-active');
-      els.forEach(function(el) { el.classList.remove('_touch-active'); });
-      // blur로 포커스 강제 이동해 hover 잔상 제거
-      // input/textarea/select는 제외 (키보드가 내려가는 문제 방지)
-      var _tag = document.activeElement ? document.activeElement.tagName : '';
-      if (document.activeElement && document.activeElement !== document.body
-          && _tag !== 'INPUT' && _tag !== 'TEXTAREA' && _tag !== 'SELECT') {
-        document.activeElement.blur();
-      }
+      toRemove.forEach(function(el) { el.classList.remove('touch-hover'); });
     }, 300);
+  }, { passive: true });
+  document.addEventListener('touchcancel', function() {
+    _touchEls.forEach(function(el) { el.classList.remove('touch-hover'); });
+    _touchEls = [];
   }, { passive: true });
 })();
 </script>
