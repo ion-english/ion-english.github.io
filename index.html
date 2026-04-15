@@ -19818,7 +19818,7 @@ function _showFocusAlert(title, msg, sub, autoClose) {
       <div style="font-size:17px;font-weight:800;color:#ef4444;margin-bottom:10px;line-height:1.4">${title}</div>
       <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;white-space:pre-line">${msg}</div>
       ${sub ? `<div style="margin-top:10px;font-size:13px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border-radius:10px;padding:6px 14px;display:inline-block">${sub}</div>` : ''}
-      ${!autoClose ? `<button onclick="document.getElementById('_fgAlert').remove()" style="
+      ${!autoClose ? `<button onclick="document.getElementById('_fgAlert').remove();setTimeout(_attachQuizOptHover,0)" style="
         margin-top:18px;padding:10px 28px;background:#ef4444;border:none;border-radius:12px;
         color:white;font-weight:700;font-size:14px;cursor:pointer;width:100%
       ">확인 (시험으로 돌아가기)</button>` : ''}
@@ -19826,7 +19826,7 @@ function _showFocusAlert(title, msg, sub, autoClose) {
   `;
   document.body.appendChild(el);
   if (!autoClose) {
-    el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+    el.addEventListener('click', (e) => { if (e.target === el) { el.remove(); setTimeout(_attachQuizOptHover, 0); } });
   } else {
     setTimeout(() => el.remove(), 2200);
   }
