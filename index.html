@@ -19318,13 +19318,16 @@ function renderQuiz(){
     </button>
   </div>`;
 
-  // 선택지 HTML (모드별)
+  // 선택지 HTML (모드별) — data-* 속성으로 id 전달 (특수문자 안전)
+  const _wid = String(w.id).replace(/"/g,'&quot;');
   const optsHTML = mode==='choice' ? `
     <div class="quiz-opts">
-      ${opts.map(o=>`
-        <button class="quiz-opt" onclick="answerChoice(this,'${o.id}','${w.id}')">
+      ${opts.map(o=>{
+        const _oid = String(o.id).replace(/"/g,'&quot;');
+        return `<button class="quiz-opt" data-sel="${_oid}" data-corr="${_wid}" onclick="answerChoiceData(this)">
           ${dir==='en2ko'?o.ko:o.en}
-        </button>`).join('')}
+        </button>`;
+      }).join('')}
     </div>
     <div style="min-height:40px;display:flex;align-items:center">
       <div class="quiz-feedback" id="qfb" style="width:100%;margin:0"></div>
@@ -19345,8 +19348,11 @@ function renderQuiz(){
           readonly onfocus="this.removeAttribute('readonly')"
           placeholder="${dir==='en2ko'?'한국어 뜻 입력':'영어 단어 입력'}"
           style="flex:1;border-radius:14px;border:2px solid var(--border);font-size:16px;padding:12px 16px"
-          onkeydown="if(event.key==='Enter')checkInput('${w.id}','${dir}','input')">
-        <button class="fc-btn-next" onclick="checkInput('${w.id}','${dir}','input')" style="padding:12px 20px;flex-shrink:0">확인</button>
+          data-wid="${_wid}" data-dir="${dir}"
+          onkeydown="if(event.key==='Enter')checkInput(this.dataset.wid,this.dataset.dir,'input')">
+        <button class="fc-btn-next" data-wid="${_wid}" data-dir="${dir}"
+          onclick="checkInput(this.dataset.wid,this.dataset.dir,'input')"
+          style="padding:12px 20px;flex-shrink:0">확인</button>
       </div>
       <div style="min-height:44px;display:flex;align-items:center">
         <div class="quiz-feedback" id="qfb" style="width:100%;margin:0"></div>
@@ -19367,7 +19373,8 @@ function renderQuiz(){
         style="resize:vertical;border-radius:14px;border:2px solid var(--border);font-size:15px;padding:12px 16px;line-height:1.6"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
         <button class="fc-btn-prev" onclick="quizIdx++;quizAnswered=false;renderQuiz()">건너뛰기</button>
-        <button class="fc-btn-next" id="essay-submit-btn" onclick="checkEssay('${w.id}','${dir}')">✨ AI 채점</button>
+        <button class="fc-btn-next" id="essay-submit-btn" data-wid="${_wid}" data-dir="${dir}"
+          onclick="checkEssay(this.dataset.wid,this.dataset.dir)">✨ AI 채점</button>
       </div>
     </div>
     <div class="quiz-feedback" id="qfb" style="min-height:60px;align-items:flex-start;padding-top:8px;font-size:15px;line-height:1.6"></div>
@@ -19408,7 +19415,6 @@ function renderQuiz(){
       </button>
     </div>
     ${optsHTML}
-    </div>
     </div>
 
     <!-- ── 우: 슬라임 패널 (데스크탑 전용) ── -->
@@ -19561,6 +19567,11 @@ document.addEventListener('visibilitychange', () => {
   _sfxLastPlayTs.correct = 0;
   _sfxLastPlayTs.wrong = 0;
 });
+
+// data-* 속성으로 id를 전달받는 래퍼 (특수문자 안전)
+function answerChoiceData(btn){
+  answerChoice(btn, btn.dataset.sel, btn.dataset.corr);
+}
 
 function answerChoice(btn,selId,corrId){
   if(quizAnswered)return; quizAnswered=true;
