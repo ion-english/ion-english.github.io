@@ -12419,6 +12419,20 @@ async function renderSentenceStudy() {
         this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';
         this.style.borderColor=hasTask?'#dbeafe':'#e8edf4';
       };
+      card.addEventListener('touchstart', function(){
+        this.style.transform='translateY(-4px)';
+        this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';
+        this.style.borderColor='#bfdbfe';
+      }, { passive: true });
+      (function(_card, _hasTask){
+        _card.addEventListener('touchend', function(){
+          setTimeout(function(){
+            _card.style.transform='';
+            _card.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';
+            _card.style.borderColor=_hasTask?'#dbeafe':'#e8edf4';
+          }, 300);
+        }, { passive: true });
+      })(card, hasTask);
       card.innerHTML = `
         <!-- 1행: 컬렉션 pill + 과제배지 + 진도 -->
         <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center">
@@ -12480,6 +12494,11 @@ async function renderSentenceStudy() {
       `;
       grid.appendChild(card);
     });
+    // iOS hover 잔상 차단: 렌더 직후 500ms pointer-events 차단
+    Array.from(grid.children).forEach(function(c){ c.style.pointerEvents='none'; });
+    setTimeout(function(){
+      Array.from(grid.children).forEach(function(c){ c.style.pointerEvents=''; });
+    }, 500);
   } // end _renderSentStudyGrid
 
   if (DB_sentBooks.length > 0) {
