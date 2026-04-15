@@ -2700,60 +2700,12 @@ body.student-mode {
 }
 
 /* ── 모바일 터치 hover 효과 ──────────────────────────────
-   터치 기기에서도 hover 효과를 그대로 보여줌.
-   JS touchstart 시 .touch-hover 클래스를 부착,
-   touchend 후 300ms 뒤 제거해 잔상 없이 깔끔하게 처리.
+   CSS :hover는 그대로 유지. 인라인 onmouseover 요소는
+   ontouchstart/ontouchend로 별도 처리됨.
+   row-hover-actions만 touch-hover 클래스 토글로 제어.
    ──────────────────────────────────────────────────────── */
 * { -webkit-tap-highlight-color: transparent; }
 
-/* touch-hover = hover와 동일 효과 (터치 기기용) */
-.stat-card.touch-hover { border-color:var(--blue) !important;box-shadow:var(--sh-b) !important;transform:translateY(-3px) !important; }
-.book-card.touch-hover { border-color:var(--blue) !important;transform:translateY(-4px) !important;box-shadow:var(--sh-b) !important; }
-.fv-card.touch-hover { border-color:var(--blue) !important;transform:translateY(-2px) !important;box-shadow:var(--sh-b) !important; }
-.btn-primary.touch-hover { transform:translateY(-1px) !important;box-shadow:var(--sh-b) !important; }
-.btn-secondary.touch-hover { border-color:var(--blue) !important;background:var(--blue-dim) !important; }
-.btn-ghost.touch-hover { background:var(--blue-dim) !important;color:var(--blue) !important; }
-.btn-success.touch-hover { background:var(--green) !important;color:#fff !important; }
-.btn-danger.touch-hover { background:var(--red) !important;color:#fff !important; }
-.btn-gold.touch-hover { background:var(--amber) !important;color:#fff !important; }
-.login-btn.touch-hover { transform:translateY(-1px) !important;box-shadow:0 8px 28px rgba(59,130,246,0.5) !important; }
-.slime-popup-btn.touch-hover { background:#eef2ff !important;border-color:#818cf8 !important; }
-.slime-deco-btn.touch-hover { background:#eef2ff !important;border-color:#818cf8 !important; }
-.nav-item.touch-hover { color:rgba(255,255,255,0.85) !important;background:rgba(255,255,255,0.05) !important; }
-.logout-btn.touch-hover { border-color:rgba(239,68,68,0.35) !important;color:#fca5a5 !important;background:rgba(239,68,68,0.07) !important; }
-.student-topbar-btn.touch-hover { background:#f1f5f9 !important; }
-.student-profile-menu-item.touch-hover { background:var(--surface2) !important; }
-.msg-friend-row.touch-hover { background:var(--surface2,#f1f5f9) !important; }
-.msg-chat-row.touch-hover { background:var(--surface2,#f1f5f9) !important; }
-.msg-friend-row.touch-hover .msg-friend-chevron { opacity:1 !important;transform:translateX(2px) !important; }
-.msg-back-btn.touch-hover { background:rgba(0,0,0,0.06) !important; }
-.slime-chat-bar-avatar.touch-hover { background:#E0DCFC !important; }
-.slime-chat-bar-send.touch-hover { background:#5E52D4 !important;transform:scale(1.08) !important; }
-.slime-chat-img-btn.touch-hover { color:#7C6FF7 !important;background:#EEF0FE !important;border-color:#C8C4F8 !important; }
-.slime-chat-quick.touch-hover { background:#dbeafe !important; }
-.slime-study-more.touch-hover { color:#6366f1 !important; }
-.slime-book-item.touch-hover { background:#f8fafc !important;padding-left:14px !important; }
-.slime-dropdown-item.touch-hover { background:#f1f5f9 !important; }
-.slime-popup-close.touch-hover { background:#e8f0fb !important;color:#1e3a5f !important; }
-.slime-badge-item.earned.touch-hover { transform:translateY(-3px) !important;box-shadow:0 5px 14px rgba(251,191,36,0.3) !important; }
-.slime-stage.touch-hover .slime-body { animation:slimeWiggle 0.6s ease both !important; }
-.quiz-opt.touch-hover:not(.locked) { background:rgba(var(--slime-accent-rgb,110,231,183),0.08) !important;border-color:var(--slime-accent,#6ee7b7) !important; }
-.chip.touch-hover:not(.active) { border-color:var(--blue) !important;background:var(--blue-dim) !important;color:var(--blue2) !important;font-weight:600 !important; }
-.row-insert-btn.touch-hover { background:var(--blue2) !important;transform:scale(1.08) !important; }
-.row-del-inline-btn.touch-hover { background:var(--red) !important;color:#fff !important;border-color:var(--red) !important;transform:scale(1.08) !important; }
-.word-drag-handle.touch-hover { color:var(--blue) !important; }
-.upload-zone.touch-hover { border-color:var(--blue) !important;background:var(--blue-dim) !important;transform:scale(1.005) !important; }
-.mgmt-tab-btn.touch-hover { background:#dbeafe !important;color:#2563eb !important;border-color:#93c5fd !important; }
-.speak-btn.touch-hover { background:var(--blue-dim) !important;opacity:1 !important;transform:scale(1.1) !important; }
-.fav-toggle.touch-hover { opacity:0.8 !important; }
-.fc-btn-prev.touch-hover:not(:disabled) { border-color:var(--slime-accent,#6ee7b7) !important;color:var(--slime-dark,#047857) !important;transform:translateX(-2px) !important; }
-.fc-btn-next.touch-hover { transform:translateY(-2px) !important;box-shadow:0 8px 24px rgba(var(--slime-accent-rgb,110,231,183),0.5) !important; }
-.fc-btn-sound.touch-hover { background:rgba(var(--slime-accent-rgb,110,231,183),0.2) !important;transform:scale(1.1) !important; }
-.msg-bs-btn.ghost.touch-hover { border-color:var(--accent) !important;color:var(--accent) !important; }
-.msg-bs-btn.primary.touch-hover { opacity:.87 !important;box-shadow:0 4px 18px rgba(99,102,241,0.45) !important; }
-tbody tr.touch-hover td { background:var(--blue-dim) !important; }
-
-/* row-hover-actions: 모바일에서 touch-hover 시 표시 */
 @media (hover: none), (pointer: coarse) {
   .row-hover-actions { display:none !important; }
   tr:hover .row-hover-actions { display:none !important; }
@@ -2795,7 +2747,7 @@ tbody tr.touch-hover td { background:var(--blue-dim) !important; }
 <div id="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <div class="sidebar-brand" onclick="showPage(currentUser?.role==='teacher'?'pg-dashboard':'pg-slime-home')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+      <div class="sidebar-brand" onclick="showPage(currentUser?.role==='teacher'?'pg-dashboard':'pg-slime-home')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" ontouchstart="this.style.opacity='0.8'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.opacity='1'},300)">
         <div class="sidebar-mark">I</div>
         <div class="sidebar-title">ION Word</div>
       </div>
@@ -2826,7 +2778,7 @@ tbody tr.touch-hover td { background:var(--blue-dim) !important; }
         <!-- 햄버거 버튼 (모바일에서만 표시) -->
         <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()"
           style="display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:10px;color:var(--text);line-height:1;margin-right:4px;transition:background 0.15s"
-          onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'">
+          onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
@@ -2884,9 +2836,9 @@ tbody tr.touch-hover td { background:var(--blue-dim) !important; }
            <!-- 월간 뷰 -->
            <div id="sched-month-view" style="display:none">
              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-               <button onclick="schedMonthMove(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--t2);font-size:18px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">‹</button>
+               <button onclick="schedMonthMove(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--t2);font-size:18px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='var(--surface2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">‹</button>
                <span id="sched-month-label" style="font-size:15px;font-weight:700;color:var(--t1)"></span>
-               <button onclick="schedMonthMove(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--t2);font-size:18px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">›</button>
+               <button onclick="schedMonthMove(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--t2);font-size:18px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='var(--surface2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">›</button>
              </div>
              <div id="sched-calendar"></div>
            </div>
@@ -3801,7 +3753,7 @@ tbody tr.touch-hover td { background:var(--blue-dim) !important; }
              color:#fff;cursor:pointer;transition:all 0.18s;
              box-shadow:0 4px 14px rgba(110,231,183,0.35)"
              onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(110,231,183,0.45)'"
-             onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(110,231,183,0.35)'">
+             onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(110,231,183,0.35)'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(110,231,183,0.45)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 4px 14px rgba(110,231,183,0.35)'},300)">
              ▶ 시작
            </button>
          </div>
@@ -3891,7 +3843,7 @@ tbody tr.touch-hover td { background:var(--blue-dim) !important; }
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="4" height="4" rx="1"/><rect x="3" y="11" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><line x1="10" y1="7" x2="21" y2="7"/><line x1="10" y1="13" x2="21" y2="13"/><line x1="10" y1="19" x2="21" y2="19"/></svg>
               </button>
               <!-- 전체 삭제 버튼 -->
-              <button class="msg-back-btn" onclick="deleteChatConfirm()" title="대화 전체 삭제" style="color:#ef4444;opacity:0.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+              <button class="msg-back-btn" onclick="deleteChatConfirm()" title="대화 전체 삭제" style="color:#ef4444;opacity:0.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" ontouchstart="this.style.opacity='1'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.opacity='0.7'},300)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               </button>
             </div>
@@ -5613,7 +5565,7 @@ function buildStudentTopbar() {
         <!-- 슬라임 프로필 -->
         <button id="st-profile-btn" onclick="stToggleProfile()" title="프로필"
           style="width:40px;height:40px;border-radius:50%;overflow:hidden;padding:0;border:2px solid #e2e8f0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color 0.15s"
-          onmouseover="this.style.borderColor='#93c5fd'" onmouseout="this.style.borderColor='#e2e8f0'">
+          onmouseover="this.style.borderColor='#93c5fd'" onmouseout="this.style.borderColor='#e2e8f0'" ontouchstart="this.style.borderColor='#93c5fd'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0'},300)">
           ${buildMiniSlimeSVG(slime.stage, 32, {colorId:slime.colorId,eyeStyle:slime.eyeStyle,accessory:slime.accessory})}
         </button>
       </div>
@@ -6917,7 +6869,7 @@ async function stCheckUnread() {
         list.innerHTML = data.map(m => `
           <div onclick="showPage('pg-messages');stCloseAll()"
             style="padding:10px 16px;cursor:pointer;transition:background 0.12s;border-bottom:1px solid #f8fafc"
-            onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" ontouchstart="this.style.background='var(--surface2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background=''},300)">
             <div style="font-size:14px;font-weight:600;color:#1e3a5f;margin-bottom:2px">${m.subject||'새 쪽지'}</div>
             <div style="font-size:13px;color:#94a3b8">${new Date(m.created_at).toLocaleDateString('ko-KR')}</div>
           </div>`).join('');
@@ -7629,7 +7581,7 @@ async function renderDashboard() {
             transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
             box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);min-width:160px;max-width:260px;position:relative"
           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'">
+          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';_b.style.borderColor='#e3e8f4'},300)">
           <div style="flex:1;min-width:0;margin-right:8px">
             <div style="font-size:14px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:500">${bookCount} Collection${bookCount!==1?'s':''}</div>
@@ -7637,7 +7589,7 @@ async function renderDashboard() {
           <button onclick="event.stopPropagation();toggleFavWordColl('${c.id}')"
             style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
               color:var(--blue2);border-radius:8px;transition:color 0.15s"
-            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'"
+            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)"
             title="즐겨찾기 해제">${_favToggleHTML('word',c.id,'toggleFavWordColl')}</button>
         </div>`;
       }).join('')}</div>`;
@@ -7658,7 +7610,7 @@ async function renderDashboard() {
             transition:border-color 0.18s,box-shadow 0.18s,transform 0.18s;
             box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);min-width:160px;max-width:260px;position:relative"
           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'">
+          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='#e3e8f4'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';_b.style.borderColor='#e3e8f4'},300)">
           <div style="flex:1;min-width:0;margin-right:8px">
             <div style="font-size:14px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px">${c.name}</div>
             <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:500">${bookCount} Collection${bookCount!==1?'s':''}</div>
@@ -7666,7 +7618,7 @@ async function renderDashboard() {
           <button onclick="event.stopPropagation();toggleFavSentColl('${c.id}')"
             style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:5px 7px;line-height:1;
               color:var(--blue2);border-radius:8px;transition:color 0.15s"
-            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'"
+            onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)"
             title="즐겨찾기 해제">${_favToggleHTML('sent',c.id,'toggleFavSentColl')}</button>
         </div>`;
       }).join('')}</div>`;
@@ -7727,31 +7679,31 @@ async function renderDashboard() {
         <button onclick="openTeacherWordView('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="단어 보기"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         </button>
         <button onclick="bookMakeTest('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="시험지 만들기"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </button>
         <button onclick="openWordPrintStudio('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="인쇄"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
         <button onclick="event.stopPropagation();openBookAssignModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="배포"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
         <button onclick="event.stopPropagation();openWordBookStatusModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="현황"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </button>
       </div>
@@ -7779,31 +7731,31 @@ async function renderDashboard() {
         <button onclick="openTeacherSentView('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="문장 보기"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
         <button onclick="sentMakeTest('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="시험지 만들기"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </button>
         <button onclick="sentQuickPrint('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="인쇄"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         </button>
         <button onclick="event.stopPropagation();openSentAssignModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="배포"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
         <button onclick="event.stopPropagation();openSentBookStatusModal('${b.id}')"
           style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s"
           title="현황"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'">
+          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </button>
       </div>
@@ -7837,7 +7789,7 @@ async function renderDashboard() {
             <button onclick="showPage('pg-library')"
               style="margin-left:auto;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
               display:flex;align-items:center;gap:2px;padding:3px 6px;border-radius:6px;transition:all 0.13s;white-space:nowrap"
-              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'">
+              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'" ontouchstart="this.style.color='#1e4db7'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='#64748b'},300)">
               View all
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -7858,7 +7810,7 @@ async function renderDashboard() {
             <button onclick="showPage('pg-sentences')"
               style="margin-left:auto;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;
               display:flex;align-items:center;gap:2px;padding:3px 6px;border-radius:6px;transition:all 0.13s;white-space:nowrap"
-              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'">
+              onmouseover="this.style.color='#1e4db7'" onmouseout="this.style.color='#64748b'" ontouchstart="this.style.color='#1e4db7'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='#64748b'},300)">
               View all
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -7898,7 +7850,7 @@ async function renderDashboard() {
     <div onclick="openStudentDetailModal('${s.id}')"
       style="background:white;border:1.5px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:all 0.18s;box-shadow:var(--sh);position:relative"
       onmouseover="this.style.boxShadow='0 4px 20px rgba(30,77,183,0.15)';this.style.borderColor='var(--blue)'"
-      onmouseout="this.style.boxShadow='var(--sh)';this.style.borderColor='var(--border)'">
+      onmouseout="this.style.boxShadow='var(--sh)';this.style.borderColor='var(--border)'" ontouchstart="this.style.boxShadow='0 4px 20px rgba(30,77,183,0.15)';this.style.borderColor='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow='var(--sh)';_b.style.borderColor='var(--border)'},300)">
       <!-- 상태 점 -->
       <div style="position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:${statusDot}"></div>
 
@@ -8035,7 +7987,7 @@ function schedRenderList() {
       ${item.time?`<span style="font-size:13px;font-weight:700;color:var(--blue);background:var(--blue-dim);padding:2px 7px;border-radius:6px;flex-shrink:0">${item.time}</span>`:''}
       <span style="flex:1;font-size:15px;font-weight:500;color:${item.done?'var(--t3)':'var(--t1)'};text-decoration:${item.done?'line-through':'none'}">${item.text}</span>
       <button onclick="schedDelete('${_schedDate}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;border-radius:6px"
-        onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+        onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'" ontouchstart="this.style.color='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)'},300)">×</button>
     </div>`).join('');
 }
 
@@ -8101,7 +8053,7 @@ function schedRenderCalendar() {
       border:1.5px solid ${isSel?'var(--blue)':isToday?'rgba(59,130,246,0.3)':'transparent'};
       background:${isSel?'rgba(59,130,246,0.07)':isToday?'rgba(59,130,246,0.04)':'var(--bg)'};
       transition:all 0.12s"
-      onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='${isSel?'rgba(30,77,183,0.07)':isToday?'rgba(30,77,183,0.04)':'var(--bg)'}'">
+      onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='${isSel?'rgba(30,77,183,0.07)':isToday?'rgba(30,77,183,0.04)':'var(--bg)'}'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='${isSel?'rgba(30,77,183,0.07)':isToday?'rgba(30,77,183,0.04)':'var(--bg)'}'},300)">
       <div style="font-size:13px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--blue)':numColor};margin-bottom:2px">${date}</div>
       ${items.slice(0,2).map(it => `<div style="font-size:12px;background:${it.done?'var(--border)':'var(--blue)'};color:white;border-radius:3px;padding:1px 4px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-decoration:${it.done?'line-through':''}">${it.time?it.time+' ':''} ${it.text}</div>`).join('')}
       ${items.length > 2 ? `<div style="font-size:12px;color:var(--t3)">+${items.length-2}개</div>` : ''}
@@ -8139,7 +8091,7 @@ function schedRenderDayPanel(date) {
         ${item.time?`<span style="font-size:13px;font-weight:700;color:var(--blue);background:var(--blue-dim);padding:1px 6px;border-radius:5px;flex-shrink:0">${item.time}</span>`:''}
         <span style="flex:1;font-size:14px;color:${item.done?'var(--t3)':'var(--t1)'};text-decoration:${item.done?'line-through':'none'}">${item.text}</span>
         <button onclick="schedDelete('${date}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;line-height:1;border-radius:5px;padding:1px 5px"
-          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'" ontouchstart="this.style.color='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)'},300)">×</button>
       </div>`).join('')
     : `<div style="color:var(--t3);font-size:14px;padding:8px 0">일정 없음</div>`}`;
 }
@@ -8334,7 +8286,7 @@ async function openWordBookStatusModal(bookId) {
       <button onclick="_revokeWordAndRefreshStatus('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
         style="flex-shrink:0;padding:3px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
         onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
-        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'" ontouchstart="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border2)';_b.style.color='var(--t3)';_b.style.background='transparent'},300)">해제</button>
     </div>`;
   }
 
@@ -8502,7 +8454,7 @@ async function openSentBookStatusModal(bookId) {
       <button onclick="_revokeSentAndRefreshStatus('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
         style="flex-shrink:0;padding:3px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
         onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
-        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'" ontouchstart="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border2)';_b.style.color='var(--t3)';_b.style.background='transparent'},300)">해제</button>
     </div>`;
   }
 
@@ -8647,7 +8599,7 @@ async function openBookAssignModal(bookId, initialTab) {
         </div>
         <button onclick="event.preventDefault();event.stopPropagation();_openTaskOptsModal('${bookId}','${safeId}','${safeName}',true)"
           style="flex-shrink:0;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all 0.12s"
-          onmouseover="this.style.background='#eff6ff';this.style.color='var(--blue)'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--t2)'">
+          onmouseover="this.style.background='#eff6ff';this.style.color='var(--blue)'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--t2)'" ontouchstart="this.style.background='#eff6ff';this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)';_b.style.color='var(--t2)'},300)">
           ⚙ 과제
         </button>
       </label>`;
@@ -8669,7 +8621,7 @@ async function openBookAssignModal(bookId, initialTab) {
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 배포됨</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부 배포됨</span>':''}
         <button onclick="event.stopPropagation();_bamBulkTaskModal('${bookId}','${cls.id}')"
           style="flex-shrink:0;padding:4px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">⚡ 일괄 과제</button>
+          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" ontouchstart="this.style.background='#dbeafe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#eff6ff'},300)">⚡ 일괄 과제</button>
       </div>
       <div style="padding:4px 4px">
         ${members.length ? members.map(s => memberRow(s, assignedIds.has(s.id))).join('') : '<div style="color:var(--t3);text-align:center;padding:12px;font-size:13px">반원이 없습니다</div>'}
@@ -8709,7 +8661,7 @@ async function openBookAssignModal(bookId, initialTab) {
           </div>
           <button onclick="revokeBookAssign('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
             style="flex-shrink:0;padding:4px 11px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:12px;font-weight:600;color:#dc2626;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" ontouchstart="this.style.background='#fee2e2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#fef2f2'},300)">
             ✕ 해제
           </button>
         </div>`;
@@ -8746,7 +8698,7 @@ async function openBookAssignModal(bookId, initialTab) {
     <div id="bam-footer-assigned" class="modal-actions" style="display:none">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
       ${assignedCount > 0 ? `<button class="btn btn-ghost" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" onclick="revokeAllBookAssign('${bookId}',${assignedCount})"
-        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''">전체 해제</button>` : ''}
+        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''" ontouchstart="this.style.background='rgba(239,68,68,0.06)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background=''},300)">전체 해제</button>` : ''}
     </div>
   `);
 
@@ -8904,7 +8856,7 @@ async function openClassAssignStatusModal(classId) {
       <button onclick="${revokeCall}"
         style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
         onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
-        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'" ontouchstart="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border2)';_b.style.color='var(--t3)';_b.style.background='transparent'},300)">해제</button>
     </div>`;
   }
 
@@ -9506,10 +9458,10 @@ function renderSentMgmt() {
         <div style="flex:1"></div>
         <button onclick="sentDeleteSelected()"
           style="padding:5px 12px;background:#ef4444;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">선택 삭제</button>
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'" ontouchstart="this.style.background='#dc2626'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#ef4444'},300)">선택 삭제</button>
         <button onclick="sentDeleteAll()"
           style="padding:5px 12px;background:none;color:#ef4444;border:1.5px solid #fecaca;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">모두 삭제</button>
+          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">모두 삭제</button>
       </div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-weight:700;font-size:16px;color:var(--t1)">${coll?.name||'문장집'}</div>
@@ -9588,14 +9540,14 @@ function renderSentMgmt() {
               box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_sentCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
             onmouseover="if(!${_sentCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
-            onmouseout="if(!${_sentCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}">
+            onmouseout="if(!${_sentCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}" ontouchstart="if(!${_sentCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;if(!${_sentCollEditMode}){_b.style.transform='';_b.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';_b.style.borderColor='var(--border)';}},300)">
             ${_sentCollEditMode ? `
               <button onclick="event.stopPropagation();sentCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
                   background:#ef4444;border:2.5px solid #fff;color:#fff;font-size:15px;font-weight:700;
                   cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;
                   line-height:1;padding:0;box-shadow:0 2px 6px rgba(239,68,68,0.4);transition:transform 0.12s"
-                onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''">×</button>
+                onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.15)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">×</button>
             ` : ''}
             <div style="flex:1;min-width:0;margin-right:10px">
               ${_sentCollEditMode
@@ -9611,7 +9563,7 @@ function renderSentMgmt() {
             ${_sentCollEditMode
               ? `<button onclick="event.stopPropagation();openSentCollClassModal('${c.id}')"
                   style="flex-shrink:0;padding:3px 9px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">담당 반${sClassIds.length?' ✓':''}</button>`
+                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='var(--accent)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)">담당 반${sClassIds.length?' ✓':''}</button>`
               : `${_favToggleHTML('sent',c.id,'toggleFavSentColl')}`}
           </div>`;
         }).join('')}
@@ -9693,7 +9645,7 @@ async function openSentBlankEditor(bookId) {
           <button onclick="document.getElementById('sent-blank-editor-overlay').remove()"
             style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:none;border:1.5px solid var(--border);border-radius:9px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;transition:all 0.15s"
             onmouseover="this.style.borderColor='var(--t1)';this.style.color='var(--t1)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t1)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             목록
           </button>
@@ -9705,7 +9657,7 @@ async function openSentBlankEditor(bookId) {
           <button onclick="sentBlankEditorClearAll('${bookId}')"
             style="padding:7px 16px;background:none;border:1.5px solid var(--border);border-radius:9px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;transition:all 0.15s"
             onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t3)'">전체 초기화</button>
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t3)'" ontouchstart="this.style.borderColor='var(--red)';this.style.color='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t3)'},300)">전체 초기화</button>
         </div>
 
         <!-- 안내 -->
@@ -9835,7 +9787,7 @@ function sentBookListHTML(b, draggable) {
     border-radius:14px;border:1.5px solid var(--border);transition:all 0.18s;
     box-shadow:0 1px 4px rgba(15,23,42,0.04);cursor:default"
     onmouseover="this.style.borderColor='var(--border2)';this.style.boxShadow='0 3px 14px rgba(15,23,42,0.08)'"
-    onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'">
+    onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'" ontouchstart="this.style.borderColor='var(--border2)';this.style.boxShadow='0 3px 14px rgba(15,23,42,0.08)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'},300)">
 
     ${_sentEditMode?`<div class="sent-drag-handle" style="color:var(--t3);font-size:15px;flex-shrink:0;cursor:grab;padding:0 4px;line-height:1;user-select:none">⠿</div>`:''}
     ${_sentEditMode?`<input type="checkbox" class="sent-book-chk2" data-id="${b.id}"
@@ -9851,7 +9803,7 @@ function sentBookListHTML(b, draggable) {
             style="font-size:15px;font-weight:700;color:var(--t1);border:1.5px solid var(--blue);border-radius:7px;padding:3px 8px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#fff">`
         : `<div style="font-size:16px;font-weight:800;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all 0.15s;cursor:pointer;letter-spacing:-0.3px;display:flex;align-items:center;gap:6px"
             onclick="openTeacherSentView('${b.id}')"
-            onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'">${b.name} <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:0.3;flex-shrink:0'><polyline points='9 18 15 12 9 6'/></svg></div>`
+            onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t1)'},300)">${b.name} <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:0.3;flex-shrink:0'><polyline points='9 18 15 12 9 6'/></svg></div>`
       }
       <div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap">
         <span style="font-size:13px;color:var(--t3)">${itemCount}개 문장</span>
@@ -9872,22 +9824,22 @@ function sentBookListHTML(b, draggable) {
         <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">시험지</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">시험지</button>
         <button onclick="event.stopPropagation();sentQuickPrint('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:4px"
           title="바로 인쇄"
-          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           인쇄</button>
         <button onclick="event.stopPropagation();_sentEditorBookId='${b.id}';openSentAssignModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">배포</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">배포</button>
         <button onclick="event.stopPropagation();openSentStatusModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">현황</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">현황</button>
       </div>
     </div>`}
   </div>`;
@@ -9908,11 +9860,11 @@ function sentBookCardHTML(b) {
     box-shadow:0 4px 20px rgba(15,23,42,0.07),0 1px 4px rgba(15,23,42,0.04);
     transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:2px solid var(--border);"
     onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.14)';this.style.borderColor='var(--border2)'"
-    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';this.style.borderColor='var(--border)'">
+    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';this.style.borderColor='var(--border)'" ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.14)';this.style.borderColor='var(--border2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';_b.style.borderColor='var(--border)'},300)">
 
     <!-- 상단 배경 -->
     <div style="height:72px;background:var(--surface2);position:relative;overflow:hidden;padding:16px 18px 0;cursor:pointer;transition:background 0.15s"
-      onclick="openTeacherSentView('${b.id}')" onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='var(--surface2)'">
+      onclick="openTeacherSentView('${b.id}')" onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='var(--surface2)'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)'},300)">
       <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:1">
         <div style="width:36px;height:36px;border-radius:10px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:17px">📂</div>
         <div style="flex:1;min-width:0">
@@ -9940,34 +9892,34 @@ function sentBookCardHTML(b) {
         <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           시험지
         </button>
         <button onclick="event.stopPropagation();sentQuickPrint('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:3px"
           title="바로 인쇄"
-          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           인쇄
         </button>
         <button onclick="event.stopPropagation();_sentEditorBookId='${b.id}';openSentAssignModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           배포
         </button>
         <button onclick="event.stopPropagation();openSentStatusModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           현황
         </button>
       </div>
       ${isTeacherOrOwner(b)
         ? `<button onclick="event.stopPropagation();deleteSentBook('${b.id}')"
             style="width:100%;padding:6px 0;background:none;border:1px solid #fee2e2;border-radius:9px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;transition:all 0.15s"
-            onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">삭제</button>`
+            onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">삭제</button>`
         : ''}
     </div>
   </div>`;
@@ -10965,7 +10917,7 @@ function renderSentItemList(items, bookId) {
       ? `<span style="font-size:12px;color:var(--blue2);font-weight:600">빈칸 ${savedBlanks.length}개 지정됨</span>`
       : `<span style="font-size:12px;color:var(--t3)">자동 (지정 없음)</span>`;
     const clearBtn = savedBlanks.length > 0
-      ? `<button onclick="sentClearBlanks('${bookId}','${it.id}')" style="margin-left:auto;font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:1px 6px;border-radius:4px;border:1px solid var(--border)" onmouseover="this.style.color='var(--red)';this.style.borderColor='var(--red)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'">초기화</button>`
+      ? `<button onclick="sentClearBlanks('${bookId}','${it.id}')" style="margin-left:auto;font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:1px 6px;border-radius:4px;border:1px solid var(--border)" onmouseover="this.style.color='var(--red)';this.style.borderColor='var(--red)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'" ontouchstart="this.style.color='var(--red)';this.style.borderColor='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)';_b.style.borderColor='var(--border)'},300)">초기화</button>`
       : '';
     return `
     <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--bg)">
@@ -10975,7 +10927,7 @@ function renderSentItemList(items, bookId) {
           <div style="font-size:13px;color:var(--t2)">${it.ko}</div>
         </div>
         <button onclick="deleteSentItem('${bookId}','${it.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:18px;line-height:1;padding:2px 4px;border-radius:5px;flex-shrink:0"
-          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'" ontouchstart="this.style.color='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)'},300)">×</button>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:8px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
@@ -11194,7 +11146,7 @@ async function openSentAssignModal(bookId, initialTab) {
         </div>
         <button onclick="event.preventDefault();event.stopPropagation();_openSentTaskOptsModal('${bookId}','${safeId}','${safeName}',true)"
           style="flex-shrink:0;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all 0.12s"
-          onmouseover="this.style.background='#eff6ff';this.style.color='var(--blue)'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--t2)'">
+          onmouseover="this.style.background='#eff6ff';this.style.color='var(--blue)'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--t2)'" ontouchstart="this.style.background='#eff6ff';this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)';_b.style.color='var(--t2)'},300)">
           ⚙ 과제
         </button>
       </label>`;
@@ -11216,7 +11168,7 @@ async function openSentAssignModal(bookId, initialTab) {
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 배포됨</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부 배포됨</span>':''}
         <button onclick="event.stopPropagation();_samBulkTaskModal('${bookId}','${cls.id}')"
           style="flex-shrink:0;padding:4px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">⚡ 일괄 과제</button>
+          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" ontouchstart="this.style.background='#dbeafe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#eff6ff'},300)">⚡ 일괄 과제</button>
       </div>
       <div style="padding:4px 4px">
         ${members.length ? members.map(s => memberRow(s, assignedIds.has(s.id))).join('') : '<div style="color:var(--t3);text-align:center;padding:12px;font-size:13px">반원이 없습니다</div>'}
@@ -11256,7 +11208,7 @@ async function openSentAssignModal(bookId, initialTab) {
           </div>
           <button onclick="revokeSentAssign('${bookId}','${s.id}','${(s.name||s.email).replace(/'/g,"\\'")}')"
             style="flex-shrink:0;padding:4px 11px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:12px;font-weight:600;color:#dc2626;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" ontouchstart="this.style.background='#fee2e2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#fef2f2'},300)">
             ✕ 해제
           </button>
         </div>`;
@@ -11293,7 +11245,7 @@ async function openSentAssignModal(bookId, initialTab) {
     <div id="sam-footer-assigned" class="modal-actions" style="display:none">
       <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
       ${assignedSentCount > 0 ? `<button class="btn btn-ghost" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" onclick="revokeAllSentAssign('${bookId}',${assignedSentCount})"
-        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''">전체 해제</button>` : ''}
+        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''" ontouchstart="this.style.background='rgba(239,68,68,0.06)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background=''},300)">전체 해제</button>` : ''}
     </div>
   `);
 
@@ -11682,7 +11634,7 @@ async function openSentStudyBook(bookId) {
       onclick="speakAll([], this)"
       style="display:flex;align-items:center;gap:5px;padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap"
       onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'"
-      onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+      onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">
       ▶ 전체 재생
     </button>
     </div>
@@ -11727,7 +11679,7 @@ async function renderSstView() {
           padding:clamp(14px,3vw,20px) clamp(14px,3vw,24px);display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
           transition:all 0.2s;box-shadow:0 2px 8px rgba(15,23,42,0.04)"
           onmouseover="this.style.borderColor='${col.b}55';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.09)'"
-          onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.04)'">
+          onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.04)'" ontouchstart="this.style.borderColor='${col.b}55';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.09)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.boxShadow='0 2px 8px rgba(15,23,42,0.04)'},300)">
           <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
               <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}30;
@@ -11741,7 +11693,7 @@ async function renderSstView() {
             cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
             transition:all 0.18s;font-size:20px"
             onmouseover="this.style.background='${col.b}30';this.style.transform='scale(1.1)'"
-            onmouseout="this.style.background='${col.a}20';this.style.transform=''">
+            onmouseout="this.style.background='${col.a}20';this.style.transform=''" ontouchstart="this.style.background='${col.b}30';this.style.transform='scale(1.1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='${col.a}20';_b.style.transform=''},300)">
             🔊
           </button>
         </div>
@@ -11813,7 +11765,7 @@ function renderSstReadLayout() {
               background:${i===0 ? col.a+'25' : 'none'};cursor:pointer;transition:all 0.15s;margin-bottom:3px;
               border:1.5px solid ${i===0 ? col.b+'50' : 'transparent'}"
               onmouseover="if(${i}!==_sstReadIdx)this.style.background='var(--surface2)'"
-              onmouseout="if(${i}!==_sstReadIdx)this.style.background='none'">
+              onmouseout="if(${i}!==_sstReadIdx)this.style.background='none'" ontouchstart="if(${i}!==_sstReadIdx)this.style.background='var(--surface2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;if(${i}!==_sstReadIdx)_b.style.background='none'},300)">
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:12px;font-weight:700;color:${i===0?col.dark:'var(--t3)'};
                   background:${i===0?col.a+'30':'var(--surface2)'};padding:2px 7px;border-radius:5px;
@@ -11848,15 +11800,15 @@ function renderSstReadLayout() {
         <!-- 네비게이션 -->
         <div style="display:flex;gap:8px;justify-content:center;flex-shrink:0;padding-bottom:${isMobile?'8px':'4px'}">
           <button onclick="sstReadNav(-1)" style="flex:1;max-width:120px;padding:${isMobile?'13px 16px':'10px 24px'};background:#fff;border:2px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:${isMobile?'15px':'14px'};font-weight:600;color:var(--t2);cursor:pointer;transition:all 0.18s;min-height:${isMobile?'48px':'auto'}"
-            onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+            onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
             ◀ 이전
           </button>
           <button onclick="speak(_sstReadItems[_sstReadIdx].en)" style="padding:${isMobile?'13px 18px':'10px 20px'};background:${col.a}20;border:2px solid ${col.b}40;border-radius:14px;font-size:${isMobile?'20px':'18px'};cursor:pointer;transition:all 0.18s;min-height:${isMobile?'48px':'auto'}"
-            onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''">
+            onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.05)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
             🔊
           </button>
           <button onclick="sstReadNav(1)" style="flex:1;max-width:120px;padding:${isMobile?'13px 16px':'10px 24px'};background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:${isMobile?'15px':'14px'};font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.18s;box-shadow:0 3px 12px ${col.b}40;min-height:${isMobile?'48px':'auto'}"
-            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px ${col.b}50'" onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px ${col.b}40'">
+            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px ${col.b}50'" onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px ${col.b}40'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px ${col.b}50'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 3px 12px ${col.b}40'},300)">
             다음 ▶
           </button>
         </div>
@@ -11878,7 +11830,7 @@ function renderSstReadCard(idx, col) {
           <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}30;padding:4px 12px;border-radius:8px;font-family:'JetBrains Mono',monospace">No.${idx+1}</span>
           <button onclick="sstToggleKo()" id="sst-ko-toggle"
             style="font-size:${isMobile?'13px':'12px'};padding:${isMobile?'8px 14px':'7px 16px'};background:none;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;color:var(--t2);font-family:'Outfit',sans-serif;font-weight:600;transition:all 0.15s;min-height:${isMobile?'40px':'auto'}"
-            onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='var(--border)'">
+            onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)">
             해석 ${isMobile?'보기':'보기/숨기기'}
           </button>
         </div>
@@ -11965,14 +11917,14 @@ async function renderSstWordsInPanel() {
   function buildItem(w, i) {
     const eB = st.enHidden ? 'filter:blur(5px);user-select:none;' : '';
     const kB = st.koHidden ? 'filter:blur(5px);user-select:none;' : '';
-    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:all 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:all 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''" ontouchstart="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow=''},300)">
       <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}25;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:3px">${w.en}</div>
         <div style="${kB}font-size:15px;font-weight:600;color:${col.dark}">${w.ko}</div>
         ${w.example ? '<div style="font-size:13px;color:#94a3b8;font-style:italic;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w.example+'</div>' : ''}
       </div>
-      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:36px;height:36px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">🔊</button>
+      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:36px;height:36px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">🔊</button>
     </div>`;
   }
 
@@ -11993,7 +11945,7 @@ async function renderSstWordsInPanel() {
             <div id="sstkw-hint" style="position:absolute;bottom:12px;font-size:13px;color:#c8d8e8">탭해서 뜻 확인</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
-            <button onclick="sstkwNav(-1)" style="padding:9px 20px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'">◀ 이전</button>
+            <button onclick="sstkwNav(-1)" style="padding:9px 20px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e0ebf5'},300)">◀ 이전</button>
             <button onclick="speak('${w.en.replace(/'/g,"\'")}') " style="width:40px;height:40px;border-radius:50%;background:${col.a}20;border:2px solid ${col.b}40;font-size:18px;cursor:pointer">🔊</button>
             <button onclick="sstkwNav(1)" style="padding:9px 20px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:14px;font-size:15px;font-weight:700;color:${col.dark};cursor:pointer;box-shadow:0 3px 12px ${col.b}40">다음 ▶</button>
           </div>
@@ -12118,14 +12070,14 @@ async function openSstWordsOverlay() {
   function buildItem(w, i) {
     const eB = st.enHidden ? 'filter:blur(5px);user-select:none;' : '';
     const kB = st.koHidden ? 'filter:blur(5px);user-select:none;' : '';
-    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:all 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:all 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''" ontouchstart="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow=''},300)">
       <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}25;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:3px">${w.en}</div>
         <div style="${kB}font-size:15px;font-weight:600;color:${col.dark}">${w.ko}</div>
         ${w.example ? '<div style="font-size:13px;color:#94a3b8;font-style:italic;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w.example+'</div>' : ''}
       </div>
-      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:30px;height:30px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">🔊</button>
+      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:30px;height:30px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">🔊</button>
     </div>`;
   }
 
@@ -12138,7 +12090,7 @@ async function openSstWordsOverlay() {
       const w = words[st.cardIdx];
       body.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px;min-height:380px;justify-content:center">
-          <div onclick="sstkwFlip()" style="width:100%;max-width:520px;min-height:180px;background:#fff;border-radius:22px;border:2.5px solid ${col.b}40;box-shadow:0 8px 28px ${col.b}20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;cursor:pointer;position:relative;margin-bottom:18px" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div onclick="sstkwFlip()" style="width:100%;max-width:520px;min-height:180px;background:#fff;border-radius:22px;border:2.5px solid ${col.b}40;box-shadow:0 8px 28px ${col.b}20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;cursor:pointer;position:relative;margin-bottom:18px" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-2px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
             <div style="position:absolute;top:14px;left:16px;font-size:12px;color:#b0c4d8;font-weight:700;letter-spacing:1px">${st.cardIdx+1} / ${words.length}</div>
             <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;color:#1e3a5f;text-align:center">${w.en}</div>
             <div id="sstkw-back" style="display:none;width:100%;text-align:center;margin-top:16px;padding-top:16px;border-top:1.5px solid var(--surface2)">
@@ -12148,7 +12100,7 @@ async function openSstWordsOverlay() {
             <div id="sstkw-hint" style="position:absolute;bottom:12px;font-size:13px;color:#c8d8e8">탭해서 뜻 확인</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
-            <button onclick="sstkwNav(-1)" style="padding:9px 20px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'">◀ 이전</button>
+            <button onclick="sstkwNav(-1)" style="padding:9px 20px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e0ebf5'},300)">◀ 이전</button>
             <button onclick="speak('${w.en.replace(/'/g,"\'")}') " style="width:40px;height:40px;border-radius:50%;background:${col.a}20;border:2px solid ${col.b}40;font-size:18px;cursor:pointer">🔊</button>
             <button onclick="sstkwNav(1)" style="padding:9px 20px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:14px;font-size:15px;font-weight:700;color:${col.dark};cursor:pointer;box-shadow:0 3px 12px ${col.b}40">다음 ▶</button>
           </div>
@@ -12198,7 +12150,7 @@ async function openSstWordsOverlay() {
   ov.innerHTML = `
     <div style="background:#fff;border-bottom:1.5px solid #dde8f2;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 8px rgba(30,58,95,0.06)">
       <div style="display:flex;align-items:center;gap:10px">
-        <button onclick="document.getElementById('sst-words-overlay').remove();sentStudySetTab('view')" style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'">
+        <button onclick="document.getElementById('sst-words-overlay').remove();sentStudySetTab('view')" style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2'},300)">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> 문장학습
         </button>
         <div>
@@ -12213,8 +12165,8 @@ async function openSstWordsOverlay() {
         <button id="sstkw-mode-card" onclick="sstkwSetMode('card')" style="padding:5px 12px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;background:none;color:#7ea8cc">카드</button>
       </div>
       <div id="sstkw-hide-btns" style="display:flex;gap:6px">
-        <button id="sstkw-ko-btn" onclick="sstkwToggleKo()" style="padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'">뜻 가리기</button>
-        <button id="sstkw-en-btn" onclick="sstkwToggleEn()" style="padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'">영어 가리기</button>
+        <button id="sstkw-ko-btn" onclick="sstkwToggleKo()" style="padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2'},300)">뜻 가리기</button>
+        <button id="sstkw-en-btn" onclick="sstkwToggleEn()" style="padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2'},300)">영어 가리기</button>
       </div>
     </div>
     <div id="sstkw-body" style="flex:1;overflow-y:auto"></div>
@@ -12259,7 +12211,7 @@ async function renderSstGrammarOverlay() {
 
   ov.innerHTML = `
     <div style="background:#fff;border-bottom:1.5px solid #dde8f2;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 1px 8px rgba(30,58,95,0.06)">
-      <button onclick="document.getElementById('sst-grammar-overlay').remove();sentStudySetTab('view')" style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'">
+      <button onclick="document.getElementById('sst-grammar-overlay').remove();sentStudySetTab('view')" style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#dde8f2'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2'},300)">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> 문장학습
       </button>
       <div>
@@ -12457,7 +12409,7 @@ async function renderSentenceStudy() {
         return `<button onclick="${onclick}"
           style="${activeStyle}"
           onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-          onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
+          onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#cbd5e1';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)">
           ${icon}${label}
         </button>`;
       }
@@ -12483,7 +12435,7 @@ async function renderSentenceStudy() {
             </div>
             ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
                 style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
-                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'">
+                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'" ontouchstart="this.style.background='#163490'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#1e4db7'},300)">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -12520,7 +12472,7 @@ async function renderSentenceStudy() {
           <button onclick="openSentStudyBook('${b.id}')"
             style="width:100%;padding:12px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28);min-height:44px"
             onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'">
+            onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'" ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             문장공부
           </button>
@@ -12620,7 +12572,7 @@ function renderSentStudyCard() {
           min-height:44px;
           box-shadow:0 2px 6px rgba(30,58,95,0.06)"
           onmouseover="if(!this.dataset.used){this.style.borderColor='${col.b}';this.style.background='${col.a}25';this.style.transform='translateY(-2px)'}"
-          onmouseout="if(!this.dataset.used){this.style.borderColor='#d4e2ef';this.style.background='#fff';this.style.transform=''}">${w}</button>`).join('')}
+          onmouseout="if(!this.dataset.used){this.style.borderColor='#d4e2ef';this.style.background='#fff';this.style.transform=''}" ontouchstart="if(!this.dataset.used){this.style.borderColor='${col.b}';this.style.background='${col.a}25';this.style.transform='translateY(-2px)'}" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;if(!this.dataset.used){_b.style.borderColor='#d4e2ef';_b.style.background='#fff';_b.style.transform=''}},300)">${w}</button>`).join('')}
       </div>
       <div style="text-align:center">
         <button onclick="sentCheckUnscramble()"
@@ -12629,7 +12581,7 @@ function renderSentStudyCard() {
           box-shadow:0 4px 14px rgba(30,58,95,0.3);transition:all 0.18s;
           min-height:48px;width:100%;max-width:300px"
           onmouseover="this.style.transform='translateY(-2px)'"
-          onmouseout="this.style.transform=''">확인</button>
+          onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-2px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">확인</button>
       </div>
       <div id="sent-check-area" style="margin-top:12px;text-align:center"></div>`;
   }
@@ -12672,7 +12624,7 @@ function renderSentStudyCard() {
           box-shadow:0 4px 14px rgba(30,58,95,0.3);transition:all 0.18s;
           min-height:48px;width:100%;max-width:300px"
           onmouseover="this.style.transform='translateY(-2px)'"
-          onmouseout="this.style.transform=''">확인</button>
+          onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-2px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">확인</button>
       </div>
       <div id="sent-check-area" style="margin-top:12px;text-align:center"></div>`;
   }
@@ -12796,7 +12748,7 @@ function renderSentStudyCard() {
             font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;
             transition:all 0.15s"
             onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'"
-            onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+            onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">
             건너뛰기 →
           </button>
         </div>
@@ -12916,14 +12868,14 @@ async function sentFinish() {
           <button onclick="startSentStudy('${_sentStudyBook}','${_sentStudyMode}')"
             style="padding:12px 22px;background:var(--surface2);color:#1e3a5f;border:none;border-radius:12px;
             font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.18s;min-height:44px"
-            onmouseover="this.style.background='#e0e8f0'" onmouseout="this.style.background='var(--surface2)'">
+            onmouseover="this.style.background='#e0e8f0'" onmouseout="this.style.background='var(--surface2)'" ontouchstart="this.style.background='#e0e8f0'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)'},300)">
             다시 학습
           </button>
           <button onclick="startSentStudy('${_sentStudyBook}','${_sentStudyMode==='unscramble'?'dictation':'unscramble'}')"
             style="padding:12px 22px;background:#1e3a5f;color:#fff;border:none;border-radius:12px;
             font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
             box-shadow:0 4px 14px rgba(30,58,95,0.3);transition:all 0.18s"
-            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-2px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
             ${_sentStudyMode==='unscramble'?'빈칸 채우기 →':'문장 배열 →'}
           </button>
           <button onclick="startSentRecording('${_sentStudyBook}')"
@@ -12931,7 +12883,7 @@ async function sentFinish() {
             color:${colFin.dark};border:none;border-radius:12px;
             font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
             box-shadow:0 4px 14px ${colFin.b}40;transition:all 0.18s"
-            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-2px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
             낭독 연습
           </button>
           <button onclick="document.getElementById('sent-study-overlay')?.remove();renderSentenceStudy()"
@@ -12939,7 +12891,7 @@ async function sentFinish() {
             border:1.5px solid #dde8f2;border-radius:12px;
             font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.18s"
             onmouseover="this.style.borderColor='${colFin.b}';this.style.color='${colFin.dark}'"
-            onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+            onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${colFin.b}';this.style.color='${colFin.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">
             목록
           </button>
         </div>
@@ -13525,7 +13477,7 @@ async function sentMakeTest(bookId) {
           <button onclick="sttPreview(true)"
             style="width:100%;margin-top:8px;padding:9px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.25);border-radius:8px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif"
             onmouseover="this.style.background='rgba(99,102,241,0.25)'"
-            onmouseout="this.style.background='rgba(99,102,241,0.15)'">
+            onmouseout="this.style.background='rgba(99,102,241,0.15)'" ontouchstart="this.style.background='rgba(99,102,241,0.25)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='rgba(99,102,241,0.15)'},300)">
             🔀 다시 섞기
           </button>
         </div>
@@ -14108,10 +14060,10 @@ function renderLibrary() {
         <div style="flex:1"></div>
         <button onclick="libDeleteSelected()"
           style="padding:5px 12px;background:#ef4444;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">선택 삭제</button>
+          onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'" ontouchstart="this.style.background='#dc2626'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#ef4444'},300)">선택 삭제</button>
         <button onclick="libDeleteAll()"
           style="padding:5px 12px;background:none;color:#ef4444;border:1.5px solid #fecaca;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">모두 삭제</button>
+          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">모두 삭제</button>
       </div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-weight:700;font-size:16px;color:var(--t1)">${coll?.name||'단어장'}</div>
@@ -14187,14 +14139,14 @@ function renderLibrary() {
               box-shadow:0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04);position:relative;
               ${_libCollEditMode ? 'animation:collEditShake 0.22s ease;' : ''}"
             onmouseover="if(!${_libCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}"
-            onmouseout="if(!${_libCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}">
+            onmouseout="if(!${_libCollEditMode}){this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';this.style.borderColor='var(--border)';}" ontouchstart="if(!${_libCollEditMode}){this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,0.10),0 2px 6px rgba(15,23,42,0.05)';this.style.borderColor='#c8d4f0';}" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;if(!${_libCollEditMode}){_b.style.transform='';_b.style.boxShadow='0 2px 8px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)';_b.style.borderColor='var(--border)';}},300)">
             ${_libCollEditMode ? `
               <button onclick="event.stopPropagation();libCollDeleteOne('${c.id}')"
                 style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
                   background:#ef4444;border:2.5px solid #fff;color:#fff;font-size:15px;font-weight:700;
                   cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;
                   line-height:1;padding:0;box-shadow:0 2px 6px rgba(239,68,68,0.4);transition:transform 0.12s"
-                onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''">×</button>
+                onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.15)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">×</button>
             ` : ''}
             <div style="flex:1;min-width:0;margin-right:10px">
               ${_libCollEditMode
@@ -14210,7 +14162,7 @@ function renderLibrary() {
             ${_libCollEditMode
               ? `<button onclick="event.stopPropagation();openWordCollClassModal('${c.id}')"
                   style="flex-shrink:0;padding:3px 9px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">담당 반${classIds.length?' ✓':''}</button>`
+                  onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='var(--accent)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)">담당 반${classIds.length?' ✓':''}</button>`
               : `${_favToggleHTML('word',c.id,'toggleFavWordColl')}`}
           </div>`;
         }).join('')}
@@ -14391,7 +14343,7 @@ function bookListHTML(b, draggable) {
     border-radius:14px;border:1.5px solid var(--border);transition:all 0.18s;
     box-shadow:0 1px 4px rgba(15,23,42,0.04);cursor:default"
     onmouseover="this.style.borderColor='var(--border2)';this.style.boxShadow='0 3px 14px rgba(15,23,42,0.08)'"
-    onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'">
+    onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'" ontouchstart="this.style.borderColor='var(--border2)';this.style.boxShadow='0 3px 14px rgba(15,23,42,0.08)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.boxShadow='0 1px 4px rgba(15,23,42,0.04)'},300)">
 
     ${_libEditMode?`<div class="lib-drag-handle" style="color:var(--t3);font-size:15px;flex-shrink:0;cursor:grab;padding:0 4px;line-height:1;user-select:none">⠿</div>`:''}
     ${_libEditMode?`<input type="checkbox" class="lib-book-chk" data-id="${b.id}"
@@ -14407,7 +14359,7 @@ function bookListHTML(b, draggable) {
             style="font-size:15px;font-weight:700;color:var(--t1);border:1.5px solid var(--blue);border-radius:7px;padding:3px 8px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#fff">`
         : `<div style="font-size:16px;font-weight:800;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all 0.15s;cursor:pointer;letter-spacing:-0.3px;display:flex;align-items:center;gap:6px"
             onclick="openTeacherWordView('${b.id}')"
-            onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'">${b.name} <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:0.3;flex-shrink:0'><polyline points='9 18 15 12 9 6'/></svg></div>`
+            onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t1)'},300)">${b.name} <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:0.3;flex-shrink:0'><polyline points='9 18 15 12 9 6'/></svg></div>`
       }
       <div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap">
         <span style="font-size:13px;color:var(--t3)">${wc}개 단어</span>
@@ -14424,22 +14376,22 @@ function bookListHTML(b, draggable) {
         <button onclick="bookMakeTest('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">시험지</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">시험지</button>
         <button onclick="openWordPrintStudio('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:4px"
           title="바로 인쇄"
-          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+          onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           인쇄</button>
         <button onclick="openBookAssignModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">배포</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">배포</button>
         <button onclick="openWordBookStatusModal('${b.id}')"
           style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">현황</button>
+          onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">현황</button>
       </div>
     </div>`}
   </div>`;
@@ -14473,34 +14425,34 @@ function bookCardHTML(b, isTeacher, fromDash) {
       <button onclick="bookMakeTest('${b.id}')"
         style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
         font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
         시험지
       </button>
       <button onclick="openWordPrintStudio('${b.id}')"
         style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
         font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:3px"
         title="바로 인쇄"
-        onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+        onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         인쇄
       </button>
       <button onclick="openBookAssignModal('${b.id}')"
         style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
         font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
         배포
       </button>
       <button onclick="openWordBookStatusModal('${b.id}')"
         style="padding:7px 0;background:#fff;color:var(--t2);border:1.5px solid var(--border);border-radius:10px;
         font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">
         현황
       </button>
     </div>
     ${isTeacherOrOwner(b)
       ? `<button onclick="deleteBook('${b.id}',${fromDash||false})"
           style="width:100%;padding:6px 0;background:none;border:1px solid #fee2e2;border-radius:9px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;transition:all 0.15s"
-          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">삭제</button>`
+          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">삭제</button>`
       : ''}` : '';
 
   return `
@@ -14508,11 +14460,11 @@ function bookCardHTML(b, isTeacher, fromDash) {
     box-shadow:0 4px 20px rgba(15,23,42,0.07),0 1px 4px rgba(15,23,42,0.04);
     transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:2px solid var(--border);"
     onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.14)';this.style.borderColor='var(--border2)'"
-    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';this.style.borderColor='var(--border)'">
+    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';this.style.borderColor='var(--border)'" ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.14)';this.style.borderColor='var(--border2)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 4px 20px rgba(15,23,42,0.07)';_b.style.borderColor='var(--border)'},300)">
 
     <!-- 상단 (클릭 → 편집) -->
     <div style="height:72px;background:var(--surface2);position:relative;overflow:hidden;padding:16px 18px 0;cursor:pointer;transition:background 0.15s"
-      onclick="openTeacherWordView('${b.id}')" onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='var(--surface2)'">
+      onclick="openTeacherWordView('${b.id}')" onmouseover="this.style.background='var(--blue-dim)'" onmouseout="this.style.background='var(--surface2)'" ontouchstart="this.style.background='var(--blue-dim)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)'},300)">
       <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:1">
         <div style="width:36px;height:36px;border-radius:10px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:17px">📖</div>
         <div style="flex:1;min-width:0">
@@ -16471,25 +16423,25 @@ function _renderClassListView() {
           <!-- 반 액션 버튼 -->
           <button onclick="event.stopPropagation();openSendClassMessageModal('${cls.id}','${esc(cls.name)}')"
             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif"
-            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='var(--accent)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)"
             onmousedown="event.stopPropagation()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>단체 쪽지
           </button>
           <button onclick="event.stopPropagation();sdmOpenAddMember('${cls.id}')"
             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif"
-            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='var(--accent)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)"
             onmousedown="event.stopPropagation()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>학생 추가
           </button>
           <button onclick="event.stopPropagation();openClassAssignStatusModal('${cid}')"
             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:'Outfit',sans-serif"
-            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='var(--accent)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)"
             onmousedown="event.stopPropagation()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>과제 관리
           </button>
           <button onclick="event.stopPropagation();openClassTaskReminderModal('${cid}')"
             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:#1e4db7;cursor:pointer;font-family:'Outfit',sans-serif"
-            onmouseover="this.style.borderColor='#1e4db7'" onmouseout="this.style.borderColor='var(--border)'"
+            onmouseover="this.style.borderColor='#1e4db7'" onmouseout="this.style.borderColor='var(--border)'" ontouchstart="this.style.borderColor='#1e4db7'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border)'},300)"
             onmousedown="event.stopPropagation()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>과제 알림
           </button>
@@ -16589,7 +16541,7 @@ function _clsShowEditMode(classId, currentName) {
         <button class="btn btn-primary" style="flex:2" onclick="sdmSaveClassName('${classId}')">저장</button>
       </div>
       <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:rgba(239,68,68,0.3)"
-        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''"
+        onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background=''" ontouchstart="this.style.background='rgba(239,68,68,0.06)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background=''},300)"
         onclick="closeModal();deleteClass('${classId}')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         이 반 삭제
@@ -16679,7 +16631,7 @@ async function openStudentDetailInline(studentId) {
   detailView.innerHTML = `
     <button onclick="sdmBackToList()"
       style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px;font-family:'Outfit',sans-serif"
-      onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t3)'">
+      onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t3)'" ontouchstart="this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)'},300)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
       목록으로
     </button>
@@ -16907,7 +16859,7 @@ async function openStudentDetailInline(studentId) {
                 <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
                 <button onclick="confirmResetStudentProgress('${s.id}','${esc(s.name)}','${b.id}','${esc(b.name)}')"
                   style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif"
-                  onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
+                  onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg> 초기화
                 </button>
               </div>
@@ -17007,7 +16959,7 @@ async function openStudentDetailInline(studentId) {
               <span style="font-size:13px;color:var(--t3)">${new Date(sub.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
               ${sub.recorded_url ? `<audio src="${sub.recorded_url}" controls style="height:24px;flex:1;min-width:80px"></audio>` : `<span style="font-size:13px;color:var(--t3)">기록 없음</span>`}
               <button onclick="adminDeleteSentRecOne('${sub.id}')" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;padding:0 2px"
-                onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'">×</button>
+                onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--t3)'" ontouchstart="this.style.color='var(--red)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='var(--t3)'},300)">×</button>
             </div>`).join('')}
         </div>` : ''}
         ${recentSentHtml}
@@ -17424,7 +17376,7 @@ async function renderSentAssignBody() {
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 전체</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부</span>':''}
         <button onclick="event.stopPropagation();_panelSentBulkModal('${bid}','${cls.id}')"
           style="flex-shrink:0;padding:4px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">⚡ 일괄 과제</button>
+          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" ontouchstart="this.style.background='#dbeafe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#eff6ff'},300)">⚡ 일괄 과제</button>
       </div>
       <div style="padding:4px 4px">
         ${members.length ? members.map(s=>_sentMemberRowPanel(s,bid,assignedIds.has(s.id),window._sentTaskOptsTemp[s.id])).join('') : '<div style="color:var(--t3);text-align:center;padding:12px;font-size:13px">반원이 없습니다</div>'}
@@ -17558,7 +17510,7 @@ async function _renderAssignTable() {
         ${allChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--green-dim);color:var(--green);border:1px solid rgba(5,150,105,0.2)">✓ 전체</span>':anyChk?'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#d97706;border:1px solid #fde68a">일부</span>':''}
         <button onclick="event.stopPropagation();_panelWordBulkModal('${bid}','${cls.id}')"
           style="flex-shrink:0;padding:4px 10px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap"
-          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">⚡ 일괄 과제</button>
+          onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" ontouchstart="this.style.background='#dbeafe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#eff6ff'},300)">⚡ 일괄 과제</button>
       </div>
       <div style="padding:4px 4px">
         ${members.length
@@ -18028,7 +17980,9 @@ function renderMyBooks() {
           return `<button onclick="${onclick}"
             style="${activeStyle}"
             onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">
+            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#cbd5e1';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)"
+            ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
+            ontouchend="var b=this;setTimeout(function(){b.style.borderColor='#cbd5e1';b.style.color='#1e3a5f';b.style.background='#fff'},300)">
             ${icon}${label}
           </button>`;
         }
@@ -18060,7 +18014,9 @@ function renderMyBooks() {
           box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);
           transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:1.5px solid ${hasTask?'#dbeafe':'#e8edf4'};"
           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'">
+          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'" ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';_b.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'},300)"
+          ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
+          ontouchend="var c=this,bc='${hasTask?'#dbeafe':'#e8edf4'}';setTimeout(function(){c.style.transform='';c.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';c.style.borderColor=bc},300)">
 
           <!-- 1행: 컬렉션 pill + 과제배지(팝업버튼) + 점수 -->
           <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center">
@@ -18070,7 +18026,7 @@ function renderMyBooks() {
               </div>
               ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
                 style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
-                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'">
+                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'" ontouchstart="this.style.background='#163490'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#1e4db7'},300)">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -18104,7 +18060,9 @@ function renderMyBooks() {
             <button onclick="openStudentWordView('${b.id}')"
               style="width:100%;padding:11px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28)"
               onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-              onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'">
+              onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'" ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)"
+              ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
+              ontouchend="var b=this;setTimeout(function(){b.style.transform='';b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
               단어보기
             </button>
@@ -18163,7 +18121,7 @@ function _makeOverlayHeader(opts) {
     <div style="background:rgba(255,255,255,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(3,22,56,0.05);padding:0 clamp(10px,3vw,24px) 0 clamp(10px,3vw,24px);height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 0 rgba(3,22,56,0.04),0 2px 12px rgba(15,23,42,0.05);min-width:0;overflow:hidden;">
       <!-- 왼쪽: 뒤로가기 + 타이틀 -->
       <div style="display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:1;overflow:hidden;">
-        <button onclick="speakAllStop();${opts.backFn}" style="display:flex;align-items:center;gap:5px;padding:6px 10px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'">
+        <button onclick="speakAllStop();${opts.backFn}" style="display:flex;align-items:center;gap:5px;padding:6px 10px;background:#f8fafc;border:1px solid #e8edf4;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#f1f5f9';this.style.color='#64748b'" onmouseout="this.style.background='#f8fafc';this.style.color='#94a3b8'" ontouchstart="this.style.background='#f1f5f9';this.style.color='#64748b'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#f8fafc';_b.style.color='#94a3b8'},300)">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>${opts.backLabel}
         </button>
         <div style="min-width:0;overflow:hidden;">
@@ -18220,7 +18178,7 @@ function _makeOverlayHeader(opts) {
           </button>
           <button id="st-profile-btn" onclick="stToggleProfile()" title="프로필"
             style="width:40px;height:40px;border-radius:50%;overflow:hidden;padding:0;border:2px solid #e2e8f0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color 0.15s"
-            onmouseover="this.style.borderColor='#93c5fd'" onmouseout="this.style.borderColor='#e2e8f0'">
+            onmouseover="this.style.borderColor='#93c5fd'" onmouseout="this.style.borderColor='#e2e8f0'" ontouchstart="this.style.borderColor='#93c5fd'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0'},300)">
             ${buildMiniSlimeSVG(slime.stage, 32, {colorId:slime.colorId,eyeStyle:slime.eyeStyle,accessory:slime.accessory})}
           </button>
           <div id="st-profile-panel" class="student-profile-menu" style="display:none">
@@ -18268,15 +18226,15 @@ async function openStudentWordView(bookId) {
     const done = checked.has(w.id||w.en);
     const eB = enHidden ? 'filter:blur(5px);user-select:none;' : '';
     const kB = koHidden ? 'filter:blur(5px);user-select:none;' : '';
-    return `<div id="wv-row-${i}" style="background:#fff;border-radius:14px;border:1.5px solid ${done?col.b+'55':'#e8eef8'};padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;transition:all 0.2s;${done?'opacity:0.75':''}" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div id="wv-row-${i}" style="background:#fff;border-radius:14px;border:1.5px solid ${done?col.b+'55':'#e8eef8'};padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;transition:all 0.2s;${done?'opacity:0.75':''}" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''" ontouchstart="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow=''},300)">
       <span style="font-size:13px;font-weight:700;color:${col.dark};background:${col.a}25;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:3px">${w.en}</div>
         <div style="${kB}font-size:15px;font-weight:600;color:${col.dark}">${w.ko}</div>
         ${w.example ? '<div style="font-size:13px;color:#94a3b8;font-style:italic;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w.example+'</div>' : ''}
       </div>
-      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:30px;height:30px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">🔊</button>
-      <button onclick="event.stopPropagation();wvToggleCheck('${w.id||w.en}',${i})" id="wv-check-${i}" style="width:32px;height:32px;border-radius:50%;background:${done?'linear-gradient(135deg,'+col.a+','+col.b+')':'#f1f5f9'};border:2px solid ${done?col.b:'#e0ebf5'};cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-weight:700;color:${done?col.dark:'#94a3b8'}" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">${done?'✓':''}</button>
+      <button onclick="speak(this.dataset.en)" data-en="${w.en.replace(/"/g,'&quot;')}" style="width:30px;height:30px;border-radius:50%;background:${col.a}20;border:1px solid ${col.b}40;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">🔊</button>
+      <button onclick="event.stopPropagation();wvToggleCheck('${w.id||w.en}',${i})" id="wv-check-${i}" style="width:32px;height:32px;border-radius:50%;background:${done?'linear-gradient(135deg,'+col.a+','+col.b+')':'#f1f5f9'};border:2px solid ${done?col.b:'#e0ebf5'};cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-weight:700;color:${done?col.dark:'#94a3b8'}" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='scale(1.1)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">${done?'✓':''}</button>
     </div>`;
   }
 
@@ -18294,7 +18252,7 @@ async function openStudentWordView(bookId) {
         <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px;min-height:400px;justify-content:center">
           <div id="wv-card-box" onclick="wvFlipCard()"
             style="width:100%;max-width:520px;min-height:200px;background:#fff;border-radius:24px;border:2.5px solid ${col.b}40;box-shadow:0 8px 32px ${col.b}20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 36px 32px;cursor:pointer;transition:all 0.25s;position:relative;margin-bottom:20px"
-            onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+            onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-3px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
             <div style="position:absolute;top:14px;left:16px;font-size:12px;color:#b0c4d8;font-weight:700;letter-spacing:1px;text-transform:uppercase">${cardIdx+1} / ${words.length}</div>
             <div style="position:absolute;top:12px;right:14px;font-size:13px;color:${done?col.dark:'#94a3b8'};background:${done?col.a+'30':'#f1f5f9'};padding:3px 10px;border-radius:20px;font-weight:700;border:1px solid ${done?col.b+'40':'#e0ebf5'}">${done?'✓ 암기':'미암기'}</div>
             <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:800;color:#1e3a5f;text-align:center;line-height:1.4">${w.en}</div>
@@ -18305,7 +18263,7 @@ async function openStudentWordView(bookId) {
             <div id="wv-card-hint" style="position:absolute;bottom:14px;font-size:13px;color:#c8d8e8;font-weight:500">탭해서 뜻 확인</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">
-            <button onclick="wvCardNav(-1)" style="padding:10px 22px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'">◀ 이전</button>
+            <button onclick="wvCardNav(-1)" style="padding:10px 22px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${col.b}'" onmouseout="this.style.borderColor='#e0ebf5'" ontouchstart="this.style.borderColor='${col.b}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e0ebf5'},300)">◀ 이전</button>
             <button onclick="speak('${w.en.replace(/'/g,"\\'")}')" style="width:44px;height:44px;border-radius:50%;background:${col.a}20;border:2px solid ${col.b}40;font-size:20px;cursor:pointer">🔊</button>
             <button onclick="wvCardToggleCheck()" style="padding:10px 18px;background:${done?'linear-gradient(135deg,'+col.a+','+col.b+')':'#fff'};border:2px solid ${done?col.b:'#e0ebf5'};border-radius:14px;font-size:14px;font-weight:700;color:${done?col.dark:'#7ea8cc'};cursor:pointer;transition:all 0.2s">${done?'✓ 암기':'미암기'}</button>
             <button onclick="wvCardNav(1)" style="padding:10px 22px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:14px;font-size:15px;font-weight:700;color:${col.dark};cursor:pointer;box-shadow:0 4px 14px ${col.b}40">다음 ▶</button>
@@ -18400,7 +18358,7 @@ async function openStudentWordView(bookId) {
         <button id="wv-play-all-btn" data-playing="0"
           style="display:flex;align-items:center;gap:5px;padding:5px 12px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap"
           onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'"
-          onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">
+          onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">
           ▶ 전체 재생
         </button>
 
@@ -18411,8 +18369,8 @@ async function openStudentWordView(bookId) {
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">가리기</span>
           <div id="wv-hide-btns" style="display:flex;gap:5px">
-            <button id="wv-ko-btn" onclick="wvToggleKo()" style="padding:5px 11px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">뜻 가리기</button>
-            <button id="wv-en-btn" onclick="wvToggleEn()" style="padding:5px 11px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'">영어 가리기</button>
+            <button id="wv-ko-btn" onclick="wvToggleKo()" style="padding:5px 11px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">뜻 가리기</button>
+            <button id="wv-en-btn" onclick="wvToggleEn()" style="padding:5px 11px;background:none;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#7ea8cc;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#7ea8cc'" ontouchstart="this.style.borderColor='${col.b}';this.style.color='${col.dark}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#7ea8cc'},300)">영어 가리기</button>
           </div>
         </div>
 
@@ -18421,9 +18379,9 @@ async function openStudentWordView(bookId) {
       <!-- 우: 학습 이동 -->
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;row-gap:5px">
         <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
-        <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">암기</button>
-        <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''">퀴즈</button>
-        <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
+        <button onclick="document.getElementById('word-view-overlay').remove();openStudentStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${col.a},${col.b});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${col.dark};cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${col.b}30;white-space:nowrap" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-1px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">암기</button>
+        <button onclick="openQuizTypePopup('${bookId}','choice')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='#dde8f2';this.style.transform=''" ontouchstart="this.style.borderColor='${col.b}';this.style.transform='translateY(-1px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.transform=''},300)">퀴즈</button>
+        <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)">📝 테스트</button>
 
       </div>
 
@@ -18640,7 +18598,7 @@ function renderFC() {
               cursor:pointer;color:#7ea8cc;display:flex;align-items:center;justify-content:center;
               transition:all 0.15s"
               onmouseover="this.style.background='${col.b}';this.style.color='#fff'"
-              onmouseout="this.style.background='var(--surface2)';this.style.color='#7ea8cc'">
+              onmouseout="this.style.background='var(--surface2)';this.style.color='#7ea8cc'" ontouchstart="this.style.background='${col.b}';this.style.color='#fff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='var(--surface2)';_b.style.color='#7ea8cc'},300)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             </button>
           </div>
@@ -18680,7 +18638,7 @@ function renderFC() {
             font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;
             transition:all 0.18s;box-shadow:0 4px 16px rgba(110,231,183,0.35)"
             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(110,231,183,0.5)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(110,231,183,0.35)'">
+            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(110,231,183,0.35)'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(110,231,183,0.5)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 4px 16px rgba(110,231,183,0.35)'},300)">
             알아요 <span style="font-size:13px;opacity:0.65;display:block;font-weight:400">(I know)</span>
           </button>
           <button onclick="fcDontKnow()"
@@ -18689,7 +18647,7 @@ function renderFC() {
             font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;
             transition:all 0.18s;box-shadow:0 4px 16px rgba(26,45,74,0.3)"
             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(26,45,74,0.4)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(26,45,74,0.3)'">
+            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(26,45,74,0.3)'" ontouchstart="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(26,45,74,0.4)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 4px 16px rgba(26,45,74,0.3)'},300)">
             몰라요 <span style="font-size:13px;opacity:0.6;display:block;font-weight:400">(I don't know)</span>
           </button>
         </div>
@@ -20030,7 +19988,7 @@ async function renderSentProgress() {
             </div>
             <button onclick="deleteSentRec('${b.id}')"
               style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s"
-              onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
+              onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">
               전체 삭제
             </button>
           </div>
@@ -20044,7 +20002,7 @@ async function renderSentProgress() {
                   : `<span style="font-size:12px;color:#059669;font-weight:600;background:#f0fdf4;padding:2px 8px;border-radius:6px">✓ 완료</span>`}
                 <button onclick="deleteSentRecOne('${s.id}')"
                   style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.12s"
-                  onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">×</button>
+                  onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'" ontouchstart="this.style.color='#ef4444'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.color='#cbd5e1'},300)">×</button>
               </div>`).join('')}
             ${recSubs.length>5?`<div style="font-size:13px;color:#94a3b8;text-align:center;padding:4px 0">... 외 ${recSubs.length-5}개</div>`:''}
           </div>
@@ -20318,7 +20276,7 @@ async function renderProgress(){
               <span style="font-size:13px;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:600">📝 퀴즈 ${scores.length}회</span>
               <button onclick="confirmResetProgress('${b.id}','${esc(b.name)}')"
                 style="padding:5px 12px;background:none;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#ef4444;cursor:pointer;font-family:'Outfit',sans-serif"
-                onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
+                onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'" ontouchstart="this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='none'},300)">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9L1 10"/></svg> 초기화
               </button>
             </div>
@@ -22453,7 +22411,7 @@ function testShowSettings(defaultTitle, words) {
         <!-- 1면 인쇄 토글 -->
         <div style="margin-bottom:14px">
           <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px solid rgba(99,102,241,0.4);border-radius:10px;background:rgba(99,102,241,0.08);cursor:pointer;transition:all 0.15s"
-            onmouseover="this.style.background='rgba(99,102,241,0.15)'" onmouseout="this.style.background='rgba(99,102,241,0.08)'" id="ts-onepage-label">
+            onmouseover="this.style.background='rgba(99,102,241,0.15)'" onmouseout="this.style.background='rgba(99,102,241,0.08)'" ontouchstart="this.style.background='rgba(99,102,241,0.15)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='rgba(99,102,241,0.08)'},300)" id="ts-onepage-label">
             <input type="checkbox" id="ts-onepage" style="width:15px;height:15px;accent-color:#818cf8" onchange="tsOnepageToggle()">
             <div style="flex:1">
               <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">📄 1면 인쇄 최적화</div>
@@ -22497,7 +22455,7 @@ function testShowSettings(defaultTitle, words) {
           <button onclick="tsLivePreview(true)"
             style="width:100%;margin-top:8px;padding:9px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:8px;color:#a5b4fc;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.1px;display:flex;align-items:center;justify-content:center;gap:6px"
             onmouseover="this.style.background='rgba(99,102,241,0.25)'"
-            onmouseout="this.style.background='rgba(99,102,241,0.15)'">
+            onmouseout="this.style.background='rgba(99,102,241,0.15)'" ontouchstart="this.style.background='rgba(99,102,241,0.25)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='rgba(99,102,241,0.15)'},300)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             다른 단어로 재생성
           </button>
@@ -23981,7 +23939,7 @@ async function openWordTest(bookId) {
   ov.innerHTML = `
     <div style="flex-shrink:0;background:#fff;border-bottom:1.5px solid #e2e8f0;padding:14px 20px">
       <div style="display:flex;align-items:center;gap:12px;max-width:680px;margin:0 auto">
-        <button onclick="wtCloseOverlay()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0" onmouseover="this.style.borderColor='#94a3b8'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <button onclick="wtCloseOverlay()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0" onmouseover="this.style.borderColor='#94a3b8'" onmouseout="this.style.borderColor='#e2e8f0'" ontouchstart="this.style.borderColor='#94a3b8'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e2e8f0'},300)">
           ← 목록
         </button>
         <div style="flex:1;min-width:0">
@@ -24009,7 +23967,7 @@ async function openWordTest(bookId) {
 
     <div style="flex-shrink:0;background:#fff;border-top:1.5px solid #e2e8f0;padding:14px 20px">
       <div style="max-width:680px;margin:0 auto;display:flex;justify-content:flex-end">
-        <button id="wt-submit-btn" onclick="wtSubmitGlobal(false)" style="padding:12px 36px;background:${col.b};color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;box-shadow:0 4px 16px ${col.b}40;transition:all 0.15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+        <button id="wt-submit-btn" onclick="wtSubmitGlobal(false)" style="padding:12px 36px;background:${col.b};color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;box-shadow:0 4px 16px ${col.b}40;transition:all 0.15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-1px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
           제출하기
         </button>
       </div>
@@ -24045,7 +24003,7 @@ async function openTeacherWordView(bookId) {
   function buildCard(w, i) {
     const eB = enHidden ? 'filter:blur(5px);user-select:none;' : '';
     const kB = koHidden ? 'filter:blur(5px);user-select:none;' : '';
-    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''" ontouchstart="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow=''},300)">
       <span style="font-size:13px;font-weight:700;color:${bColor};background:${bColor}22;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:3px">${w.en}</div>
@@ -24080,7 +24038,7 @@ async function openTeacherWordView(bookId) {
       const w = cur[cardIdx];
       if (!w) return;
       body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px;min-height:400px;justify-content:center">
-        <div onclick="tweFlip()" style="width:100%;max-width:520px;min-height:200px;background:#fff;border-radius:24px;border:2.5px solid ${bColor}40;box-shadow:0 8px 32px ${bColor}20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 36px 32px;cursor:pointer;transition:transform 0.2s;position:relative;margin-bottom:20px" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+        <div onclick="tweFlip()" style="width:100%;max-width:520px;min-height:200px;background:#fff;border-radius:24px;border:2.5px solid ${bColor}40;box-shadow:0 8px 32px ${bColor}20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 36px 32px;cursor:pointer;transition:transform 0.2s;position:relative;margin-bottom:20px" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''" ontouchstart="this.style.transform='translateY(-3px)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform=''},300)">
           <div style="position:absolute;top:14px;left:16px;font-size:12px;color:#b0c4d8;font-weight:700;letter-spacing:1px">${cardIdx+1} / ${cur.length}</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:800;color:#1e3a5f;text-align:center;line-height:1.4">${w.en}</div>
           <div id="twe-card-back" style="display:none;width:100%;text-align:center;margin-top:18px;padding-top:18px;border-top:1.5px solid #e8eef8">
@@ -24090,7 +24048,7 @@ async function openTeacherWordView(bookId) {
           <div id="twe-card-hint" style="position:absolute;bottom:14px;font-size:13px;color:#c8d8e8">탭해서 뜻 확인</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center">
-          <button onclick="tweCardNav(-1)" style="padding:10px 22px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${bColor}'" onmouseout="this.style.borderColor='#e0ebf5'">◀ 이전</button>
+          <button onclick="tweCardNav(-1)" style="padding:10px 22px;background:#fff;border:2px solid #e0ebf5;border-radius:14px;font-size:15px;font-weight:600;color:#7ea8cc;cursor:pointer" onmouseover="this.style.borderColor='${bColor}'" onmouseout="this.style.borderColor='#e0ebf5'" ontouchstart="this.style.borderColor='${bColor}'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e0ebf5'},300)">◀ 이전</button>
           <button onclick="speak('${w.en.replace(/'/g,"\\'")}') " style="width:44px;height:44px;border-radius:50%;background:${bColor}18;border:2px solid ${bColor}40;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${bColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
           <button onclick="tweCardNav(1)" style="padding:10px 22px;background:${bColor};border:none;border-radius:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 14px ${bColor}40">다음 ▶</button>
         </div>
@@ -24300,7 +24258,7 @@ async function openTeacherWordView(bookId) {
       <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">학습</span>
       <button onclick="document.getElementById('teacher-word-overlay').remove();openBookStudy('${bookId}')" style="padding:5px 13px;background:linear-gradient(135deg,${bColor}cc,${bColor});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 8px ${bColor}40;white-space:nowrap">암기</button>
       <button onclick="openStudentQuizPopup('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">퀴즈</button>
-      <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'">📝 테스트</button>
+      <button onclick="openWordTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#dde8f2';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#dde8f2';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)">📝 테스트</button>
       <div style="width:1px;height:22px;background:var(--border)"></div>
       <button onclick="openWordPrintStudio('${bookId}')" style="padding:5px 11px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#16a34a;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>프린트</button>
       <button onclick="bookMakeTest('${bookId}')" style="padding:5px 13px;background:#fff;border:1.5px solid #dde8f2;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;cursor:pointer;transition:all 0.15s;white-space:nowrap">시험지</button>
@@ -24329,7 +24287,7 @@ async function openTeacherSentView(bookId) {
   function buildViewItem(it, i) {
     const eB = enHidden ? 'filter:blur(6px);user-select:none;' : '';
     const kB = koHidden ? 'filter:blur(6px);user-select:none;' : '';
-    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:16px 20px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''">
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid #e8eef8;padding:16px 20px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" onmouseout="this.style.boxShadow=''" ontouchstart="this.style.boxShadow='0 3px 14px rgba(15,23,42,0.07)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.boxShadow=''},300)">
       <span style="font-size:13px;font-weight:700;color:${bColor};background:${bColor}22;padding:3px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;text-align:center;align-self:start;margin-top:2px">${i+1}</span>
       <div style="min-width:0">
         <div style="${eB}font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#1e3a5f;line-height:1.6;margin-bottom:4px">${it.en}</div>
@@ -24568,7 +24526,7 @@ async function openTeacherSentView(bookId) {
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
       <button id="tse-edit-btn" onclick="tseToggleEdit()" style="padding:6px 16px;background:${editMode?'#1e3a5f':'none'};border:1.5px solid ${editMode?'#1e3a5f':'#dde8f2'};border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:${editMode?'#fff':'#7ea8cc'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>편집</button>
-      <button onclick="document.getElementById('teacher-sent-overlay').remove();openSentBlankEditor('${bookId}')" style="padding:6px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--blue2);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px" onmouseover="this.style.background='var(--blue)';this.style.color='#fff';this.style.borderColor='var(--blue)'" onmouseout="this.style.background='#eff6ff';this.style.color='var(--blue2)';this.style.borderColor='#bfdbfe'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h3"/></svg>빈칸 지정</button>
+      <button onclick="document.getElementById('teacher-sent-overlay').remove();openSentBlankEditor('${bookId}')" style="padding:6px 16px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--blue2);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px" onmouseover="this.style.background='var(--blue)';this.style.color='#fff';this.style.borderColor='var(--blue)'" onmouseout="this.style.background='#eff6ff';this.style.color='var(--blue2)';this.style.borderColor='#bfdbfe'" ontouchstart="this.style.background='var(--blue)';this.style.color='#fff';this.style.borderColor='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#eff6ff';_b.style.color='var(--blue2)';_b.style.borderColor='#bfdbfe'},300)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h3"/></svg>빈칸 지정</button>
       <div style="width:1px;height:24px;background:var(--border)"></div>
       <span style="font-size:13px;font-weight:600;color:#b0c4d8;white-space:nowrap">퀴즈</span>
       <button onclick="document.getElementById('teacher-sent-overlay').remove();startSentStudy('${bookId}','unscramble')" style="padding:6px 16px;background:linear-gradient(135deg,${bColor}cc,${bColor});border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 2px 8px ${bColor}40">배열</button>
@@ -25165,7 +25123,7 @@ function openJellyGiveModal(studentId, studentName) {
               font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#1e3a5f;cursor:pointer;
               transition:all 0.15s"
             onmouseover="this.style.background='#e8f0fe';this.style.borderColor='#93c5fd'"
-            onmouseout="this.style.background='#f8fafc';this.style.borderColor='#dde8f2'">
+            onmouseout="this.style.background='#f8fafc';this.style.borderColor='#dde8f2'" ontouchstart="this.style.background='#e8f0fe';this.style.borderColor='#93c5fd'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#f8fafc';_b.style.borderColor='#dde8f2'},300)">
             +${n}개
           </button>`).join('')}
       </div>
@@ -27456,7 +27414,7 @@ async function openStudentProgressModal(studentId) {
       <button onclick="revokeBookAssign('${b.id}','${studentId}','${(student.name||'').replace(/'/g,"\\'")}')"
         style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
         onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
-        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'" ontouchstart="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border2)';_b.style.color='var(--t3)';_b.style.background='transparent'},300)">해제</button>
     </div>`;
   }
 
@@ -27491,7 +27449,7 @@ async function openStudentProgressModal(studentId) {
       <button onclick="revokeSentAssign('${b.id}','${studentId}','${(student.name||'').replace(/'/g,"\\'")}')"
         style="flex-shrink:0;padding:4px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;transition:all 0.12s"
         onmouseover="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'"
-        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'">해제</button>
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--t3)';this.style.background='transparent'" ontouchstart="this.style.borderColor='#fca5a5';this.style.color='#dc2626';this.style.background='#fef2f2'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='var(--border2)';_b.style.color='var(--t3)';_b.style.background='transparent'},300)">해제</button>
     </div>`;
   }
 
@@ -27839,7 +27797,7 @@ function renderSlimeHome() {
     <button onclick="openProfileEditModal()"
       style="padding:7px 14px;background:#fff;color:#64748b;border:1px solid #e8eef8;border-radius:10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px"
       onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'"
-      onmouseout="this.style.borderColor='#e8eef8';this.style.color='#64748b'">
+      onmouseout="this.style.borderColor='#e8eef8';this.style.color='#64748b'" ontouchstart="this.style.borderColor='#6366f1';this.style.color='#6366f1'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#e8eef8';_b.style.color='#64748b'},300)">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       프로필 수정
     </button>
@@ -28209,8 +28167,8 @@ async function sendTaskReminderNotifs() {
 
 <script>
 /* ── 모바일 터치 hover 효과 (touch-hover 클래스 토글) ──
-   터치 시작 시 대상 요소 + 부모 체인에 touch-hover 부착,
-   터치 종료 후 300ms 뒤 제거 → 잔상 없이 hover 효과 재현. */
+   row-hover-actions 등 CSS :hover로만 제어되는 요소를
+   터치 시 touch-hover 클래스로 활성화함. */
 (function() {
   if (!('ontouchstart' in window)) return;
   var _touchEls = [];
