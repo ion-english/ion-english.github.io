@@ -19179,6 +19179,11 @@ async function startQuiz(){
 // renderQuiz() 호출 직후 setTimeout(0)으로 실행돼 새로 생긴 버튼에 부착됨.
 function _attachQuizOptHover() {
   var opts = document.querySelectorAll('.quiz-opt');
+  // iOS hover 잔상 완전 차단: 첫 렌더 시 500ms 동안 pointer-events 차단
+  opts.forEach(function(btn) { btn.style.pointerEvents = 'none'; });
+  setTimeout(function() {
+    opts.forEach(function(btn) { btn.style.pointerEvents = ''; });
+  }, 500);
   opts.forEach(function(btn) {
     // 이미 부착된 경우 skip
     if (btn._quizHoverAttached) return;
