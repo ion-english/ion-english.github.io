@@ -2713,6 +2713,49 @@ body.student-mode {
   .word-row-wrap.touch-hover .row-hover-actions,
   .sent-row-wrap.touch-hover .row-hover-actions { display:flex !important; }
 }
+
+/* ── 낭독 커스텀 플레이어 ── */
+.rr-player {
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface1,#f8fafc);border:1px solid var(--border,#e5e7eb);
+  border-radius:10px;padding:7px 10px;
+}
+.rr-play-btn {
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:var(--accent,#1a56db);color:#fff;border:none;cursor:pointer;
+  transition:background 0.15s;
+}
+.rr-play-btn:hover { background:var(--accent-dark,#1740a0); }
+.rr-time {
+  font-size:11px;font-weight:600;color:var(--t3,#6b7280);
+  flex-shrink:0;min-width:30px;font-variant-numeric:tabular-nums;
+}
+.rr-bar-wrap {
+  flex:1;cursor:pointer;padding:6px 0;
+}
+.rr-bar-bg {
+  width:100%;height:4px;border-radius:4px;
+  background:var(--border,#e5e7eb);position:relative;overflow:visible;
+}
+.rr-bar-fill {
+  height:100%;border-radius:4px;
+  background:var(--accent,#1a56db);
+  transition:width 0.1s linear;position:relative;
+}
+.rr-bar-fill::after {
+  content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);
+  width:10px;height:10px;border-radius:50%;
+  background:var(--accent,#1a56db);box-shadow:0 0 0 2px #fff;
+}
+.rr-vol-btn {
+  display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:6px;flex-shrink:0;
+  background:none;border:none;cursor:pointer;color:var(--t3,#9ca3af);
+  transition:color 0.15s;
+}
+.rr-vol-btn:hover { color:var(--t1,#111827); }
+/* ──────────────────────── */
 </style>
 
 
@@ -2798,12 +2841,8 @@ body.student-mode {
             <div style="font-size:19px;font-weight:600;letter-spacing:-0.3px;color:var(--t1)" id="dash-greeting">안녕하세요 👋</div>
             <div style="font-size:14px;color:var(--t3);margin-top:4px" id="dash-date"></div>
           </div>
-          <div class="search-bar" style="margin-bottom:0;flex:1;max-width:360px;min-width:200px">
-            <span class="search-icon-el">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </span>
-            <input type="text" class="search-input" id="dash-search" placeholder="단어장, 컬렉션, 단어 검색..." oninput="renderDashboard()">
-          </div>
+          <!-- 퀵 액션바 -->
+          <div id="dash-action-bar" style="display:flex;align-items:center;gap:6px;background:white;border:1.5px solid var(--border);border-radius:12px;padding:6px 10px;box-shadow:var(--sh);position:relative;flex-shrink:0"></div>
         </div>
         
          <!-- 일정관리 -->
@@ -3787,6 +3826,29 @@ body.student-mode {
       <!-- ===== 반 관리 (선생님) ===== -->
       <!-- pg-classes는 pg-students로 통합됨 (하위 호환 빈 div) -->
       <div id="pg-classes" class="page" style="display:none!important"></div>
+
+      <!-- ===== 낭독 검토 탭 ===== -->
+      <div id="pg-reading-review" class="page">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent,#1a56db)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span style="font-size:20px;font-weight:800;color:var(--t1)">낭독 검토</span>
+          </div>
+          <div style="flex:1"></div>
+          <button onclick="rrLoad(true)" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;font-size:13px;font-weight:600;color:var(--t2);transition:background 0.15s" onmouseenter="this.style.background='var(--surface3,#e2e8f0)'" onmouseleave="this.style.background='var(--surface2)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            새로고침
+          </button>
+        </div>
+
+        <!-- 반 필터 탭 -->
+        <div id="rr-class-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+        <!-- 메인 콘텐츠 -->
+        <div id="rr-content" style="min-height:200px;color:var(--t3);text-align:center;padding:48px 0;font-size:14px">
+          낭독 제출 기록을 불러오는 중...
+        </div>
+      </div>
 
       <!-- ===== 메신저 탭 ===== -->
       <div id="pg-messages" class="page">
@@ -7175,7 +7237,8 @@ const pageTitles = {
   'pg-classes':'Student & Class','pg-messages':'Message',
   'pg-slime-home':'My Slime',
   'pg-students':'Student & Class',
-  'pg-teachers':'Teacher Account'
+  'pg-teachers':'Teacher Account',
+  'pg-reading-review':'낭독 검토'
 };
 
 function showPage(id, addHistory = true) {
@@ -7203,6 +7266,8 @@ function showPage(id, addHistory = true) {
   const nb = document.getElementById('nav-'+id);
   if (nb) nb.classList.add('active');
   document.getElementById('topbar-title').textContent = pageTitles[id] || '';
+  // 퀵 액션바 active 상태 갱신
+  if (document.getElementById('dash-action-bar')) abRender();
   // 모바일에서 페이지 이동 시 사이드바 자동 닫기
   if (window.innerWidth <= 600) closeSidebar();
 
@@ -7316,6 +7381,20 @@ function showPage(id, addHistory = true) {
   if (id==='pg-filevault') { fvInitTabs(); renderFileVault(); }
   if (id==='pg-classes') renderStudentsMgmt();
   if (id==='pg-messages') renderMessages();
+  if (id==='pg-reading-review') {
+    // classes 및 sentBooks 미로드 시 먼저 로드 후 rrLoad
+    const _doRR = () => rrLoad();
+    const needClasses = !DB_classes || DB_classes.length === 0;
+    const needSentBooks = typeof DB_sentBooks === 'undefined' || DB_sentBooks.length === 0;
+    if (needClasses || needSentBooks) {
+      Promise.all([
+        needClasses ? loadClasses() : Promise.resolve(),
+        needSentBooks ? loadSentenceBooks() : Promise.resolve()
+      ]).then(_doRR).catch(_doRR);
+    } else {
+      _doRR();
+    }
+  }
   if (id==='pg-mybooks') {
     if (currentUser?.role === 'student' && (!DB.collections || DB.collections.length === 0)) {
       loadColls().then(() => renderMyBooks()).catch(() => renderMyBooks());
@@ -7544,14 +7623,605 @@ function _getRecentIds(type) {
   catch(e) { return []; }
 }
 
+// ── 퀵 액션바 ──────────────────────────────────────────────
+const ACTION_BAR_KEY = 'ionword_action_bar_v1';
+
+const ACTION_CANDIDATES = [
+  { id:'pg-dashboard',  label:'대시보드', svg:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+  { id:'pg-library',   label:'단어장',   svg:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>' },
+  { id:'pg-sentences', label:'문장집',   svg:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
+  { id:'pg-editor',    label:'편집',     svg:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' },
+  { id:'pg-students',  label:'학생 & 반', svg:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+  { id:'pg-messages',  label:'메시지',   svg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+  { id:'pg-reading-review', label:'낭독 검토', svg:'<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>' },
+  { id:'pg-account',   label:'계정',     svg:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+];
+
+function abLoad() {
+  try { return JSON.parse(localStorage.getItem(ACTION_BAR_KEY)) || ['pg-dashboard','pg-library','pg-sentences','pg-students']; }
+  catch(e) { return ['pg-dashboard','pg-library','pg-sentences','pg-students']; }
+}
+function abSave(list) { localStorage.setItem(ACTION_BAR_KEY, JSON.stringify(list)); }
+
+function abRender() {
+  const bar = document.getElementById('dash-action-bar');
+  if (!bar) return;
+  const active = list => list; // just alias
+  const saved = abLoad();
+  const currentPage = document.querySelector('.page.active')?.id || 'pg-dashboard';
+
+  let html = '';
+  saved.forEach(pid => {
+    const c = ACTION_CANDIDATES.find(x => x.id === pid);
+    if (!c) return;
+    const isActive = currentPage === pid;
+    html += `<button onclick="showPage('${pid}')" title="${c.label}" class="ab-nav-btn${isActive?' ab-nav-btn--active':''}" style="
+      position:relative;display:flex;align-items:center;justify-content:center;
+      width:34px;height:34px;border-radius:8px;border:1px solid ${isActive?'#1a56db':'var(--border)'};
+      background:${isActive?'#1a56db':'transparent'};cursor:pointer;flex-shrink:0;
+      transition:background 0.15s,border-color 0.15s;padding:0;
+    " onmouseenter="if(!this.classList.contains('ab-nav-btn--active')){this.style.background='#e8f0fe';this.style.borderColor='#93c5fd';}"
+       onmouseleave="if(!this.classList.contains('ab-nav-btn--active')){this.style.background='transparent';this.style.borderColor='var(--border)';}" >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${isActive?'#fff':'var(--t3)'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${c.svg}</svg>
+    </button>`;
+  });
+
+  // 구분선 + 드롭다운 트리거
+  html += `<div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px"></div>
+  <button id="ab-add-btn" onclick="abTogglePanel(event)" title="버튼 추가/제거" style="
+    display:flex;align-items:center;gap:4px;padding:0 8px;height:34px;border-radius:8px;
+    border:1px dashed var(--border);background:transparent;cursor:pointer;flex-shrink:0;
+    color:var(--t3);font-size:11px;transition:background 0.15s;
+  " onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span>추가</span>
+  </button>`;
+
+  bar.innerHTML = html;
+}
+
+function abTogglePanel(e) {
+  e.stopPropagation();
+  let panel = document.getElementById('ab-panel');
+  if (panel) { panel.remove(); return; }
+
+  const saved = abLoad();
+  const bar = document.getElementById('dash-action-bar');
+  const rect = bar.getBoundingClientRect();
+
+  panel = document.createElement('div');
+  panel.id = 'ab-panel';
+  panel.style.cssText = `
+    position:fixed;top:${rect.bottom+6}px;right:${window.innerWidth-rect.right}px;
+    background:white;border:1.5px solid var(--border);border-radius:12px;
+    padding:10px;box-shadow:0 4px 20px rgba(0,0,0,0.12);z-index:9999;
+    display:flex;flex-direction:column;gap:4px;min-width:160px;
+  `;
+
+  let pHtml = `<div style="font-size:11px;font-weight:600;color:var(--t3);padding:2px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:4px">탭 추가 / 제거</div>`;
+  ACTION_CANDIDATES.forEach(c => {
+    const on = saved.includes(c.id);
+    pHtml += `<button onclick="abToggleItem('${c.id}')" style="
+      display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;
+      border:none;background:${on?'#e8f0fe':'transparent'};cursor:pointer;text-align:left;
+      width:100%;transition:background 0.12s;
+    " onmouseenter="this.style.background='${on?'#d0e4fd':'var(--surface2)'}'"
+       onmouseleave="this.style.background='${on?'#e8f0fe':'transparent'}'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${on?'#1a56db':'var(--t3)'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${c.svg}</svg>
+      <span style="font-size:13px;color:${on?'#1a56db':'var(--t2)'};flex:1">${c.label}</span>
+      <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid ${on?'#1a56db':'var(--border)'};background:${on?'#1a56db':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        ${on?'<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>
+    </button>`;
+  });
+
+  panel.innerHTML = pHtml;
+  document.body.appendChild(panel);
+
+  // 바깥 클릭 시 닫기
+  setTimeout(() => {
+    document.addEventListener('click', function _c(ev) {
+      if (!panel.contains(ev.target)) { panel.remove(); document.removeEventListener('click', _c); }
+    });
+  }, 0);
+}
+
+function abToggleItem(pid) {
+  let saved = abLoad();
+  if (saved.includes(pid)) {
+    if (saved.length <= 1) return; // 최소 1개 유지
+    saved = saved.filter(x => x !== pid);
+  } else {
+    saved.push(pid);
+  }
+  abSave(saved);
+  // 패널 갱신
+  const panel = document.getElementById('ab-panel');
+  if (panel) { panel.remove(); }
+  abRender();
+  // 패널 다시 열기
+  const btn = document.getElementById('ab-add-btn');
+  if (btn) btn.click();
+}
+// ──────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════
+//  낭독 검토 (pg-reading-review)
+// ══════════════════════════════════════════════════════════
+let _rrSelectedClass = '__all__'; // 현재 선택된 반 id
+let _rrData = null;               // fetch 결과 캐시
+
+async function rrLoad(force = false) {
+  const pg = document.getElementById('pg-reading-review');
+  if (!pg || currentUser?.role !== 'teacher') return;
+
+  const content = document.getElementById('rr-content');
+  if (!content) return;
+
+  // 로딩 표시
+  content.innerHTML = `<div style="padding:48px 0;text-align:center;color:var(--t3);font-size:14px">
+    <div style="display:inline-flex;gap:6px;align-items:center;margin-bottom:12px">
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--accent,#1a56db);animation:loader 0.9s ease-in-out infinite"></div>
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--accent,#1a56db);animation:loader 0.9s ease-in-out 0.2s infinite"></div>
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--accent,#1a56db);animation:loader 0.9s ease-in-out 0.4s infinite"></div>
+    </div>
+    <div>낭독 제출 기록 불러오는 중...</div>
+  </div>`;
+
+  // 캐시 또는 새로 fetch
+  if (force || !_rrData) {
+    try {
+      // 내 학생들 id 추출
+      const students = (DB.users || []).filter(u => u.role === 'student');
+      const sids = students.map(u => u.id);
+      if (!sids.length) {
+        content.innerHTML = `<div style="padding:48px 0;text-align:center;color:var(--t3);font-size:14px">등록된 학생이 없습니다.</div>`;
+        return;
+      }
+      const { data, error } = await sb.from('sentence_submissions')
+        .select('id, student_id, book_id, type, recorded_url, created_at, answer')
+        .in('student_id', sids)
+        .in('type', ['record', 'record_full'])
+        .not('recorded_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      _rrData = data || [];
+    } catch(e) {
+      content.innerHTML = `<div style="padding:48px 0;text-align:center;color:#ef4444;font-size:14px">오류: ${e.message || '데이터를 불러오지 못했습니다.'}</div>`;
+      return;
+    }
+  }
+
+  // 반 탭 렌더
+  rrRenderClassTabs();
+  // 목록 렌더
+  rrRenderList();
+}
+
+function rrRenderClassTabs() {
+  const bar = document.getElementById('rr-class-tabs');
+  if (!bar) return;
+  const classes = DB_classes || [];
+
+  // 전체 제출 수 계산
+  const totalCount = (_rrData||[]).length;
+
+  let html = `<button onclick="rrSelectClass('__all__')" style="
+    display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;
+    border:1.5px solid ${_rrSelectedClass==='__all__'?'var(--accent,#1a56db)':'var(--border)'};
+    background:${_rrSelectedClass==='__all__'?'var(--accent,#1a56db)':'var(--surface2)'};
+    color:${_rrSelectedClass==='__all__'?'#fff':'var(--t2)'};
+    cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;flex-shrink:0
+  ">전체 <span style="opacity:0.75;font-weight:400">${totalCount}</span></button>`;
+
+  classes.forEach(cls => {
+    const clsStudentIds = cls.memberIds || [];
+    const cnt = (_rrData||[]).filter(r => clsStudentIds.includes(r.student_id)).length;
+    const isActive = _rrSelectedClass === cls.id;
+    html += `<button onclick="rrSelectClass('${cls.id}')" style="
+      display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;
+      border:1.5px solid ${isActive?'var(--accent,#1a56db)':'var(--border)'};
+      background:${isActive?'var(--accent,#1a56db)':'var(--surface2)'};
+      color:${isActive?'#fff':'var(--t2)'};
+      cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;flex-shrink:0
+    ">${cls.name} <span style="opacity:0.75;font-weight:400">${cnt}</span></button>`;
+  });
+
+  // 반 없는 학생
+  const assignedIds = classes.flatMap(c => c.memberIds||[]);
+  const students = (DB.users||[]).filter(u=>u.role==='student');
+  const unassigned = students.filter(s=>!assignedIds.includes(s.id));
+  if (unassigned.length) {
+    const uIds = unassigned.map(u=>u.id);
+    const cnt = (_rrData||[]).filter(r=>uIds.includes(r.student_id)).length;
+    const isActive = _rrSelectedClass === '__unassigned__';
+    html += `<button onclick="rrSelectClass('__unassigned__')" style="
+      display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;
+      border:1.5px solid ${isActive?'#94a3b8':'var(--border)'};
+      background:${isActive?'#94a3b8':'var(--surface2)'};
+      color:${isActive?'#fff':'var(--t2)'};
+      cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;flex-shrink:0
+    ">미배정 <span style="opacity:0.75;font-weight:400">${cnt}</span></button>`;
+  }
+
+  bar.innerHTML = html;
+}
+
+function rrSelectClass(cid) {
+  _rrSelectedClass = cid;
+  rrRenderClassTabs();
+  rrRenderList();
+}
+
+function rrRenderList() {
+  const content = document.getElementById('rr-content');
+  if (!content) return;
+
+  const data = _rrData || [];
+  const students = (DB.users||[]).filter(u=>u.role==='student');
+  const classes = DB_classes||[];
+
+  // 현재 선택된 반의 학생 id 필터
+  let filteredSids;
+  if (_rrSelectedClass === '__all__') {
+    filteredSids = students.map(u=>u.id);
+  } else if (_rrSelectedClass === '__unassigned__') {
+    const assignedIds = classes.flatMap(c=>c.memberIds||[]);
+    filteredSids = students.filter(s=>!assignedIds.includes(s.id)).map(u=>u.id);
+  } else {
+    const cls = classes.find(c=>c.id===_rrSelectedClass);
+    filteredSids = cls ? (cls.memberIds||[]) : [];
+  }
+
+  const filtered = data.filter(r=>filteredSids.includes(r.student_id));
+
+  if (!filtered.length) {
+    content.innerHTML = `<div style="padding:64px 0;text-align:center">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:4px">제출된 낭독이 없습니다</div>
+      <div style="font-size:13px;color:var(--t3)">학생들이 낭독 과제를 제출하면 여기서 확인할 수 있어요.</div>
+    </div>`;
+    return;
+  }
+
+  // 학생별로 그룹핑
+  const byStudent = {};
+  filtered.forEach(r => {
+    if (!byStudent[r.student_id]) byStudent[r.student_id] = [];
+    byStudent[r.student_id].push(r);
+  });
+
+  // 학생 순서: 반 순서 → 이름 순
+  const orderedStudents = filteredSids
+    .map(sid => students.find(u=>u.id===sid))
+    .filter(u=>u && byStudent[u.id]);
+
+  // sentence_books 캐시에서 제목 가져오기
+  const sentBookMap = {};
+  (typeof DB_sentBooks !== 'undefined' ? DB_sentBooks : []).forEach(b => { sentBookMap[b.id] = b; });
+
+  // 글로벌 캐시: subId → { recorded_url, studentName }
+  window._rrRecMeta = window._rrRecMeta || {};
+
+  let html = '';
+
+  orderedStudents.forEach(student => {
+    const recs = byStudent[student.id];
+    // 제출일 최신순 정렬
+    recs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+
+    const cls = classes.find(c=>(c.memberIds||[]).includes(student.id));
+    const clsLabel = cls ? `<span style="font-size:11px;padding:2px 7px;border-radius:8px;background:var(--surface2);color:var(--t3);border:1px solid var(--border)">${cls.name}</span>` : '';
+
+    html += `<div style="background:var(--card,white);border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;flex-shrink:0">${(student.name||'?')[0]}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:15px;font-weight:700;color:var(--t1)">${student.name||'(이름없음)'}</span>
+            ${clsLabel}
+          </div>
+          <div id="rr-student-count-${student.id}" style="font-size:12px;color:var(--t3);margin-top:1px">낭독 제출 ${recs.length}개</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">`;
+
+    recs.forEach((r) => {
+      // 글로벌 캐시에 메타 저장 (onclick에 URL 직접 삽입 대신)
+      window._rrRecMeta[r.id] = { recorded_url: r.recorded_url || '', studentName: student.name || '' };
+
+      const book = sentBookMap[r.book_id];
+      const bookName = book ? book.name : r.book_id || '알 수 없음';
+      const dt = new Date(r.created_at);
+      const dateStr = `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+
+      html += `<div id="rr-rec-${r.id}" data-sid="${student.id}" style="background:var(--surface2);border-radius:10px;padding:12px 14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap">
+          <button onclick="rrShowBookPreview('${r.book_id}')" title="본문 보기" style="
+            font-size:13px;font-weight:600;color:var(--accent,#1a56db);flex:1;min-width:0;
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+            background:none;border:none;padding:0;cursor:pointer;text-align:left;
+            text-decoration:underline;text-decoration-color:rgba(26,86,219,0.3);
+            text-underline-offset:2px;transition:color 0.15s;
+          " onmouseenter="this.style.color='#1740a0'" onmouseleave="this.style.color='var(--accent,#1a56db)'">${bookName}</button>
+          <span style="font-size:11px;color:var(--t3);flex-shrink:0">${dateStr}</span>
+          <button onclick="rrDeleteRecording('${r.id}')" title="낭독 삭제" style="
+            display:flex;align-items:center;justify-content:center;width:26px;height:26px;
+            border-radius:6px;border:1px solid #fecaca;background:#fff5f5;
+            cursor:pointer;flex-shrink:0;transition:background 0.15s;padding:0
+          " onmouseenter="this.style.background='#fee2e2'" onmouseleave="this.style.background='#fff5f5'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+        <div class="rr-player" data-url="${r.recorded_url}">
+          <button class="rr-play-btn" onclick="rrTogglePlay(this)" title="재생/일시정지">
+            <svg class="rr-icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg class="rr-icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <span class="rr-time">0:00</span>
+          <div class="rr-bar-wrap" onclick="rrSeek(this, event)">
+            <div class="rr-bar-bg">
+              <div class="rr-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
+          <button class="rr-vol-btn" onclick="rrToggleMute(this)" title="음소거">
+            <svg class="rr-icon-vol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            <svg class="rr-icon-mute" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          </button>
+          <audio preload="metadata" src="${r.recorded_url}" style="display:none"></audio>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  content.innerHTML = html;
+}
+
+async function rrShowBookPreview(bookId) {
+  // 기존 팝업 제거
+  const existing = document.getElementById('rr-book-preview-popup');
+  if (existing) existing.remove();
+
+  const book = (typeof DB_sentBooks !== 'undefined' ? DB_sentBooks : []).find(b => b.id === bookId);
+  const bookName = book ? book.name : '본문';
+
+  // 팝업 생성
+  const popup = document.createElement('div');
+  popup.id = 'rr-book-preview-popup';
+  popup.style.cssText = `
+    position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);padding:20px;
+  `;
+
+  popup.innerHTML = `
+    <div style="
+      background:var(--card,white);border-radius:18px;width:100%;max-width:560px;
+      max-height:80vh;display:flex;flex-direction:column;
+      box-shadow:0 8px 40px rgba(0,0,0,0.18);overflow:hidden;
+    ">
+      <!-- 헤더 -->
+      <div style="
+        display:flex;align-items:center;gap:10px;padding:16px 18px 14px;
+        border-bottom:1.5px solid var(--border);flex-shrink:0;
+      ">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">본문 — 읽으면서 녹음하세요</div>
+          <div style="font-size:16px;font-weight:800;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bookName}</div>
+        </div>
+        <button onclick="document.getElementById('rr-book-preview-popup').remove()" style="
+          width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);
+          background:var(--surface2);cursor:pointer;flex-shrink:0;
+          display:flex;align-items:center;justify-content:center;
+          transition:background 0.15s;
+        " onmouseenter="this.style.background='var(--surface3,#e2e8f0)'" onmouseleave="this.style.background='var(--surface2)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <!-- 본문 목록 -->
+      <div id="rr-book-preview-body" style="flex:1;overflow-y:auto;padding:12px 14px 16px">
+        <div style="display:flex;align-items:center;justify-content:center;padding:40px 0;color:var(--t3);font-size:14px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;margin-right:8px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          불러오는 중...
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 바깥 클릭 닫기
+  popup.addEventListener('click', function(e) {
+    if (e.target === popup) popup.remove();
+  });
+
+  document.body.appendChild(popup);
+
+  // sentence_items 로드
+  let items = [];
+  try {
+    items = await loadSentenceItems(bookId);
+  } catch(e) {
+    items = [];
+  }
+
+  const body = document.getElementById('rr-book-preview-body');
+  if (!body) return;
+
+  if (!items || !items.length) {
+    body.innerHTML = `<div style="text-align:center;padding:48px 0;color:var(--t3);font-size:14px">본문 내용이 없습니다.</div>`;
+    return;
+  }
+
+  let html = '';
+  items.forEach((item, idx) => {
+    html += `
+      <div style="
+        display:flex;align-items:flex-start;gap:12px;
+        padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;
+        margin-bottom:8px;background:var(--surface,white);
+      ">
+        <span style="font-size:12px;font-weight:700;color:var(--t3);padding-top:2px;flex-shrink:0;min-width:18px">${idx+1}.</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);font-family:'JetBrains Mono',monospace;line-height:1.5;word-break:break-word">${item.en||''}</div>
+          ${item.ko ? `<div style="font-size:12px;color:var(--t3);margin-top:3px;line-height:1.4">${item.ko}</div>` : ''}
+        </div>
+        <button onclick="speak(this.dataset.en)" data-en="${(item.en||'').replace(/"/g,'&quot;')}" title="TTS 재생" style="
+          width:28px;height:28px;border-radius:50%;border:1px solid var(--border);
+          background:var(--surface2);cursor:pointer;flex-shrink:0;padding:0;
+          display:flex;align-items:center;justify-content:center;transition:background 0.15s;
+        " onmouseenter="this.style.background='#dbeafe'" onmouseleave="this.style.background='var(--surface2)'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+      </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+async function _rrSpeakText_stub(text) {
+  if (typeof speakText === 'function') speakText(text);
+}
+
+async function rrDeleteRecording(subId) {
+  const meta = (window._rrRecMeta || {})[subId];
+  const recordedUrl = meta ? meta.recorded_url : '';
+  const studentName = meta ? meta.studentName : '';
+
+  if (!confirm(`${studentName ? '[' + studentName + '] ' : ''}낭독 파일을 삭제할까요?\n\nDB 기록과 저장된 파일이 모두 삭제되며 복구할 수 없습니다.`)) return;
+
+  const card = document.getElementById('rr-rec-' + subId);
+  const studentId = card ? card.dataset.sid : null;
+  if (card) card.style.opacity = '0.4';
+
+  try {
+    // 1. sentence_submissions 행 삭제
+    const { error: dbErr } = await sb.from('sentence_submissions').delete().eq('id', subId);
+    if (dbErr) throw new Error('DB 삭제 실패: ' + dbErr.message);
+
+    // 2. Storage 파일 삭제 (recordings 버킷)
+    if (recordedUrl && recordedUrl.includes('/recordings/')) {
+      try {
+        const match = recordedUrl.match(/\/object\/public\/recordings\/(.+)/);
+        if (match) {
+          const storagePath = decodeURIComponent(match[1]);
+          await sb.storage.from('recordings').remove([storagePath]);
+        }
+      } catch(se) {
+        console.warn('Storage 파일 삭제 실패 (DB는 삭제됨):', se.message);
+      }
+    }
+
+    // 3. 캐시에서 제거
+    if (_rrData) _rrData = _rrData.filter(r => r.id !== subId);
+    if (window._rrRecMeta) delete window._rrRecMeta[subId];
+
+    // 4. 카드 페이드아웃 후 제거
+    if (card) {
+      card.style.transition = 'opacity 0.2s, max-height 0.35s, padding 0.35s, margin 0.35s';
+      card.style.overflow = 'hidden';
+      card.style.maxHeight = card.offsetHeight + 'px';
+      requestAnimationFrame(() => {
+        card.style.opacity = '0';
+        card.style.maxHeight = '0';
+        card.style.paddingTop = '0';
+        card.style.paddingBottom = '0';
+        card.style.marginTop = '0';
+        setTimeout(() => {
+          card.remove();
+          // 해당 학생 제출수 텍스트 갱신
+          if (studentId) {
+            const countEl = document.getElementById('rr-student-count-' + studentId);
+            if (countEl) {
+              const remaining = (_rrData||[]).filter(r => r.student_id === studentId).length;
+              countEl.textContent = `낭독 제출 ${remaining}개`;
+            }
+          }
+          // 반 탭 카운트 갱신
+          rrRenderClassTabs();
+        }, 350);
+      });
+    }
+
+    showToast('낭독 파일이 삭제됐습니다.', 'success');
+  } catch(e) {
+    if (card) card.style.opacity = '1';
+    showToast('삭제 오류: ' + e.message, 'error');
+  }
+}
+
+// ── 낭독 커스텀 플레이어 ──────────────────────────────────────
+function rrBindAudio(player, audio) {
+  if (audio._rrBound) return;
+  audio._rrBound = true;
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    const fill = player.querySelector('.rr-bar-fill');
+    const timeEl = player.querySelector('.rr-time');
+    if (fill) fill.style.width = pct + '%';
+    if (timeEl) {
+      const m = Math.floor(audio.currentTime / 60);
+      const s = Math.floor(audio.currentTime % 60);
+      timeEl.textContent = m + ':' + String(s).padStart(2,'0');
+    }
+  });
+  audio.addEventListener('ended', () => {
+    const playBtn = player.querySelector('.rr-play-btn');
+    if (playBtn) { playBtn.querySelector('.rr-icon-play').style.display=''; playBtn.querySelector('.rr-icon-pause').style.display='none'; }
+    const fill = player.querySelector('.rr-bar-fill');
+    if (fill) fill.style.width = '0%';
+    const timeEl = player.querySelector('.rr-time');
+    if (timeEl) timeEl.textContent = '0:00';
+    audio.currentTime = 0;
+  });
+}
+function rrTogglePlay(btn) {
+  const player = btn.closest('.rr-player');
+  const audio = player.querySelector('audio');
+  rrBindAudio(player, audio);
+  if (audio.paused) {
+    document.querySelectorAll('.rr-player audio').forEach(a => {
+      if (a !== audio && !a.paused) {
+        a.pause();
+        const ob = a.closest('.rr-player').querySelector('.rr-play-btn');
+        if (ob) { ob.querySelector('.rr-icon-play').style.display=''; ob.querySelector('.rr-icon-pause').style.display='none'; }
+      }
+    });
+    const doPlay = () => { audio.play().catch(()=>{}); btn.querySelector('.rr-icon-play').style.display='none'; btn.querySelector('.rr-icon-pause').style.display=''; };
+    if (audio.readyState >= 1) { doPlay(); }
+    else { audio.load(); audio.addEventListener('loadedmetadata', doPlay, {once:true}); btn.querySelector('.rr-icon-play').style.display='none'; btn.querySelector('.rr-icon-pause').style.display=''; }
+  } else {
+    audio.pause();
+    btn.querySelector('.rr-icon-play').style.display='';
+    btn.querySelector('.rr-icon-pause').style.display='none';
+  }
+}
+function rrSeek(barWrap, e) {
+  const player = barWrap.closest('.rr-player');
+  const audio = player.querySelector('audio');
+  if (!audio.duration) return;
+  const rect = barWrap.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  audio.currentTime = pct * audio.duration;
+}
+function rrToggleMute(btn) {
+  const audio = btn.closest('.rr-player').querySelector('audio');
+  audio.muted = !audio.muted;
+  btn.querySelector('.rr-icon-vol').style.display = audio.muted ? 'none' : '';
+  btn.querySelector('.rr-icon-mute').style.display = audio.muted ? '' : 'none';
+}
+// ─────────────────────────────────────────────────────────────
+
 async function renderDashboard() {
   schedRender();   // 일정 렌더
+  abRender();      // 퀵 액션바 렌더
   // DB_sentColls 없으면 백그라운드 로드 후 재렌더 (await 없이 → 잔상 방지)
   if (!DB_sentColls || DB_sentColls.length === 0) {
     loadSentColls().then(() => renderDashboard()).catch(() => {});
   }
 
-  const q = (document.getElementById('dash-search')?.value || '').toLowerCase();
+  const q = '';
   const totalWords = DB.books.reduce((s,b)=>s+(b.wordCount ?? b.words.length),0);
   const students = DB.users.filter(u=>u.role==='student');
   const allScores = Object.values(DB.progress).flatMap(p=>p.quizScores||[]);
