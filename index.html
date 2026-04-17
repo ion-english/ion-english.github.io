@@ -993,7 +993,7 @@ body.app-initializing{visibility:hidden}
 /* ════ SIDEBAR ════ */
 #app-shell{display:none}
 
-.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%);border-right:1px solid rgba(255,255,255,0.10);box-shadow:inset -1px 0 0 rgba(255,255,255,0.06),4px 0 24px rgba(10,20,50,0.18);display:flex;flex-direction:column;z-index:100;overflow-y:auto;transition:width 0.22s cubic-bezier(0.4,0,0.2,1);overflow-x:hidden;}
+.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%);border-right:1px solid rgba(255,255,255,0.10);box-shadow:inset -1px 0 0 rgba(255,255,255,0.06),4px 0 24px rgba(10,20,50,0.18);display:flex;flex-direction:column;z-index:100;overflow-y:hidden;transition:width 0.22s cubic-bezier(0.4,0,0.2,1);overflow-x:hidden;}
 /* 텍스트 요소 기본 — transition 항상 적용 */
 .sidebar-title,.sidebar-subtext,.sidebar-userinfo,
 .nav-group-label,.nav-group-label-item,
@@ -1061,7 +1061,7 @@ body.app-initializing{visibility:hidden}
 .sidebar.collapsed .nav-item:hover::after{opacity:1}
 
 .sidebar-head{
-  padding:28px 16px 20px;
+  padding:18px 16px 14px;
   border-bottom:none;
   display:flex;align-items:center;width:100%;
 }
@@ -1069,7 +1069,7 @@ body.app-initializing{visibility:hidden}
 .sidebar-brand{display:flex;align-items:center;gap:12px;margin-bottom:0;}
 
 .sidebar-userinfo{
-  padding:20px 24px 16px;
+  padding:10px 16px 12px;
   border-bottom:1px solid var(--sb-bd);
 }
 
@@ -1087,8 +1087,9 @@ body.app-initializing{visibility:hidden}
   color:#ffffff;letter-spacing:-1px;line-height:1;
 }
 .sidebar-subtext{
-  font-size:16px;font-weight:400;
+  font-size:13px;font-weight:400;
   color:rgba(255,255,255,0.45);margin-top:0;letter-spacing:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
 .user-chip{
@@ -1107,10 +1108,10 @@ body.app-initializing{visibility:hidden}
 .sidebar-nav{padding:12px 12px;flex:1}
 
 .nav-group-label{
-  padding:28px 8px 7px;font-size:12px;font-weight:700;
+  padding:16px 8px 5px;font-size:12px;font-weight:700;
   color:rgba(255,255,255,0.32);letter-spacing:2px;text-transform:uppercase;
 }
-.nav-group-label:first-child{padding-top:8px}
+.nav-group-label:first-child{padding-top:6px}
 
 /* 학생 사이드바 그룹 레이블 — 참고 파일 스타일 */
 .nav-group-label-item{
@@ -1124,11 +1125,11 @@ body.app-initializing{visibility:hidden}
 
 .nav-item{
   display:flex;align-items:center;gap:11px;
-  width:100%;padding:10px 12px;
+  width:100%;padding:8px 12px;
   border:none;background:none;
   font-family:'Outfit',sans-serif;font-size:15px;font-weight:400;
   color:rgba(255,255,255,0.55);cursor:pointer;transition:all 0.15s;
-  text-align:left;border-radius:10px;position:relative;margin-bottom:2px;
+  text-align:left;border-radius:10px;position:relative;margin-bottom:1px;
   letter-spacing:-0.1px;
 }
 .nav-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.07)}
@@ -1147,11 +1148,11 @@ body.app-initializing{visibility:hidden}
 
 .nav-badge{margin-left:auto;font-size:12px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(59,130,246,0.25);color:#93c5fd}
 
-.sidebar-bottom{padding:14px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:8px}
+.sidebar-bottom{padding:10px 14px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:6px}
 
-.logout-btn{width:100%;padding:11px 16px;background:none;border:1px solid rgba(255,255,255,0.08);
+.logout-btn{width:100%;padding:8px 16px;background:none;border:1px solid rgba(255,255,255,0.08);
   border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;color:rgba(255,255,255,0.45);
-  display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;min-height:40px}
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;min-height:36px}
 .logout-btn:hover{border-color:rgba(239,68,68,0.4);color:#fca5a5;background:rgba(239,68,68,0.08)}
 
 /* ════ MAIN ════ */
