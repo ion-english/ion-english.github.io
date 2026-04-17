@@ -993,17 +993,77 @@ body.app-initializing{visibility:hidden}
 /* ════ SIDEBAR ════ */
 #app-shell{display:none}
 
-.sidebar{
-  position:fixed;top:0;left:0;width:240px;height:100vh;
-  background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%);
-  border-right:1px solid rgba(255,255,255,0.08);
-  display:flex;flex-direction:column;
-  z-index:100;overflow-y:auto;
+.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:linear-gradient(170deg,#22426b 0%,#1e3a5f 40%,#192f50 100%);border-right:1px solid rgba(255,255,255,0.10);box-shadow:inset -1px 0 0 rgba(255,255,255,0.06),4px 0 24px rgba(10,20,50,0.18);display:flex;flex-direction:column;z-index:100;overflow-y:auto;transition:width 0.22s cubic-bezier(0.4,0,0.2,1);overflow-x:hidden;}
+/* 텍스트 요소 기본 — transition 항상 적용 */
+.sidebar-title,.sidebar-subtext,.sidebar-userinfo,
+.nav-group-label,.nav-group-label-item,
+.nav-badge,.nav-label{
+  opacity:1;
+  overflow:hidden;
+  white-space:nowrap;
+  transition:opacity 0.15s ease, max-height 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1);
+  max-height:200px;
 }
+.nav-item{
+  transition:background 0.15s, color 0.15s,
+    padding 0.22s cubic-bezier(0.4,0,0.2,1),
+    gap 0.22s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.sidebar.collapsed{width:60px}
+/* 접힌 상태 — 텍스트 완전히 숨김 (공간 제거) */
+.sidebar.collapsed .sidebar-title,
+.sidebar.collapsed .sidebar-subtext,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .logout-btn .nav-label{
+  opacity:0; width:0; max-height:0; pointer-events:none; flex-shrink:0;
+}
+.sidebar.collapsed .sidebar-userinfo{
+  opacity:0; max-height:0; padding:0; pointer-events:none; overflow:hidden;
+}
+.sidebar.collapsed .nav-group-label,
+.sidebar.collapsed .nav-group-label-item{
+  opacity:0; max-height:0; padding:0; margin:0; pointer-events:none;
+}
+.sidebar.collapsed .sidebar-head{padding:16px 0;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;}
+.sidebar.collapsed .sidebar-brand{display:flex;justify-content:center;align-items:center;width:60px;padding:0;margin:0;gap:0;}
+.sidebar.collapsed .sidebar-nav{padding:8px 0}
+.sidebar.collapsed .nav-item{position:relative;justify-content:center;padding:10px 0;gap:0;width:calc(100% - 16px);margin:0 auto;border-radius:9px;}
+.sidebar.collapsed .nav-item .nav-icon{opacity:0.6;width:20px;height:20px}
+.sidebar.collapsed .nav-item.active .nav-icon{opacity:1}
+.sidebar.collapsed .nav-item.active::before{display:none}
+.sidebar.collapsed .sidebar-bottom{padding:10px 0;align-items:center;width:100%;}
+.sidebar.collapsed .logout-btn{padding:0;justify-content:center;align-items:center;min-height:40px;border:none;width:40px;height:40px;margin:0 auto;border-radius:9px;display:flex;}
+.sidebar.collapsed .logout-btn svg{margin-right:0 !important;margin-left:0 !important;}
+.sidebar-toggle-btn{
+  width:100%;padding:10px 0;
+  background:none;border:none;border-top:1px solid rgba(255,255,255,0.07);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:background 0.15s;
+}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,0.05)}
+.sidebar-toggle-btn svg{transition:transform 0.22s;width:14px;height:14px}
+.sidebar.collapsed .sidebar-toggle-btn svg{transform:rotate(180deg)}
+/* nav-item 툴팁 (collapsed 상태) */
+.sidebar.collapsed .nav-item::after{
+  content:attr(data-label);
+  position:absolute;left:52px;top:50%;transform:translateY(-50%);
+  background:#1e3a5f;color:#fff;
+  font-size:12px;padding:4px 10px;border-radius:6px;
+  white-space:nowrap;pointer-events:none;
+  opacity:0;transition:opacity 0.15s;
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:2px 2px 8px rgba(0,0,0,0.3);
+  z-index:200;
+}
+.sidebar.collapsed .nav-item:hover::after{opacity:1}
 
 .sidebar-head{
   padding:28px 16px 20px;
   border-bottom:none;
+  display:flex;align-items:center;width:100%;
 }
 
 .sidebar-brand{display:flex;align-items:center;gap:12px;margin-bottom:0;}
@@ -1015,11 +1075,11 @@ body.app-initializing{visibility:hidden}
 
 .sidebar-mark{
   width:42px;height:42px;flex-shrink:0;
-  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+  background:linear-gradient(135deg,#60a5fa 0%,#3b82f6 50%,#2563eb 100%);
   border-radius:13px;
   display:flex;align-items:center;justify-content:center;
   font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:#fff;
-  box-shadow:0 6px 22px rgba(59,130,246,0.52),0 2px 6px rgba(59,130,246,0.2);
+  box-shadow:0 4px 16px rgba(59,130,246,0.5),0 1px 4px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.25);
 }
 
 .sidebar-title{
@@ -1067,20 +1127,19 @@ body.app-initializing{visibility:hidden}
   width:100%;padding:10px 12px;
   border:none;background:none;
   font-family:'Outfit',sans-serif;font-size:15px;font-weight:400;
-  color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.15s;
-  text-align:left;border-radius:9px;position:relative;margin-bottom:1px;
+  color:rgba(255,255,255,0.55);cursor:pointer;transition:all 0.15s;
+  text-align:left;border-radius:10px;position:relative;margin-bottom:2px;
   letter-spacing:-0.1px;
 }
-.nav-item:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05)}
-.nav-item.active{color:#fff;font-weight:500;background:rgba(99,130,255,0.2)}
+.nav-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.07)}
+.nav-item.active{color:#fff;font-weight:500;background:rgba(255,255,255,0.12);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),inset 0 -1px 0 rgba(0,0,0,0.1);}
 .nav-item.active::before{
   content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
-  width:2.5px;height:18px;
-  width:3px;height:20px;
-  background:linear-gradient(180deg,#a5b4fc 0%,#6366f1 100%);
+  width:3px;height:20px;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,#93c5fd 0%,#3b82f6 100%);
 }
 .nav-icon{
-  width:18px;height:18px;flex-shrink:0;opacity:0.55;
+  width:18px;height:18px;flex-shrink:0;opacity:0.5;
   display:flex;align-items:center;justify-content:center;
 }
 .nav-item:hover .nav-icon{opacity:0.8}
@@ -1088,15 +1147,16 @@ body.app-initializing{visibility:hidden}
 
 .nav-badge{margin-left:auto;font-size:12px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(59,130,246,0.25);color:#93c5fd}
 
-.sidebar-bottom{padding:14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px}
+.sidebar-bottom{padding:14px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:8px}
 
-.logout-btn{width:100%;padding:11px 16px;background:none;border:1px solid rgba(255,255,255,0.09);
-  border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;color:var(--sb-t);
+.logout-btn{width:100%;padding:11px 16px;background:none;border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;color:rgba(255,255,255,0.45);
   display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;min-height:40px}
-.logout-btn:hover{border-color:rgba(239,68,68,0.35);color:#fca5a5;background:rgba(239,68,68,0.07)}
+.logout-btn:hover{border-color:rgba(239,68,68,0.4);color:#fca5a5;background:rgba(239,68,68,0.08)}
 
 /* ════ MAIN ════ */
-.main{margin-left:240px;min-height:100vh;background:#f8f9fa}
+.main{margin-left:240px;min-height:100vh;background:#f8f9fa;transition:margin-left 0.22s cubic-bezier(0.4,0,0.2,1)}
+.sidebar.collapsed~.main,.sidebar-collapsed .main{margin-left:60px}
 
 .topbar{
   background:#ffffff;
@@ -2299,6 +2359,7 @@ body.student-mode {
 /* ════ 태블릿 (768px 이하) ════ */
 @media(max-width:768px){
   .sidebar{width:220px}
+  .sidebar.collapsed{width:60px}
   .main{margin-left:220px}
   .content{padding:18px}
   .topbar{padding:0 18px}
@@ -2321,6 +2382,7 @@ body.student-mode {
     /* 하단 네비바 공간 확보 */
     padding-bottom:72px;
   }
+  .sidebar-toggle-btn{display:none}
   .sidebar.open{left:0;box-shadow:6px 0 32px rgba(0,0,0,0.3)}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:199;backdrop-filter:blur(2px)}
   .sidebar-overlay.open{display:block}
@@ -2714,39 +2776,28 @@ body.student-mode {
   .sent-row-wrap.touch-hover .row-hover-actions { display:flex !important; }
 }
 
-/* ── 낭독 커스텀 플레이어 ── */
+/* ── 낭독 커스텀 플레이어 (waveform) ── */
 .rr-player {
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:10px;
   background:var(--surface1,#f8fafc);border:1px solid var(--border,#e5e7eb);
-  border-radius:10px;padding:7px 10px;
+  border-radius:12px;padding:8px 12px;
 }
 .rr-play-btn {
   display:flex;align-items:center;justify-content:center;
-  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
   background:var(--accent,#1a56db);color:#fff;border:none;cursor:pointer;
   transition:background 0.15s;
 }
 .rr-play-btn:hover { background:var(--accent-dark,#1740a0); }
+.rr-wave-wrap {
+  flex:1;cursor:pointer;height:36px;position:relative;
+}
+.rr-wave-canvas {
+  width:100%;height:100%;display:block;border-radius:4px;
+}
 .rr-time {
   font-size:11px;font-weight:600;color:var(--t3,#6b7280);
-  flex-shrink:0;min-width:30px;font-variant-numeric:tabular-nums;
-}
-.rr-bar-wrap {
-  flex:1;cursor:pointer;padding:6px 0;
-}
-.rr-bar-bg {
-  width:100%;height:4px;border-radius:4px;
-  background:var(--border,#e5e7eb);position:relative;overflow:visible;
-}
-.rr-bar-fill {
-  height:100%;border-radius:4px;
-  background:var(--accent,#1a56db);
-  transition:width 0.1s linear;position:relative;
-}
-.rr-bar-fill::after {
-  content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);
-  width:10px;height:10px;border-radius:50%;
-  background:var(--accent,#1a56db);box-shadow:0 0 0 2px #fff;
+  flex-shrink:0;min-width:36px;text-align:right;font-variant-numeric:tabular-nums;
 }
 .rr-vol-btn {
   display:flex;align-items:center;justify-content:center;
@@ -2755,7 +2806,7 @@ body.student-mode {
   transition:color 0.15s;
 }
 .rr-vol-btn:hover { color:var(--t1,#111827); }
-/* ──────────────────────── */
+/* ──────────────────────────────────── */
 </style>
 
 
@@ -2804,9 +2855,14 @@ body.student-mode {
     <nav class="sidebar-nav" id="sidebar-nav"></nav>
 
     <div class="sidebar-bottom">
-      <button class="logout-btn" onclick="openApiKeyModal(slimeChatGetAI());updateQuotaBadge();" style="margin-bottom:8px;border-color:var(--border);color:var(--text-muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></svg>AI Setting</button>
-      <button class="logout-btn" onclick="doLogout()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</button>
+      <button class="logout-btn" onclick="openApiKeyModal(slimeChatGetAI());updateQuotaBadge();" style="margin-bottom:8px;border-color:var(--border);color:var(--text-muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></svg><span class="nav-label">AI Setting</span></button>
+      <button class="logout-btn" onclick="doLogout()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="nav-label">Logout</span></button>
     </div>
+    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebarCollapse()" title="사이드바 접기/펼치기">
+      <svg viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9,2 4,7 9,12"/>
+      </svg>
+    </button>
   </aside>
 
   <main class="main">
@@ -7032,6 +7088,7 @@ function initApp() {
   buildNav();
   refreshSelects();
   updateMobileUI();
+  applySidebarCollapsedState();
   const firstPage = u.role==='teacher' ? 'pg-dashboard' : 'pg-slime-home';
   showPage(firstPage);
   // AI 사용량 배지 초기 표시 (오늘 사용 기록 있으면)
@@ -7221,8 +7278,8 @@ function buildNav() {
       : `<div class="nav-group-label">${g.group}</div>`
     }
     ${g.items.map(it => `
-      <button class="nav-item" id="nav-${it.id}" onclick="showPage('${it.id}')">
-        ${it.icon ? `<span class="nav-icon">${NAV_ICONS[it.icon] || ''}</span>` : ''}${it.label}
+      <button class="nav-item" id="nav-${it.id}" onclick="showPage('${it.id}')" data-label="${it.label}">
+        ${it.icon ? `<span class="nav-icon">${NAV_ICONS[it.icon] || ''}</span>` : ''}<span class="nav-label">${it.label}</span>
       </button>
     `).join('')}
   `).join('');
@@ -7959,17 +8016,15 @@ function rrRenderList() {
             <svg class="rr-icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <svg class="rr-icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           </button>
-          <span class="rr-time">0:00</span>
-          <div class="rr-bar-wrap" onclick="rrSeek(this, event)">
-            <div class="rr-bar-bg">
-              <div class="rr-bar-fill" style="width:0%"></div>
-            </div>
+          <div class="rr-wave-wrap" onclick="rrWaveSeek(this,event)">
+            <canvas class="rr-wave-canvas"></canvas>
           </div>
+          <span class="rr-time">0:00</span>
           <button class="rr-vol-btn" onclick="rrToggleMute(this)" title="음소거">
             <svg class="rr-icon-vol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
             <svg class="rr-icon-mute" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
-          <audio preload="metadata" src="${r.recorded_url}" style="display:none"></audio>
+          <audio preload="auto" src="${r.recorded_url}" style="display:none"></audio>
         </div>
       </div>`;
     });
@@ -7978,6 +8033,12 @@ function rrRenderList() {
   });
 
   content.innerHTML = html;
+  // 렌더 직후: 이벤트 바인딩 + 파형 로드
+  content.querySelectorAll('.rr-player').forEach(player => {
+    const audio = player.querySelector('audio');
+    if (audio) rrBindAudio(player, audio);
+    rrLoadPeaks(player);
+  });
 }
 
 async function rrShowBookPreview(bookId) {
@@ -7993,36 +8054,37 @@ async function rrShowBookPreview(bookId) {
   popup.id = 'rr-book-preview-popup';
   popup.style.cssText = `
     position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
-    background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);padding:20px;
+    background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);
+    padding:env(safe-area-inset-top,12px) 12px env(safe-area-inset-bottom,12px);
   `;
 
   popup.innerHTML = `
     <div style="
-      background:var(--card,white);border-radius:18px;width:100%;max-width:560px;
-      max-height:80vh;display:flex;flex-direction:column;
+      background:var(--card,white);border-radius:18px;width:100%;max-width:600px;
+      max-height:90vh;display:flex;flex-direction:column;
       box-shadow:0 8px 40px rgba(0,0,0,0.18);overflow:hidden;
     ">
       <!-- 헤더 -->
       <div style="
-        display:flex;align-items:center;gap:10px;padding:16px 18px 14px;
+        display:flex;align-items:center;gap:12px;padding:18px 20px 16px;
         border-bottom:1.5px solid var(--border);flex-shrink:0;
       ">
         <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">본문 — 읽으면서 녹음하세요</div>
-          <div style="font-size:16px;font-weight:800;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bookName}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--t3);letter-spacing:0.6px;margin-bottom:3px">본문 — 읽으면서 녹음하세요</div>
+          <div style="font-size:18px;font-weight:800;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bookName}</div>
         </div>
         <button onclick="document.getElementById('rr-book-preview-popup').remove()" style="
-          width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);
+          width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);
           background:var(--surface2);cursor:pointer;flex-shrink:0;
           display:flex;align-items:center;justify-content:center;
           transition:background 0.15s;
         " onmouseenter="this.style.background='var(--surface3,#e2e8f0)'" onmouseleave="this.style.background='var(--surface2)'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <!-- 본문 목록 -->
-      <div id="rr-book-preview-body" style="flex:1;overflow-y:auto;padding:12px 14px 16px">
-        <div style="display:flex;align-items:center;justify-content:center;padding:40px 0;color:var(--t3);font-size:14px">
+      <div id="rr-book-preview-body" style="flex:1;overflow-y:auto;padding:14px 16px 20px;-webkit-overflow-scrolling:touch">
+        <div style="display:flex;align-items:center;justify-content:center;padding:40px 0;color:var(--t3);font-size:15px">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;margin-right:8px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
           불러오는 중...
         </div>
@@ -8057,21 +8119,21 @@ async function rrShowBookPreview(bookId) {
   items.forEach((item, idx) => {
     html += `
       <div style="
-        display:flex;align-items:flex-start;gap:12px;
-        padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;
-        margin-bottom:8px;background:var(--surface,white);
+        display:flex;align-items:flex-start;gap:14px;
+        padding:14px 16px;border:1.5px solid var(--border);border-radius:14px;
+        margin-bottom:10px;background:var(--surface,white);
       ">
-        <span style="font-size:12px;font-weight:700;color:var(--t3);padding-top:2px;flex-shrink:0;min-width:18px">${idx+1}.</span>
+        <span style="font-size:13px;font-weight:800;color:var(--t3);padding-top:3px;flex-shrink:0;min-width:22px">${idx+1}.</span>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:var(--t1);font-family:'JetBrains Mono',monospace;line-height:1.5;word-break:break-word">${item.en||''}</div>
-          ${item.ko ? `<div style="font-size:12px;color:var(--t3);margin-top:3px;line-height:1.4">${item.ko}</div>` : ''}
+          <div style="font-size:16px;font-weight:700;color:var(--t1);font-family:'JetBrains Mono',monospace;line-height:1.6;word-break:break-word">${item.en||''}</div>
+          ${item.ko ? `<div style="font-size:14px;color:var(--t2);margin-top:5px;line-height:1.5">${item.ko}</div>` : ''}
         </div>
         <button onclick="speak(this.dataset.en)" data-en="${(item.en||'').replace(/"/g,'&quot;')}" title="TTS 재생" style="
-          width:28px;height:28px;border-radius:50%;border:1px solid var(--border);
+          width:36px;height:36px;border-radius:50%;border:1px solid var(--border);
           background:var(--surface2);cursor:pointer;flex-shrink:0;padding:0;
           display:flex;align-items:center;justify-content:center;transition:background 0.15s;
         " onmouseenter="this.style.background='#dbeafe'" onmouseleave="this.style.background='var(--surface2)'">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         </button>
       </div>`;
   });
@@ -8151,60 +8213,167 @@ async function rrDeleteRecording(subId) {
 }
 
 // ── 낭독 커스텀 플레이어 ──────────────────────────────────────
+// ── waveform 파형 그리기 ──────────────────────────────────────
+function rrDrawWave(canvas, peaks, progress) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  if (!W || !H) return;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const BAR = 3, GAP = 2, STEP = BAR + GAP;
+  const count = Math.floor(W / STEP);
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1a56db';
+  const dim = '#d1d5db';
+  const midY = H / 2;
+  const hasPeaks = peaks && peaks.length > 0;
+  for (let i = 0; i < count; i++) {
+    const x = i * STEP;
+    const played = (i / count) < progress;
+    // peaks 없으면 균일한 작은 막대로 fallback (진행바는 정상 동작)
+    const amp = hasPeaks
+      ? (peaks[Math.floor(i / count * peaks.length)] || 0.05) * (midY * 0.85)
+      : midY * 0.25;
+    ctx.fillStyle = played ? accent : dim;
+    ctx.beginPath();
+    ctx.roundRect(x, midY - amp, BAR, amp * 2, 1.5);
+    ctx.fill();
+  }
+}
+
+function rrAnimateWave(player) {
+  const audio = player.querySelector('audio');
+  const canvas = player.querySelector('.rr-wave-canvas');
+  const timeEl = player.querySelector('.rr-time');
+  if (!audio || !canvas) return;
+  const peaks = canvas._peaks || [];
+  // decode된 duration 우선 (스트리밍 URL은 audio.duration이 뒤늦게 확정됨)
+  const dur = (player._rrDecodedDur > 0) ? player._rrDecodedDur
+            : (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : 0;
+  const ct  = audio.currentTime;
+  const progress = dur > 0 ? Math.min(1, ct / dur) : 0;
+  rrDrawWave(canvas, peaks, progress);
+  if (timeEl) {
+    const m = Math.floor(ct / 60);
+    const s = Math.floor(ct % 60);
+    timeEl.textContent = m + ':' + String(s).padStart(2,'0');
+  }
+  if (player._rrPlaying && !audio.ended) {
+    player._rrRaf = requestAnimationFrame(() => rrAnimateWave(player));
+  }
+}
+
+// 디버그용 - 나중에 제거
+window._rrDebug = function() {
+  const player = document.querySelector('.rr-player');
+  if (!player) return console.log('no player');
+  const audio = player.querySelector('audio');
+  console.log('duration:', audio?.duration, 'currentTime:', audio?.currentTime, 'paused:', audio?.paused, '_rrDur:', player._rrDur, '_rrRaf:', player._rrRaf, 'peaks:', player.querySelector('.rr-wave-canvas')?._peaks?.length);
+};
+
+async function rrLoadPeaks(player) {
+  if (player._peaksLoaded) return;
+  player._peaksLoaded = true;
+  const url = player.dataset.url;
+  const canvas = player.querySelector('.rr-wave-canvas');
+  try {
+    const res = await fetch(url);
+    const buf = await res.arrayBuffer();
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await actx.decodeAudioData(buf);
+    actx.close();
+    const raw = decoded.getChannelData(0);
+    const BINS = 200;
+    const step = Math.floor(raw.length / BINS);
+    const peaks = [];
+    for (let i = 0; i < BINS; i++) {
+      let max = 0;
+      for (let j = 0; j < step; j++) max = Math.max(max, Math.abs(raw[i * step + j] || 0));
+      peaks.push(max);
+    }
+    canvas._peaks = peaks;
+    // decode된 실제 duration을 player에 저장 (스트리밍 URL은 audio.duration이 늦게 확정됨)
+    player._rrDecodedDur = decoded.duration;
+    rrDrawWave(canvas, peaks, 0);
+  } catch(e) {
+    // 파형 로드 실패시 더미 파형
+    const peaks = Array.from({length:200}, () => 0.1 + Math.random() * 0.4);
+    canvas._peaks = peaks;
+    rrDrawWave(canvas, peaks, 0);
+  }
+}
+
 function rrBindAudio(player, audio) {
   if (audio._rrBound) return;
   audio._rrBound = true;
-  audio.addEventListener('timeupdate', () => {
-    if (!audio.duration) return;
-    const pct = (audio.currentTime / audio.duration) * 100;
-    const fill = player.querySelector('.rr-bar-fill');
-    const timeEl = player.querySelector('.rr-time');
-    if (fill) fill.style.width = pct + '%';
-    if (timeEl) {
-      const m = Math.floor(audio.currentTime / 60);
-      const s = Math.floor(audio.currentTime % 60);
-      timeEl.textContent = m + ':' + String(s).padStart(2,'0');
-    }
-  });
   audio.addEventListener('ended', () => {
+    player._rrPlaying = false;
+    cancelAnimationFrame(player._rrRaf);
     const playBtn = player.querySelector('.rr-play-btn');
     if (playBtn) { playBtn.querySelector('.rr-icon-play').style.display=''; playBtn.querySelector('.rr-icon-pause').style.display='none'; }
-    const fill = player.querySelector('.rr-bar-fill');
-    if (fill) fill.style.width = '0%';
+    const canvas = player.querySelector('.rr-wave-canvas');
+    const peaks = (canvas && canvas._peaks) || [];
+    if (canvas) rrDrawWave(canvas, peaks, 1);
     const timeEl = player.querySelector('.rr-time');
     if (timeEl) timeEl.textContent = '0:00';
-    audio.currentTime = 0;
+    setTimeout(() => {
+      audio.currentTime = 0;
+      if (canvas) rrDrawWave(canvas, peaks, 0);
+    }, 400);
   });
 }
+
 function rrTogglePlay(btn) {
   const player = btn.closest('.rr-player');
   const audio = player.querySelector('audio');
   rrBindAudio(player, audio);
+  rrLoadPeaks(player);
   if (audio.paused) {
     document.querySelectorAll('.rr-player audio').forEach(a => {
       if (a !== audio && !a.paused) {
+        const op = a.closest('.rr-player');
+        if (op) op._rrPlaying = false;
         a.pause();
+        cancelAnimationFrame(op?._rrRaf);
         const ob = a.closest('.rr-player').querySelector('.rr-play-btn');
         if (ob) { ob.querySelector('.rr-icon-play').style.display=''; ob.querySelector('.rr-icon-pause').style.display='none'; }
       }
     });
-    const doPlay = () => { audio.play().catch(()=>{}); btn.querySelector('.rr-icon-play').style.display='none'; btn.querySelector('.rr-icon-pause').style.display=''; };
-    if (audio.readyState >= 1) { doPlay(); }
-    else { audio.load(); audio.addEventListener('loadedmetadata', doPlay, {once:true}); btn.querySelector('.rr-icon-play').style.display='none'; btn.querySelector('.rr-icon-pause').style.display=''; }
+    btn.querySelector('.rr-icon-play').style.display='none';
+    btn.querySelector('.rr-icon-pause').style.display='';
+    cancelAnimationFrame(player._rrRaf);
+    player._rrPlaying = true;
+    const playPromise = audio.play();
+    rrAnimateWave(player);
+    if (playPromise) playPromise.catch(()=>{
+      player._rrPlaying = false;
+      cancelAnimationFrame(player._rrRaf);
+      btn.querySelector('.rr-icon-play').style.display='';
+      btn.querySelector('.rr-icon-pause').style.display='none';
+    });
   } else {
+    player._rrPlaying = false;
     audio.pause();
+    cancelAnimationFrame(player._rrRaf);
     btn.querySelector('.rr-icon-play').style.display='';
     btn.querySelector('.rr-icon-pause').style.display='none';
   }
 }
-function rrSeek(barWrap, e) {
-  const player = barWrap.closest('.rr-player');
+
+function rrWaveSeek(waveWrap, e) {
+  const player = waveWrap.closest('.rr-player');
   const audio = player.querySelector('audio');
-  if (!audio.duration) return;
-  const rect = barWrap.getBoundingClientRect();
+  const canvas = player.querySelector('.rr-wave-canvas');
+  const rect = waveWrap.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  audio.currentTime = pct * audio.duration;
+  const dur = (player._rrDecodedDur > 0) ? player._rrDecodedDur
+            : (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : 0;
+  if (dur > 0) {
+    audio.currentTime = pct * dur;
+    if (canvas) rrDrawWave(canvas, canvas._peaks || [], pct);
+  }
 }
+
 function rrToggleMute(btn) {
   const audio = btn.closest('.rr-player').querySelector('audio');
   audio.muted = !audio.muted;
@@ -24318,6 +24487,66 @@ async function fvConfirmDelete(id) {
 // =========================================================
 //  모바일 사이드바 토글
 // =========================================================
+function _applySidebarCollapsedStyles(collapsed) {
+  const head = document.querySelector('.sidebar-head');
+  const brand = document.querySelector('.sidebar-brand');
+  const bottom = document.querySelector('.sidebar-bottom');
+  const logoutBtns = document.querySelectorAll('.sidebar-bottom .logout-btn');
+  const logoutSvgs = document.querySelectorAll('.sidebar-bottom .logout-btn svg');
+  if (collapsed) {
+    if (head) { head.style.justifyContent = 'center'; head.style.padding = '16px 0'; }
+    if (brand) { brand.style.justifyContent = 'center'; brand.style.width = '100%'; }
+    if (bottom) { bottom.style.alignItems = 'center'; bottom.style.padding = '10px 0'; }
+    logoutBtns.forEach(btn => {
+      btn.style.width = '40px'; btn.style.height = '40px';
+      btn.style.padding = '0'; btn.style.margin = '0 auto';
+      btn.style.border = 'none'; btn.style.borderRadius = '9px';
+      btn.style.justifyContent = 'center';
+    });
+    logoutSvgs.forEach(svg => { svg.style.marginRight = '0'; svg.style.marginLeft = '0'; });
+  } else {
+    if (head) { head.style.justifyContent = ''; head.style.padding = ''; }
+    if (brand) { brand.style.justifyContent = ''; brand.style.width = ''; }
+    if (bottom) { bottom.style.alignItems = ''; bottom.style.padding = ''; }
+    logoutBtns.forEach(btn => {
+      btn.style.width = ''; btn.style.height = '';
+      btn.style.padding = ''; btn.style.margin = '';
+      btn.style.border = ''; btn.style.borderRadius = '';
+      btn.style.justifyContent = '';
+    });
+    logoutSvgs.forEach(svg => { svg.style.marginRight = ''; svg.style.marginLeft = ''; });
+  }
+}
+
+function toggleSidebarCollapse() {
+  if (window.innerWidth <= 600) return;
+  const sidebar = document.getElementById('sidebar');
+  const main = document.querySelector('.main');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  if (main) main.style.marginLeft = collapsed ? '60px' : '';
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  _applySidebarCollapsedStyles(collapsed);
+  localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+}
+
+function applySidebarCollapsedState() {
+  if (window.innerWidth <= 600) return;
+  const sidebar = document.getElementById('sidebar');
+  const main = document.querySelector('.main');
+  const saved = localStorage.getItem('sidebarCollapsed');
+  if (saved === '1') {
+    sidebar.classList.add('collapsed');
+    if (main) main.style.marginLeft = '60px';
+    document.body.classList.add('sidebar-collapsed');
+    _applySidebarCollapsedStyles(true);
+  } else {
+    sidebar.classList.remove('collapsed');
+    if (main) main.style.marginLeft = '';
+    document.body.classList.remove('sidebar-collapsed');
+    _applySidebarCollapsedStyles(false);
+  }
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
