@@ -20086,8 +20086,9 @@ window._fmSlotText=function(){
 };
 function _fmNorm(x){ return String(x||'').toLowerCase().replace(/[.,!?;:'"]/g,'').replace(/\s+/g,' ').trim(); }
 
-window._fmAnswer=function(val){
+window._fmAnswer=async function(val){
   var st=window._fmState; if(!st) return;
+  if(st._grading) return;                       // 중복 제출 방지
   var _q2=st.queue[st.idx];
   var step=(_q2&&_q2.step)?_q2.step:_q2;
   var it=(_q2&&_q2.w)?_q2.w:st.item;
@@ -20097,20 +20098,67 @@ window._fmAnswer=function(val){
   else if(step==='order'){ correct=it.en||''; }
   else { correct=(window._fmBlankAns||[]).join(' '); }
   ok=_fmNorm(val)===_fmNorm(correct);
-  if(!ok && (step==='input_en2ko')){   // 한국어 뜻은 일부만 맞아도 인정
+  if(!ok && (step==='input_en2ko')){            // 한국어 뜻은 일부만 맞아도 인정
     var a=_fmNorm(val), b=_fmNorm(correct);
     if(a && (b.indexOf(a)>=0 || a.indexOf(b)>=0)) ok=true;
   }
-  st.results.push({step:step, ok:ok, val:val, correct:correct, round:st.round, en:(it&&it.en)||''});
+  // ── 영→한 주관식: 로컬에서 오답이면 AI가 동의어·다른 표현인지 재채점 ──
+  var aiJudged=false;
+  if(!ok && step==='input_en2ko' && String(val||'').trim()){
+    st._grading=true;
+    _fmGradingUI(true);
+    try{
+      var r=await _fmAIGrade(it.en||'', correct, val);
+      if(r===true){ ok=true; aiJudged=true; }
+    }catch(e){ /* 실패 시 로컬 판정 유지 */ }
+    _fmGradingUI(false);
+    st._grading=false;
+  }
+  st.results.push({step:step, ok:ok, val:val, correct:correct, round:st.round, en:(it&&it.en)||'', ai:aiJudged});
   if(!ok) st.wrongThisRound.push(_q2);
-  _fmFeedback(ok, correct, function(){ st.idx++; _fmRender(); });
+  _fmFeedback(ok, correct, function(){ st.idx++; _fmRender(); }, aiJudged);
 };
 
-function _fmFeedback(ok, correct, next){
+// AI 채점: 동의어·다른 표현이면 정답 인정
+async function _fmAIGrade(word, correct, userAns){
+  var prompt='영어 단어 뜻 채점. 학생 답이 정답과 같은 의미면 O, 다르면 X만 출력.\n'
+    +'단어: '+word+'\n정답: '+correct+'\n학생 답: '+userAns+'\n'
+    +'기준: 동의어·유의어·표현 차이·어미 차이·품사 형태 차이는 정답(O). '
+    +'뜻이 다르거나 관련 없으면 오답(X). 정답의 여러 뜻 중 하나만 써도 정답(O).\n'
+    +'출력: O 또는 X 한 글자만.';
+  var msgs=[{role:'system',content:'너는 영어 단어 채점기다. O 또는 X 한 글자만 출력한다.'},
+            {role:'user',content:prompt}];
+  var raw='';
+  try{
+    if(typeof _callAI_teacher==='function') raw=await _callAI_teacher(msgs, 10, null, 12000);
+    else if(typeof _callAI==='function')    raw=await _callAI(msgs, 10);
+  }catch(e){ throw e; }
+  var t=String(raw||'').trim().toUpperCase();
+  if(t.indexOf('O')===0 || t==='0') return true;
+  if(t.indexOf('X')===0) return false;
+  return /정답|맞|correct/i.test(t) ? true : false;
+}
+
+// 채점 중 표시
+function _fmGradingUI(on){
+  var ov=document.getElementById('fm-overlay'); if(!ov) return;
+  var old=ov.querySelector('.fm-grading');
+  if(!on){ if(old) old.remove(); return; }
+  if(old) return;
+  var box=ov.querySelector('.fm-body'); if(!box) return;
+  var d=document.createElement('div'); d.className='fm-fb fm-grading';
+  d.style.background='#eef2ff'; d.style.color='#4338ca';
+  d.innerHTML='<b>AI 채점 중…</b>';
+  box.appendChild(d);
+}
+
+function _fmFeedback(ok, correct, next, aiJudged){
   var ov=document.getElementById('fm-overlay'); if(!ov) return;
   var box=ov.querySelector('.fm-body'); if(!box) return next();
+  var g=ov.querySelector('.fm-grading'); if(g) g.remove();
   var fb=document.createElement('div'); fb.className='fm-fb '+(ok?'ok':'no');
-  fb.innerHTML=ok?'<b>정답!</b>':'<b>오답</b><span>정답: '+_fmEsc(correct)+'</span>';
+  fb.innerHTML=ok?('<b>정답!</b>'+(aiJudged?'<span>같은 뜻으로 인정 · 정답: '+_fmEsc(correct)+'</span>':''))
+                 :('<b>오답</b><span>정답: '+_fmEsc(correct)+'</span>');
   box.appendChild(fb);
   setTimeout(next, ok?1000:1500);
 }
