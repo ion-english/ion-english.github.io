@@ -20031,7 +20031,13 @@ function _fmRender(){
   var ov=document.getElementById('fm-overlay');
   if(!ov){ ov=document.createElement('div'); ov.id='fm-overlay'; document.body.appendChild(ov); _fmCSS();
     ov.addEventListener('contextmenu', function(e){ e.preventDefault(); });          // 롱프레스 메뉴 차단
-    ov.addEventListener('selectstart', function(e){ if(e.target.tagName!=='INPUT') e.preventDefault(); });
+    ov.addEventListener('selectstart', function(e){ if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA') e.preventDefault(); });
+    ov.addEventListener('touchstart', function(e){
+      var t=e.target;
+      if(t && t.tagName!=='INPUT' && t.tagName!=='TEXTAREA'){
+        try{ var sl=window.getSelection&&window.getSelection(); if(sl&&sl.removeAllRanges) sl.removeAllRanges(); }catch(_){}
+      }
+    }, {passive:true});
   }
   if(st.idx>=st.queue.length){ return _fmRoundEnd(); }
   var _q=st.queue[st.idx];
@@ -20078,6 +20084,9 @@ function _fmRender(){
     +'<span class="fm-label">'+LABEL[step]+'</span>'
     +'<button class="fm-x" onclick="_fmClose()">✕</button></div>'
     +'<div class="fm-body">'+body+'</div></div>';
+  // 이전 문항의 포커스/선택 잔상 제거 (직전 클릭 위치에 색이 남는 문제 방지)
+  try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+  try{ var sel=window.getSelection&&window.getSelection(); if(sel&&sel.removeAllRanges) sel.removeAllRanges(); }catch(e){}
   var inp=document.getElementById('fm-input'); if(inp) setTimeout(function(){ inp.focus(); },50);
 }
 
@@ -20227,7 +20236,7 @@ function _fmEsc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){re
 function _fmCSS(){
   if(document.getElementById('fm-css')) return;
   var st=document.createElement('style'); st.id='fm-css';
-  st.textContent='#fm-overlay{position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.55);-webkit-backdrop-filter:blur(7px) saturate(.9);backdrop-filter:blur(7px) saturate(.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit;animation:fmFade .18s ease-out}'
+  st.textContent='#fm-overlay{position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.55);-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-backdrop-filter:blur(7px) saturate(.9);backdrop-filter:blur(7px) saturate(.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit;animation:fmFade .18s ease-out}'
    +'@keyframes fmFade{from{opacity:0}to{opacity:1}}'
    +'@keyframes fmPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}'
    +'.fm-box{background:#fff;border-radius:18px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:fmPop .2s ease-out}'
@@ -20246,6 +20255,10 @@ function _fmCSS(){
    +'@media (hover:hover) and (pointer:fine){.fm-opt:hover{border-color:#1e4db7;background:#f0f6ff}}'
    +'.fm-box,.fm-opt,.fm-w,.fm-q,.fm-submit,.fm-chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}'
    +'.fm-opt{touch-action:manipulation}'
+   +'#fm-overlay input,#fm-overlay textarea{-webkit-user-select:text;user-select:text}'
+   +'.fm-opt:focus,.fm-opt:focus-visible,.fm-opt:active{outline:none!important;border-color:#e2e8f0!important;background:#fff!important;box-shadow:none!important}'
+   +'.fm-opt.fm-correct:focus,.fm-opt.fm-correct{border-color:#16a34a!important;background:#dcfce7!important}'
+   +'.fm-opt.fm-wrong:focus,.fm-opt.fm-wrong{border-color:#dc2626!important;background:#fee2e2!important}'
    +'.fm-opt:focus,.fm-opt:focus-visible,.fm-w:focus{outline:none}'
    +'.fm-body.fm-locked .fm-opt{pointer-events:none}'
    +'@media (hover:hover) and (pointer:fine){.fm-body.fm-locked .fm-opt:hover{border-color:#e2e8f0;background:#fff}}'
