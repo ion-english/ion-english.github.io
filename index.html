@@ -20025,8 +20025,14 @@ function _fmDistractors(it, field){
 
 function _fmRender(){
   var st=window._fmState; if(!st) return;
+  st._tok=(st._tok||0)+1;                 // 문항 고유 토큰
+  st._grading=false;
+  clearTimeout(window._fmNextT);
   var ov=document.getElementById('fm-overlay');
-  if(!ov){ ov=document.createElement('div'); ov.id='fm-overlay'; document.body.appendChild(ov); _fmCSS(); }
+  if(!ov){ ov=document.createElement('div'); ov.id='fm-overlay'; document.body.appendChild(ov); _fmCSS();
+    ov.addEventListener('contextmenu', function(e){ e.preventDefault(); });          // 롱프레스 메뉴 차단
+    ov.addEventListener('selectstart', function(e){ if(e.target.tagName!=='INPUT') e.preventDefault(); });
+  }
   if(st.idx>=st.queue.length){ return _fmRoundEnd(); }
   var _q=st.queue[st.idx];
   var step=(_q&&_q.step)?_q.step:_q;
@@ -20040,7 +20046,7 @@ function _fmRender(){
     var correct=String(it[ansF]||'').trim();
     var opts=_fmShuffle([correct].concat(_fmDistractors(it, ansF)));
     body='<div class="fm-q">'+_fmEsc(ask)+'</div><div class="fm-opts">'
-      + opts.map(function(o){ return '<button class="fm-opt" onclick="_fmAnswer('+JSON.stringify(o).replace(/"/g,'&quot;')+')">'+_fmEsc(o)+'</button>'; }).join('')
+      + opts.map(function(o){ return '<button type="button" class="fm-opt" data-v="'+_fmEsc(o)+'" oncontextmenu="return false" onclick="this.blur();_fmAnswer('+JSON.stringify(o).replace(/"/g,'&quot;')+')">'+_fmEsc(o)+'</button>'; }).join('')
       + '</div>';
   } else if(step.indexOf('input')===0){
     var ask2=(step==='input_en2ko')?it.en:it.ko;
@@ -20089,6 +20095,8 @@ function _fmNorm(x){ return String(x||'').toLowerCase().replace(/[.,!?;:'"]/g,''
 window._fmAnswer=async function(val){
   var st=window._fmState; if(!st) return;
   if(st._grading) return;                       // 중복 제출 방지
+  var _tok=st._tok;                             // 이 문항의 토큰
+  window._fmPicked=val;                         // 내가 고른 보기(색 표시용)
   var _q2=st.queue[st.idx];
   var step=(_q2&&_q2.step)?_q2.step:_q2;
   var it=(_q2&&_q2.w)?_q2.w:st.item;
@@ -20113,10 +20121,11 @@ window._fmAnswer=async function(val){
     }catch(e){ /* 실패 시 로컬 판정 유지 */ }
     _fmGradingUI(false);
     st._grading=false;
+    if(_tok!==st._tok) return;                  // 채점 중 문항이 바뀌었으면 폐기
   }
   st.results.push({step:step, ok:ok, val:val, correct:correct, round:st.round, en:(it&&it.en)||'', ai:aiJudged});
   if(!ok) st.wrongThisRound.push(_q2);
-  _fmFeedback(ok, correct, function(){ st.idx++; _fmRender(); }, aiJudged);
+  _fmFeedback(ok, correct, function(){ st.idx++; _fmRender(); }, aiJudged, _tok);
 };
 
 // AI 채점: 동의어·다른 표현이면 정답 인정
@@ -20152,15 +20161,28 @@ function _fmGradingUI(on){
   box.appendChild(d);
 }
 
-function _fmFeedback(ok, correct, next, aiJudged){
+function _fmFeedback(ok, correct, next, aiJudged, token){
+  var st=window._fmState;
+  if(st && token!=null && token!==st._tok) return;   // 지난 문항의 결과면 무시
   var ov=document.getElementById('fm-overlay'); if(!ov) return;
   var box=ov.querySelector('.fm-body'); if(!box) return next();
   var g=ov.querySelector('.fm-grading'); if(g) g.remove();
+  box.classList.add('fm-locked');                       // 마우스 위치와 무관하게 hover 차단
+  Array.prototype.forEach.call(ov.querySelectorAll('.fm-opt'), function(b){
+    var v=b.getAttribute('data-v')||'';
+    if(_fmNorm(v)===_fmNorm(correct)) b.classList.add('fm-correct');
+    else if(window._fmPicked!=null && _fmNorm(v)===_fmNorm(window._fmPicked) && !ok) b.classList.add('fm-wrong');
+  });
+  Array.prototype.forEach.call(ov.querySelectorAll('.fm-fb'), function(x){ x.remove(); });  // 이전 피드백 제거
   var fb=document.createElement('div'); fb.className='fm-fb '+(ok?'ok':'no');
   fb.innerHTML=ok?('<b>정답!</b>'+(aiJudged?'<span>같은 뜻으로 인정 · 정답: '+_fmEsc(correct)+'</span>':''))
                  :('<b>오답</b><span>정답: '+_fmEsc(correct)+'</span>');
   box.appendChild(fb);
-  setTimeout(next, ok?1000:1500);
+  clearTimeout(window._fmNextT);
+  window._fmNextT=setTimeout(function(){
+    if(window._fmState && token!=null && token!==window._fmState._tok) return;
+    next();
+  }, ok?1000:1500);
 }
 
 function _fmRoundEnd(){
@@ -20221,7 +20243,14 @@ function _fmCSS(){
    +'.fm-bk{display:inline-block;min-width:52px;border-bottom:2px solid #1e4db7;margin:0 3px}'
    +'.fm-opts{display:flex;flex-direction:column;gap:8px}'
    +'.fm-opt{padding:13px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:16px;cursor:pointer;font-family:inherit;transition:all .12s}'
-   +'.fm-opt:hover{border-color:#1e4db7;background:#f0f6ff}'
+   +'@media (hover:hover) and (pointer:fine){.fm-opt:hover{border-color:#1e4db7;background:#f0f6ff}}'
+   +'.fm-box,.fm-opt,.fm-w,.fm-q,.fm-submit,.fm-chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}'
+   +'.fm-opt{touch-action:manipulation}'
+   +'.fm-opt:focus,.fm-opt:focus-visible,.fm-w:focus{outline:none}'
+   +'.fm-body.fm-locked .fm-opt{pointer-events:none}'
+   +'@media (hover:hover) and (pointer:fine){.fm-body.fm-locked .fm-opt:hover{border-color:#e2e8f0;background:#fff}}'
+   +'.fm-opt.fm-correct,.fm-body.fm-locked .fm-opt.fm-correct:hover{border-color:#16a34a;background:#dcfce7;color:#15803d;font-weight:700}'
+   +'.fm-opt.fm-wrong,.fm-body.fm-locked .fm-opt.fm-wrong:hover{border-color:#dc2626;background:#fee2e2;color:#b91c1c}'
    +'.fm-input{padding:13px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:17px;outline:none;font-family:inherit}'
    +'.fm-input:focus{border-color:#1e4db7}'
    +'.fm-submit{padding:13px;border:none;border-radius:12px;background:#1e4db7;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}'
