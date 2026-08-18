@@ -4651,6 +4651,15 @@ body.student-mode {
           <div style="margin-top:18px;display:inline-block;font-size:12px;font-weight:700;color:#0369a1;background:#e0f2fe;padding:5px 14px;border-radius:20px">곧 열려요</div>
         </div>
       </div>
+      <!-- ===== 파닉스 탭 (선생님 관리) ===== -->
+      <div id="pg-phonics" class="page">
+        <div id="phonics-mgmt-root" style="padding:8px 4px"></div>
+      </div>
+      <!-- ===== 파닉스 탭 (학생 학습) ===== -->
+      <div id="pg-student-phonics" class="page">
+        <div id="phonics-student-root" style="padding:8px 4px"></div>
+      </div>
+
       <div id="pg-reading-review" class="page">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -5406,9 +5415,9 @@ async function loadDB() {
 
       let usersQuery;
       if (isAdmin) {
-        usersQuery = sb.from('profiles').select('id, name, role, grade, email, teacher_id, assigned_book_ids');
+        usersQuery = sb.from('profiles').select('id, name, role, grade, email, teacher_id, assigned_book_ids, is_phonics, phonics_progress');
       } else {
-        usersQuery = sb.from('profiles').select('id, name, role, grade, email, teacher_id, assigned_book_ids')
+        usersQuery = sb.from('profiles').select('id, name, role, grade, email, teacher_id, assigned_book_ids, is_phonics, phonics_progress')
           .eq('role', 'student').eq('teacher_id', uid);
       }
 
@@ -5450,6 +5459,8 @@ async function loadDB() {
           id: u.id, name: u.name, role: u.role, grade: u.grade || '',
           username: u.email || u.name, teacherId: u.teacher_id || null,
           assigned: u.assigned_book_ids || [],
+          is_phonics: u.is_phonics === true,
+          phonics_progress: u.phonics_progress || {},
           slime_data: null          /* 아바타용 — 백그라운드에서 채움 */
         }));
 
@@ -9065,6 +9076,7 @@ const teacherNav = [
     {id:'pg-library',icon:'library',label:'Voca'},
     {id:'pg-sentences',icon:'sentences',label:'Reading'},
     {id:'pg-grammar',icon:'grammar',label:'Grammar'},
+    {id:'pg-phonics',icon:'phonics',label:'Phonics'},
     {id:'pg-speaking',icon:'speaking',label:'Speaking'},
     {id:'pg-games',icon:'game',label:'Game'},
     {id:'pg-t-study-note',icon:'studynote',label:'Study Note'},
@@ -9090,6 +9102,7 @@ const studentNav = [
     {id:'pg-mybooks',icon:'library',label:'Voca'},
     {id:'pg-sentence-study',icon:'sentences',label:'Reading'},
     {id:'pg-student-grammar',icon:'grammar',label:'Grammar'},
+    {id:'pg-student-phonics',icon:'phonics',label:'Phonics'},
     {id:'pg-student-speaking',icon:'speaking',label:'Speaking'},
     {id:'pg-student-exam',icon:'examlab',label:'Exam'},
     {id:'pg-progress',icon:'progress',label:'Record'},
@@ -9120,12 +9133,19 @@ const NAV_ICONS = {
   speaking:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
   studynote: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 7h6M9 11h4"/></svg>`,
   game:      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>`,
+  phonics:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>`,
 };
 
 function buildNav() {
   const nav = document.getElementById('sidebar-nav');
-  const groups = currentUser.role==='teacher' ? teacherNav : studentNav;
   const isStudent = currentUser.role !== 'teacher';
+  const rawGroups = currentUser.role==='teacher' ? teacherNav : studentNav;
+  // 파닉스 탭: 선생님은 항상 보임 / 학생은 is_phonics===true 인 경우만
+  const showPhonics = !isStudent || currentUser.is_phonics === true;
+  const groups = rawGroups.map(g => ({
+    ...g,
+    items: g.items.filter(it => (it.id !== 'pg-student-phonics') || showPhonics)
+  }));
   nav.innerHTML = groups.map(g => `
     ${isStudent
       ? `<div class="nav-group-label-item">${g.group}</div>`
@@ -12847,6 +12867,3271 @@ function _splTextToExpr(text){
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  Phonics (파닉스) — 알파벳 소리 익히기 과정
+//  선생님: 폴더형 카드 · 기본 커리큘럼 편집 · 알파벳별 커스텀 카드 생성
+//  학생: 폴더 카드 → 플래시카드 학습 (기본 6단계 + 선생님 커스텀 카드)
+// ═══════════════════════════════════════════════════════════════
+const PHONICS_LEVELS = [
+  { level:1, title:'SB1 · 알파벳 소리', emoji:'🔤', color:'#1a56db' },
+  { level:2, title:'SB2 · 단모음', emoji:'🅰️', color:'#059669' },
+  { level:3, title:'SB3 · 장모음 (Magic E)', emoji:'✨', color:'#7c3aed' },
+  { level:4, title:'SB4 · 자음 블렌드·이중자음', emoji:'🔗', color:'#dc2626' },
+  { level:5, title:'SB5 · 모음 조합·R통제모음', emoji:'🌈', color:'#0891b2' }
+];
+// Smart Phonics 3rd Edition (SB1~SB5) Audio Script 기준 실제 유닛/단어 구성
+const PHONICS_CURRICULUM = [
+  // ── SB1: 알파벳 소리 ──
+  { id:'sb1-u1', level:1, title:'Unit 1. Aa·Bb·Cc', emoji:'🔤',
+    sub:'글자 이름이 아니라 "소리"를 익혀요',
+    items:[
+      {label:'Aa',sound:'애 / 아',example:'apple, alligator, ant'},
+      {label:'Bb',sound:'브',example:'book, bed, bat'},
+      {label:'Cc',sound:'크',example:'cat, cap, cup'}
+    ]},
+  { id:'sb1-u2', level:1, title:'Unit 2. Dd·Ee·Ff', emoji:'🔤', sub:'',
+    items:[
+      {label:'Dd',sound:'드',example:'dog, desk, duck'},
+      {label:'Ee',sound:'에',example:'elephant, egg, elbow'},
+      {label:'Ff',sound:'프',example:'fish, fan, fork'}
+    ]},
+  { id:'sb1-u3', level:1, title:'Unit 3. Gg·Hh·Ii', emoji:'🔤', sub:'',
+    items:[
+      {label:'Gg',sound:'그',example:'gorilla, game, girl'},
+      {label:'Hh',sound:'흐',example:'hat, hippo, hand'},
+      {label:'Ii',sound:'이',example:'igloo, iguana, ink'}
+    ]},
+  { id:'sb1-u4', level:1, title:'Unit 4. Jj·Kk·Ll', emoji:'🔤', sub:'',
+    items:[
+      {label:'Jj',sound:'즈',example:'jet, jacket, jam'},
+      {label:'Kk',sound:'크',example:'king, key, kangaroo'},
+      {label:'Ll',sound:'을',example:'lion, lamp, lemon'}
+    ]},
+  { id:'sb1-u5', level:1, title:'Unit 5. Mm·Nn·Oo', emoji:'🔤', sub:'',
+    items:[
+      {label:'Mm',sound:'므',example:'mouse, melon, map'},
+      {label:'Nn',sound:'느',example:'nut, nest, net'},
+      {label:'Oo',sound:'아',example:'octopus, ox, ostrich'}
+    ]},
+  { id:'sb1-u6', level:1, title:'Unit 6. Pp·Qq·Rr', emoji:'🔤', sub:'',
+    items:[
+      {label:'Pp',sound:'프',example:'panda, pen, pig'},
+      {label:'Qq',sound:'크(우)',example:'queen, question, quiet'},
+      {label:'Rr',sound:'르',example:'ring, rabbit, robot'}
+    ]},
+  { id:'sb1-u7', level:1, title:'Unit 7. Ss·Tt·Uu·Vv', emoji:'🔤', sub:'',
+    items:[
+      {label:'Ss',sound:'스',example:'sock, sun, sea'},
+      {label:'Tt',sound:'트',example:'tiger, top, tent'},
+      {label:'Uu',sound:'어',example:'umbrella, up, under'},
+      {label:'Vv',sound:'브',example:'violin, vest, vase'}
+    ]},
+  { id:'sb1-u8', level:1, title:'Unit 8. Ww·Xx·Yy·Zz', emoji:'🔤', sub:'',
+    items:[
+      {label:'Ww',sound:'우',example:'watch, window, watermelon'},
+      {label:'Xx',sound:'크스',example:'box, fox, six'},
+      {label:'Yy',sound:'이으',example:'yacht, yo-yo, yellow'},
+      {label:'Zz',sound:'즈',example:'zebra, zoo, zero'}
+    ]},
+  // ── SB2: 단모음 ──
+  { id:'sb2-u1', level:2, title:'Unit 1. 단모음 a (am·ap)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'am',sound:'앰',example:'dam, ham, jam, ram'},
+      {label:'ap',sound:'앱',example:'cap, lap, map, nap'}
+    ]},
+  { id:'sb2-u2', level:2, title:'Unit 2. 단모음 a (an·at)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'an',sound:'앤',example:'can, fan, man, pan'},
+      {label:'at',sound:'앳',example:'bat, cat, hat, mat'}
+    ]},
+  { id:'sb2-u3', level:2, title:'Unit 3. 단모음 e (et·ed·en)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'et',sound:'엣',example:'jet, net, vet, wet'},
+      {label:'ed',sound:'에드',example:'bed, red'},
+      {label:'en',sound:'엔',example:'hen, pen'}
+    ]},
+  { id:'sb2-u4', level:2, title:'Unit 4. 단모음 i (ib·id·ig·in)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'ib',sound:'이브',example:'bib, rib'},
+      {label:'id',sound:'이드',example:'kid, lid'},
+      {label:'ig',sound:'이그',example:'pig, wig'},
+      {label:'in',sound:'인',example:'fin, pin'}
+    ]},
+  { id:'sb2-u5', level:2, title:'Unit 5. 단모음 i (ip·it·ix)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'ip',sound:'입',example:'dip, hip, lip, rip'},
+      {label:'it',sound:'잇',example:'hit, sit'},
+      {label:'ix',sound:'익스',example:'mix, six'}
+    ]},
+  { id:'sb2-u6', level:2, title:'Unit 6. 단모음 o (ot·ox·op·og)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'ot',sound:'앗',example:'hot, pot'},
+      {label:'ox',sound:'악스',example:'box, fox'},
+      {label:'op',sound:'압',example:'cop, hop'},
+      {label:'og',sound:'악',example:'dog, log'}
+    ]},
+  { id:'sb2-u7', level:2, title:'Unit 7. 단모음 u (ug·ub·up)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'ug',sound:'억',example:'bug, hug, mug, rug'},
+      {label:'ub',sound:'업',example:'rub, tub'},
+      {label:'up',sound:'업',example:'cup, pup'}
+    ]},
+  { id:'sb2-u8', level:2, title:'Unit 8. 단모음 u (un·ud·ut)', emoji:'🅰️', sub:'',
+    items:[
+      {label:'un',sound:'언',example:'bun, fun, run, sun'},
+      {label:'ud',sound:'어드',example:'bud, mud'},
+      {label:'ut',sound:'엇',example:'cut, nut'}
+    ]},
+  // ── SB3: 장모음 (Magic E) ──
+  { id:'sb3-u1', level:3, title:'Unit 1. 장모음 a (ake·ape·ave)', emoji:'✨', sub:'',
+    items:[
+      {label:'ake',sound:'에이크',example:'bake, cake, lake, rake'},
+      {label:'ape',sound:'에이프',example:'cape, tape'},
+      {label:'ave',sound:'에이브',example:'cave, wave'}
+    ]},
+  { id:'sb3-u2', level:3, title:'Unit 2. 장모음 a (ame·ate·ane·ase)', emoji:'✨', sub:'',
+    items:[
+      {label:'ame',sound:'에임',example:'game, name'},
+      {label:'ate',sound:'에이트',example:'date, gate'},
+      {label:'ane',sound:'에인',example:'cane, mane'},
+      {label:'ase',sound:'에이스',example:'case, vase'}
+    ]},
+  { id:'sb3-u3', level:3, title:'Unit 3. 장모음 i (ine·ike·ime)', emoji:'✨', sub:'',
+    items:[
+      {label:'ine',sound:'아인',example:'line, nine, pine, vine'},
+      {label:'ike',sound:'아이크',example:'bike, hike'},
+      {label:'ime',sound:'아임',example:'lime, time'}
+    ]},
+  { id:'sb3-u4', level:3, title:'Unit 4. 장모음 i (ide·ipe·ite·ive)', emoji:'✨', sub:'',
+    items:[
+      {label:'ide',sound:'아이드',example:'hide, ride'},
+      {label:'ipe',sound:'아이프',example:'pipe, wipe'},
+      {label:'ite',sound:'아이트',example:'bite, kite'},
+      {label:'ive',sound:'아이브',example:'dive, five'}
+    ]},
+  { id:'sb3-u5', level:3, title:'Unit 5. 장모음 o (ose·ope·ote)', emoji:'✨', sub:'',
+    items:[
+      {label:'ose',sound:'오우즈',example:'hose, nose, pose, rose'},
+      {label:'ope',sound:'오우프',example:'hope, rope'},
+      {label:'ote',sound:'오우트',example:'note, vote'}
+    ]},
+  { id:'sb3-u6', level:3, title:'Unit 6. 장모음 o (ole·ome·one)', emoji:'✨', sub:'',
+    items:[
+      {label:'ole',sound:'오울',example:'hole, mole, pole, sole'},
+      {label:'ome',sound:'오움',example:'dome, home'},
+      {label:'one',sound:'오운',example:'bone, cone'}
+    ]},
+  { id:'sb3-u7', level:3, title:'Unit 7. 장모음 u (ube·ute·une·ule)', emoji:'✨', sub:'',
+    items:[
+      {label:'ube',sound:'유브',example:'cube, tube'},
+      {label:'ute',sound:'유트',example:'cute, mute'},
+      {label:'une',sound:'윤',example:'dune, June, tune'},
+      {label:'ule',sound:'율',example:'mule'}
+    ]},
+  // ── SB4: 자음 블렌드·이중자음 ──
+  { id:'sb4-u1', level:4, title:'Unit 1. bl·cl·fl', emoji:'🔗', sub:'',
+    items:[
+      {label:'bl',sound:'블',example:'black, blade, blimp, blue'},
+      {label:'cl',sound:'클',example:'clock, clam, clap, cliff'},
+      {label:'fl',sound:'플',example:'flag, flame, flap, flute'}
+    ]},
+  { id:'sb4-u2', level:4, title:'Unit 2. br·cr·fr', emoji:'🔗', sub:'',
+    items:[
+      {label:'br',sound:'브르',example:'bride, brake, brave, brick'},
+      {label:'cr',sound:'크르',example:'crab, crane, crib, cross'},
+      {label:'fr',sound:'프르',example:'frog, frame, front, frost'}
+    ]},
+  { id:'sb4-u3', level:4, title:'Unit 3. gl·pl·sl', emoji:'🔗', sub:'',
+    items:[
+      {label:'gl',sound:'글',example:'glass, globe, glove, glue'},
+      {label:'pl',sound:'플',example:'plane, plant, plate, plum'},
+      {label:'sl',sound:'슬',example:'slide, sled, slice, slim'}
+    ]},
+  { id:'sb4-u4', level:4, title:'Unit 4. dr·pr·tr', emoji:'🔗', sub:'',
+    items:[
+      {label:'dr',sound:'드르',example:'drum, dragon, dress, drive'},
+      {label:'pr',sound:'프르',example:'prize, press, price, print'},
+      {label:'tr',sound:'트르',example:'truck, trace, track, trumpet'}
+    ]},
+  { id:'sb4-u5', level:4, title:'Unit 5. sm·sn·st·sw', emoji:'🔗', sub:'',
+    items:[
+      {label:'sm',sound:'스므',example:'smile, smell, smoke'},
+      {label:'sn',sound:'스느',example:'snake, snack, snore'},
+      {label:'st',sound:'스트',example:'stone, stove, stop'},
+      {label:'sw',sound:'스우',example:'swim, sweet, swing'}
+    ]},
+  { id:'sb4-u6', level:4, title:'Unit 6. ng·nk', emoji:'🔗', sub:'',
+    items:[
+      {label:'ang/ing/ong',sound:'앙/잉/옹',example:'bang, fang, king, ring, gong, song'},
+      {label:'ank/ink/unk',sound:'앵크/잉크/엉크',example:'bank, tank, pink, wink, dunk, junk'}
+    ]},
+  { id:'sb4-u7', level:4, title:'Unit 7. ch·sh', emoji:'🔗', sub:'',
+    items:[
+      {label:'ch',sound:'취',example:'chick, cherry, chin, bench, branch, catch'},
+      {label:'sh',sound:'쉬',example:'ship, shape, shop, fish, brush, flash'}
+    ]},
+  { id:'sb4-u8', level:4, title:'Unit 8. th·wh', emoji:'🔗', sub:'',
+    items:[
+      {label:'th',sound:'뜨/드',example:'thumb, thick, thin, bath, math, teeth'},
+      {label:'wh',sound:'와',example:'whale, wheel, whip, whisk, whisper, white'}
+    ]},
+  // ── SB5: 모음 조합 · R통제모음 ──
+  { id:'sb5-u1', level:5, title:'Unit 1. ea·ee', emoji:'🌈', sub:'',
+    items:[
+      {label:'ea',sound:'이',example:'sea, tea, leaf, meat, seal, peanut'},
+      {label:'ee',sound:'이',example:'bee, tree, feet, peel, seed, green'}
+    ]},
+  { id:'sb5-u2', level:5, title:'Unit 2. oa·ow', emoji:'🌈', sub:'',
+    items:[
+      {label:'oa',sound:'오우',example:'boat, coat, goat, road, soap, toast'},
+      {label:'ow',sound:'오우',example:'yellow, pillow, window, blow, snow, bowl'}
+    ]},
+  { id:'sb5-u3', level:5, title:'Unit 3. ai·ay', emoji:'🌈', sub:'',
+    items:[
+      {label:'ai',sound:'에이',example:'rain, train, mail, nail, rail, tail'},
+      {label:'ay',sound:'에이',example:'gray, pray, tray, hay, clay, play'}
+    ]},
+  { id:'sb5-u4', level:5, title:'Unit 4. oi·oy', emoji:'🌈', sub:'',
+    items:[
+      {label:'oi',sound:'오이',example:'coin, oil, boil, coil, foil, soil, point, toilet'},
+      {label:'oy',sound:'오이',example:'boy, joy, toy, soybean'}
+    ]},
+  { id:'sb5-u5', level:5, title:'Unit 5. ou·ow', emoji:'🌈', sub:'',
+    items:[
+      {label:'ou',sound:'아우',example:'house, mouse, blouse, cloud, mouth, count'},
+      {label:'ow',sound:'아우',example:'cow, owl, gown, brown, crown, clown'}
+    ]},
+  { id:'sb5-u6', level:5, title:'Unit 6. er·ir·ur', emoji:'🌈', sub:'',
+    items:[
+      {label:'er',sound:'얼',example:'singer, letter, soccer, teacher'},
+      {label:'ir',sound:'얼',example:'bird, girl, shirt, skirt'},
+      {label:'ur',sound:'얼',example:'turtle, purple, nurse, purse'}
+    ]},
+  { id:'sb5-u7', level:5, title:'Unit 7. ar·or', emoji:'🌈', sub:'',
+    items:[
+      {label:'ar',sound:'알',example:'car, star, arm, card, park, farmer'},
+      {label:'or',sound:'올',example:'horse, cork, fork, corn, north, store'}
+    ]},
+  { id:'sb5-u8', level:5, title:'Unit 8. oo', emoji:'🌈', sub:'',
+    items:[
+      {label:'oo (단)',sound:'우',example:'book, cook, hook, look, foot, wood'},
+      {label:'oo (장)',sound:'우-',example:'moon, spoon, zoo, food, goose, pool'}
+    ]}
+];
+
+
+function _phonicsSpeak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang='en-US'; u.rate=0.85;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+async function togglePhonicsStudent(studentId, val){
+  const u = (DB.users||[]).find(x=>x.id===studentId);
+  if(u) u.is_phonics = !!val;
+  try{
+    await sb.from('profiles').update({ is_phonics: !!val }).eq('id', studentId);
+    showToast(val ? '파닉스 학생으로 지정했습니다' : '파닉스 지정을 해제했습니다', 'success');
+  }catch(e){
+    showToast('저장 실패 — 다시 시도해주세요', 'error');
+  }
+}
+
+// ── 컨텐츠(기본 항목 수정 + 커스텀 알파벳 카드) 저장 구조 ──
+// currentUser.phonics_content = { overrides:{stageId:{itemId:{label,sound,example}}}, extra:{stageId:[{id,label,sound,example}]}, letters:{ 'A':[{id,label,sound,example}] }, folderTitles:{ key:'커스텀 이름' } }
+function _phonicsEmptyContent(){ return { overrides:{}, extra:{}, letters:{}, folderTitles:{} }; }
+function _phonicsMyContent(){
+  if(!currentUser.phonics_content || typeof currentUser.phonics_content!=='object') currentUser.phonics_content = _phonicsEmptyContent();
+  const c = currentUser.phonics_content;
+  c.overrides = c.overrides || {}; c.extra = c.extra || {}; c.letters = c.letters || {}; c.folderTitles = c.folderTitles || {};
+  return c;
+}
+async function _phonicsSaveContent(){
+  try{ await sb.from('profiles').update({ phonics_content: currentUser.phonics_content }).eq('id', currentUser.id); }
+  catch(e){ showToast('저장 실패 — 다시 시도해주세요', 'error'); }
+}
+async function _phonicsLoadContentForStudent(){
+  if(window._phonicsContent) return window._phonicsContent;
+  let content = _phonicsEmptyContent();
+  const tid = currentUser.teacherId;
+  if(tid){
+    try{
+      const { data } = await sb.from('profiles').select('phonics_content').eq('id', tid).single();
+      if(data && data.phonics_content) content = { ..._phonicsEmptyContent(), ...data.phonics_content };
+    }catch(e){}
+  }
+  window._phonicsContent = content;
+  return content;
+}
+function _phonicsStageItems(stageId, content){
+  const stage = PHONICS_CURRICULUM.find(s=>s.id===stageId);
+  if(!stage) return [];
+  const base = stage.items.map((it,i)=>{
+    const id = 'b'+i;
+    const ov = (content.overrides[stageId] && content.overrides[stageId][id]) || {};
+    return { id, label: ov.label ?? it.label, sound: ov.sound ?? it.sound, example: ov.example ?? it.example, builtin:true };
+  });
+  const extra = (content.extra[stageId] || []).map(it=>({ ...it, builtin:false }));
+  return base.concat(extra);
+}
+function _phonicsCombinedItems(level, content){
+  const stages = PHONICS_CURRICULUM.filter(s=>s.level===level);
+  let items = [];
+  stages.forEach(s=>{
+    _phonicsStageItems(s.id, content).forEach(it=>{
+      items.push({ ...it, id: s.id+'__'+it.id, unitTitle: s.title });
+    });
+  });
+  return items;
+}
+function _phonicsDefaultFolderTitle(key){
+  if(key.indexOf('letter:')===0) return key.slice(7)+' 카드';
+  if(key.indexOf('level:')===0){ const lvl = PHONICS_LEVELS.find(l=>l.level===parseInt(key.slice(6),10)); return (lvl?lvl.title:'')+' 합본'; }
+  const stage = PHONICS_CURRICULUM.find(s=>s.id===key);
+  return stage ? stage.title : key;
+}
+function _phonicsFolderTitle(key, content){
+  return (content.folderTitles && content.folderTitles[key]) || _phonicsDefaultFolderTitle(key);
+}
+function _phonicsFolders(content){
+  const stageFolders = PHONICS_CURRICULUM.map(s=>{
+    const lvl = PHONICS_LEVELS.find(l=>l.level===s.level) || PHONICS_LEVELS[0];
+    return {
+      key:s.id, level:s.level, emoji:s.emoji, title:_phonicsFolderTitle(s.id, content),
+      sub:s.sub || lvl.title, color:lvl.color,
+      items: _phonicsStageItems(s.id, content)
+    };
+  });
+  const combinedFolders = PHONICS_LEVELS.map(lvl=>({
+    key:'level:'+lvl.level, level:lvl.level, emoji:lvl.emoji, title:_phonicsFolderTitle('level:'+lvl.level, content), combined:true,
+    sub:'이 레벨의 모든 유닛을 한 번에 모아봐요', color:lvl.color,
+    items: _phonicsCombinedItems(lvl.level, content)
+  }));
+  const letterFolders = Object.keys(content.letters||{}).filter(L=>(content.letters[L]||[]).length>0).sort().map(L=>({
+    key:'letter:'+L, level:null, emoji:'🔡', title:_phonicsFolderTitle('letter:'+L, content), sub:'선생님이 만든 커스텀 카드', color:'#334155',
+    items: (content.letters[L]||[]).map(it=>({...it, builtin:false}))
+  }));
+  return stageFolders.concat(combinedFolders).concat(letterFolders);
+}
+function _phonicsFolderItems(key, content){
+  if(key.indexOf('letter:')===0){ const L = key.slice(7); return (content.letters[L]||[]).map(it=>({...it, builtin:false})); }
+  if(key.indexOf('level:')===0){ return _phonicsCombinedItems(parseInt(key.slice(6),10), content); }
+  return _phonicsStageItems(key, content);
+}
+
+// ── 폴더 상세·단어 학습 전용 오버레이 (사이드바 없이 학습) ──
+// 파닉스 메인(폴더 카드 목록)에서 카드를 클릭하면, 이 오버레이 안에서
+// 폴더 상세 → 단어 학습(카드/퀴즈)까지 사이드바 없이 진행된다.
+function _phonicsRootEl(){
+  let ov = document.getElementById('phonics-study-ov');
+  if(!ov){
+    ov = _createOverlay('phonics-study-ov');
+    ov.innerHTML = '<div id="phonics-study-ov-header"></div><div id="phonics-study-ov-body" style="flex:1;overflow-y:auto;padding:24px 20px 60px"><div style="max-width:900px;margin:0 auto"></div></div>';
+    document.body.appendChild(ov);
+  }
+  return document.querySelector('#phonics-study-ov-body > div');
+}
+function _phonicsCloseStudyOverlay(){
+  document.getElementById('phonics-study-ov')?.remove();
+}
+// 단어장/문장집 학습 화면과 동일한 스타일의 오버레이 상단 헤더 (뒤로가기 + 타이틀 + 우측 액션)
+function _phonicsOverlayHeader(opts){
+  return `
+    <div style="position:relative;z-index:10;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid #e2e8f0;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px;min-width:0">
+        <button onclick="${opts.backFn}"
+          style="width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;cursor:pointer;color:rgba(30,58,95,0.6);transition:all 0.2s"
+          onmouseover="this.style.background='#f1f5f9';this.style.color='#1e3a5f'" onmouseout="this.style.background='none';this.style.color='rgba(30,58,95,0.6)'">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0"></div>
+        <div style="font-size:17px;font-weight:800;color:#1e3a5f;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${opts.title}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${opts.actionsHTML||''}</div>
+    </div>`;
+}
+function _phonicsSetOverlayHeader(html){
+  const el = document.getElementById('phonics-study-ov-header');
+  if(el) el.innerHTML = html;
+}
+function _phonicsPillBtn(label, onclick, active){
+  return `<button onclick="${onclick}" style="display:flex;align-items:center;gap:5px;padding:8px 16px;border-radius:20px;border:1.5px solid ${active?'#1a56db':'#e2e8f0'};background:${active?'#1a56db':'#fff'};color:${active?'#fff':'#1e3a5f'};font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Manrope',sans-serif" onmouseover="if(!${active?'true':'false'})this.style.borderColor='#c8d4f0'" onmouseout="if(!${active?'true':'false'})this.style.borderColor='#e2e8f0'">${label}</button>`;
+}
+
+// ── 선생님: 파닉스 관리 화면 (폴더형 카드) ──────────────────
+let _phonicsMgmtView = 'root'; // root | stage | letters | letter
+let _phonicsMgmtKey = null;
+let _phonicsMgmtEditId = null;
+let _phonicsMgmtBulkEdit = false; // 합본 화면: 전체 카드 일괄 수정 모드
+let _phonicsMgmtSelectMode = false, _phonicsMgmtSelectedIds = new Set(), _phonicsMgmtPressTimer = null, _phonicsMgmtPressFired = false;
+
+function phonicsMgmtCardPressStart(key, itemId){
+  clearTimeout(_phonicsMgmtPressTimer);
+  _phonicsMgmtPressFired = false;
+  _phonicsMgmtPressTimer = setTimeout(()=>{
+    _phonicsMgmtPressFired = true;
+    _phonicsMgmtSelectMode = true;
+    _phonicsMgmtSelectedIds.add(itemId);
+    _phonicsMgmtRender();
+  }, 480);
+}
+function phonicsMgmtCardPressEnd(){
+  clearTimeout(_phonicsMgmtPressTimer);
+}
+function phonicsMgmtCardClick(key, itemId){
+  if(_phonicsMgmtPressFired){ _phonicsMgmtPressFired = false; return; }
+  if(!_phonicsMgmtSelectMode) return;
+  if(_phonicsMgmtSelectedIds.has(itemId)) _phonicsMgmtSelectedIds.delete(itemId);
+  else _phonicsMgmtSelectedIds.add(itemId);
+  if(_phonicsMgmtSelectedIds.size === 0) _phonicsMgmtSelectMode = false;
+  _phonicsMgmtRender();
+}
+function phonicsMgmtSelectClear(){
+  _phonicsMgmtSelectMode = false; _phonicsMgmtSelectedIds = new Set();
+  _phonicsMgmtRender();
+}
+function phonicsMgmtMultiStudy(mode){
+  if(!_phonicsMgmtSelectedIds.size) return;
+  const ids = Array.from(_phonicsMgmtSelectedIds);
+  phonicsOpenWordStudyMulti(_phonicsMgmtKey, ids, 'teacher');
+  if(mode === 'card') phonicsStudySetMode('card');
+  else if(mode === 'quiz') phonicsStudySetMode('quiz');
+}
+function phonicsMgmtAssignSelected(){
+  if(!_phonicsMgmtSelectedIds.size) return;
+  openPhonicsAssignModal(_phonicsMgmtKey, Array.from(_phonicsMgmtSelectedIds));
+}
+function phonicsMgmtPreviewAssignment(){
+  if(!_phonicsMgmtSelectedIds.size) return;
+  const ids = Array.from(_phonicsMgmtSelectedIds);
+  const content = _phonicsMyContent();
+  const items = _phonicsFolderItems(_phonicsMgmtKey, content).filter(it=>ids.includes(it.id));
+  let words = [];
+  items.forEach(it=>{ _phonicsItemWords(it).forEach(w=>words.push({ ...w, itemLabel: it.label })); });
+  _phnAsgWords = words;
+  _phnAsgActive = { id:'preview', folder_key:_phonicsMgmtKey, item_ids: ids, task_options: { write_modes:['trace','blank','cover','dictation'], record:true } };
+  window._phonicsFolderCache = content;
+  _phnPreviewMode = true;
+  _phonicsStudyCtx = 'teacher';
+  _phonicsRenderAssignment();
+}
+
+// =========================================================
+//  파닉스 과제 배포 시스템
+//  (문장집의 sentence_assignments 배포 모달과 동일한 패턴,
+//   단 파닉스는 교사별 커스텀 교재가 아니라 공통 커리큘럼이라
+//   컬렉션/담당반 필터링 없이 전체 반을 대상으로 함)
+//
+//  필요한 Supabase 테이블 (최초 1회 생성 필요):
+//
+//  create table phonics_assignments (
+//    id uuid primary key default gen_random_uuid(),
+//    student_id uuid not null references profiles(id) on delete cascade,
+//    folder_key text not null,
+//    item_ids text[] not null default '{}',
+//    task_options jsonb,
+//    teacher_id uuid,
+//    due_date date,
+//    created_at timestamptz not null default now(),
+//    unique(student_id, folder_key)
+//  );
+//
+//  create table phonics_submissions (
+//    id uuid primary key default gen_random_uuid(),
+//    student_id uuid not null references profiles(id) on delete cascade,
+//    folder_key text not null,
+//    item_ids text[] not null default '{}',
+//    kind text not null check (kind in ('write','read')),
+//    write_mode text,
+//    payload jsonb,
+//    recorded_url text,
+//    status text not null default 'pending' check (status in ('pending','pass','resubmit')),
+//    teacher_comment text,
+//    created_at timestamptz not null default now()
+//  );
+// =========================================================
+
+const PHN_WRITE_MODE_LABELS = {
+  trace:     '따라 쓰기',
+  blank:     '빈칸 채워 쓰기',
+  cover:     '가리고 쓰기',
+  dictation: '듣고 받아쓰기'
+};
+
+function _phnOptsLabel(opts){
+  if(!opts) return '<span style="font-size:13px;color:var(--t3)">과제 미설정</span>';
+  const p = [];
+  const wm = (opts.write_modes||[]);
+  if(wm.length) p.push('쓰기 ' + wm.map(k=>PHN_WRITE_MODE_LABELS[k]||k).join('/'));
+  if(opts.record) p.push('낭독');
+  return p.length
+    ? '<span style="font-size:13px;color:#ea580c;font-weight:600">' + p.join(' · ') + '</span>'
+    : '<span style="font-size:13px;color:var(--t3)">과제 없음 (자유학습)</span>';
+}
+
+async function openPhonicsAssignModal(folderKey, itemIds){
+  await loadClasses();
+  const allStudents = DB.users.filter(u => u.role === 'student');
+  const classes = DB_classes || [];
+  const unassignedStudents = allStudents.filter(s => !classes.some(c => c.memberIds && c.memberIds.includes(s.id)));
+
+  let existingAssigns = [];
+  try {
+    const { data } = await sb.from('phonics_assignments').select('student_id, task_options').eq('folder_key', folderKey);
+    existingAssigns = data || [];
+  } catch(e) { console.warn('phonics_assignments 조회 실패(테이블 미생성일 수 있음):', e.message); }
+  const assignedIds = new Set(existingAssigns.map(a => a.student_id));
+  const existingOpts = {};
+  existingAssigns.forEach(a => {
+    existingOpts[a.student_id] = a.task_options
+      ? (typeof a.task_options==='string' ? JSON.parse(a.task_options) : a.task_options) : null;
+  });
+  window._phnTaskOptsTemp = { ...existingOpts };
+  window._phnAssignCtx = { folderKey, itemIds };
+
+  function memberRow(s, isChecked){
+    const safeId = s.id;
+    const safeName = (s.name||s.email).replace(/'/g,"\\'");
+    return `<label style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background 0.12s"
+        onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+        <input type="checkbox" class="pam-chk" value="${safeId}"
+          style="width:15px;height:15px;accent-color:#ea580c;cursor:pointer;flex-shrink:0" ${isChecked?'checked':''}>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--t1)">${esc(s.name||s.email)}${s.grade?' <span style="font-size:13px;color:var(--t3);font-weight:400">'+esc(s.grade)+'</span>':''}</div>
+          <div id="pam-opts-${safeId}" style="margin-top:1px">${_phnOptsLabel(existingOpts[safeId])}</div>
+        </div>
+        <button onclick="event.preventDefault();event.stopPropagation();_openPhonicsTaskOptsModal('${safeId}','${safeName}')"
+          style="flex-shrink:0;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap">
+          ⚙ 과제
+        </button>
+      </label>`;
+  }
+
+  function classSection(cls){
+    const members = allStudents.filter(s => cls.memberIds && cls.memberIds.includes(s.id));
+    const checkedCount = members.filter(s => assignedIds.has(s.id)).length;
+    const allChk = members.length > 0 && checkedCount === members.length;
+    return `<div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2)">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${_getClassDotColor(cls.name)};flex-shrink:0"></span>
+        <span style="font-size:15px;font-weight:700;color:var(--t1);flex:1">${esc(cls.name)}</span>
+        <span style="font-size:13px;color:var(--t3)">${members.length}명</span>
+        ${allChk?'<span style="font-size:13px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fde8d5;color:#ea580c">✓ 배포됨</span>':''}
+      </div>
+      <div style="padding:4px 4px">
+        ${members.length ? members.map(s => memberRow(s, assignedIds.has(s.id))).join('') : '<div style="color:var(--t3);text-align:center;padding:12px;font-size:14px">반원이 없습니다</div>'}
+      </div>
+    </div>`;
+  }
+
+  const classesHtml = classes.length ? classes.map(classSection).join('') : '<div style="color:var(--t3);text-align:center;padding:16px;font-size:14px">등록된 반이 없습니다</div>';
+  const unassignedHtml = unassignedStudents.length ? `
+    <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2)">
+        <span style="font-size:15px;font-weight:700;color:var(--t1);flex:1">👤 반 미배정</span>
+        <span style="font-size:13px;color:var(--t3)">${unassignedStudents.length}명</span>
+      </div>
+      <div style="padding:4px 4px">${unassignedStudents.map(s => memberRow(s, assignedIds.has(s.id))).join('')}</div>
+    </div>` : '';
+
+  showModal(`
+    <div class="modal-title">📤 파닉스 과제 배포</div>
+    <div style="font-size:14px;color:var(--t2);margin-bottom:12px">선택한 카드 ${itemIds.length}개에 대한 과제를 배포합니다</div>
+    <div style="max-height:380px;overflow-y:auto;margin-bottom:12px">
+      ${classesHtml}
+      ${unassignedHtml}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" style="background:#ea580c;border-color:#ea580c" onclick="savePhonicsAssign()">저장</button>
+    </div>
+  `);
+}
+
+function _openPhonicsTaskOptsModal(studentId, studentName){
+  const cur = window._phnTaskOptsTemp[studentId] || { write_modes: [], record: false };
+  const modeKeys = Object.keys(PHN_WRITE_MODE_LABELS);
+  showModal(`
+    <div class="modal-title">⚙ 과제 설정 — ${esc(studentName)}</div>
+    <div style="font-size:13.5px;color:var(--t2);margin-bottom:10px;font-weight:700">쓰기 과제</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+      ${modeKeys.map(k=>`
+        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer">
+          <input type="checkbox" class="pto-write-chk" value="${k}" ${cur.write_modes.includes(k)?'checked':''} style="width:15px;height:15px;accent-color:#0891b2">
+          <span style="font-size:14px;color:var(--t1)">${PHN_WRITE_MODE_LABELS[k]}</span>
+        </label>`).join('')}
+    </div>
+    <div style="font-size:13.5px;color:var(--t2);margin-bottom:10px;font-weight:700">낭독 과제</div>
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;margin-bottom:8px">
+      <input type="checkbox" id="pto-record-chk" ${cur.record?'checked':''} style="width:15px;height:15px;accent-color:#ea580c">
+      <span style="font-size:14px;color:var(--t1)">이 카드의 단어들을 낭독해서 녹음 제출</span>
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="openPhonicsAssignModal(window._phnAssignCtx.folderKey, window._phnAssignCtx.itemIds)">취소</button>
+      <button class="btn btn-primary" style="background:#ea580c;border-color:#ea580c" onclick="_savePhonicsTaskOpts('${studentId}','${studentName.replace(/'/g,"\\'")}')">확인</button>
+    </div>
+  `);
+}
+function _savePhonicsTaskOpts(studentId, studentName){
+  const write_modes = Array.from(document.querySelectorAll('.pto-write-chk:checked')).map(el=>el.value);
+  const record = !!document.getElementById('pto-record-chk')?.checked;
+  window._phnTaskOptsTemp[studentId] = (write_modes.length || record) ? { write_modes, record } : null;
+  openPhonicsAssignModal(window._phnAssignCtx.folderKey, window._phnAssignCtx.itemIds);
+  setTimeout(()=>{
+    const label = document.getElementById('pam-opts-'+studentId);
+    if(label) label.innerHTML = _phnOptsLabel(window._phnTaskOptsTemp[studentId]);
+    const chk = document.querySelector('.pam-chk[value="'+studentId+'"]');
+    if(chk && (write_modes.length || record)) chk.checked = true;
+  }, 0);
+}
+
+async function savePhonicsAssign(){
+  const { folderKey, itemIds } = window._phnAssignCtx || {};
+  if(!folderKey) return;
+  const checked = Array.from(document.querySelectorAll('.pam-chk:checked')).map(el=>el.value);
+  if(!checked.length){ showToast('배포할 학생을 선택해주세요.', 'error'); return; }
+  try {
+    await sb.from('phonics_assignments').delete().eq('folder_key', folderKey).in('student_id', checked);
+    const rows = checked.map(sid => ({
+      student_id: sid,
+      folder_key: folderKey,
+      item_ids: itemIds,
+      task_options: window._phnTaskOptsTemp[sid] || null,
+      teacher_id: currentUser?.id || null
+    }));
+    const { error } = await sb.from('phonics_assignments').insert(rows);
+    if(error) throw error;
+    showToast(`${checked.length}명에게 파닉스 과제를 배포했어요 🎉`, 'success');
+    closeModal();
+  } catch(e) { showToast('배포 실패: ' + e.message, 'error'); }
+}
+
+async function revokePhonicsAssign(folderKey, studentId, studentName){
+  if(!confirm(`"${studentName}"의 파닉스 과제를 해제할까요?`)) return;
+  try {
+    await sb.from('phonics_assignments').delete().eq('folder_key', folderKey).eq('student_id', studentId);
+    showToast(`"${studentName}" 파닉스 과제 해제 완료`, 'success');
+    closeModal();
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+function renderPhonicsMgmt(){
+  _phonicsMgmtView = 'root'; _phonicsMgmtKey = null; _phonicsMgmtEditId = null; _phnFolderEditKey = null;
+  _phonicsMgmtRender();
+}
+
+function _phonicsMgmtRender(){
+  if(_phonicsMgmtView === 'stage' || _phonicsMgmtView === 'letter'){ _phonicsMgmtRenderFolder(_phonicsRootEl()); return; }
+  if(_phonicsMgmtView === 'letters'){ _phonicsMgmtRenderLetterPicker(_phonicsRootEl()); return; }
+  _phonicsCloseStudyOverlay();
+
+  const root = document.getElementById('phonics-mgmt-root');
+  if(!root) return;
+
+  const content = _phonicsMyContent();
+  const folders = _phonicsFolders(content);
+  const stageFolders = folders.filter(f=>f.key.indexOf('letter:')!==0 && f.combined)
+    .sort((a,b)=>a.level-b.level);
+  const letterFolders = folders.filter(f=>f.key.indexOf('letter:')===0);
+  const allFolders = stageFolders.concat(letterFolders);
+
+  const hasOverrides = Object.keys(content.overrides||{}).some(k=>Object.keys(content.overrides[k]||{}).length>0);
+  const students = (DB.users||[]).filter(u=>u.role==='student');
+  const phonicsStudentCnt = students.filter(u=>u.is_phonics).length;
+  const prevQ = document.getElementById('phn-search') ? document.getElementById('phn-search').value : '';
+
+  root.innerHTML = `
+    <div class="section-head" style="margin-bottom:12px">
+      <div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${hasOverrides ? `<button class="btn btn-secondary btn-sm" onclick="phonicsMgmtResetAllOverrides()">↺ 전체 초기화</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="phonicsMgmtOpenStudentModal()">🎓 학생 지정 (${phonicsStudentCnt})</button>
+        <button class="btn btn-primary btn-sm" onclick="phonicsMgmtShowLetterPicker()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          새 알파벳 카드
+        </button>
+      </div>
+    </div>
+    <div class="search-bar" style="margin-bottom:14px">
+      <span class="search-icon-el">🔍</span>
+      <input type="text" class="search-input" id="phn-search" placeholder="파닉스 폴더 이름 검색..." value="${prevQ.replace(/"/g,'&quot;')}" oninput="phnRenderFiltered()">
+    </div>
+    <div id="phn-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:12px"></div>`;
+
+  window._phnAllFolders = allFolders;
+  phnRenderFiltered();
+}
+
+// ── 폴더 카드 꾹 누르기 → 이름 수정 / 삭제 ──
+let _phnFolderEditKey = null, _phnFolderPressTimer = null, _phnFolderPressFired = false;
+function phnFolderPressStart(key){
+  clearTimeout(_phnFolderPressTimer);
+  _phnFolderPressFired = false;
+  _phnFolderPressTimer = setTimeout(()=>{
+    _phnFolderPressFired = true;
+    _phnFolderEditKey = key;
+    phnRenderFiltered();
+  }, 480);
+}
+function phnFolderPressEnd(){ clearTimeout(_phnFolderPressTimer); }
+function phnFolderClick(key){
+  if(_phnFolderPressFired){ _phnFolderPressFired = false; return; } // 꾹 누르기로 이미 처리됨 → 클릭 무시
+  phonicsMgmtOpenFolder(key);
+}
+function phnFolderCancelEdit(){ _phnFolderEditKey = null; phnRenderFiltered(); }
+async function phnFolderSaveTitle(key){
+  const val = (document.getElementById('phn-folder-title-'+key)?.value || '').trim();
+  if(!val){ showToast('폴더 이름을 입력해주세요', 'error'); return; }
+  const content = _phonicsMyContent();
+  content.folderTitles[key] = val;
+  await _phonicsSaveContent();
+  _phnFolderEditKey = null;
+  window._phnAllFolders = _phonicsFolders(content).filter(f=>f.key.indexOf('letter:')!==0 ? f.combined : true);
+  phnRenderFiltered();
+  showToast('이름을 수정했습니다', 'success');
+}
+async function phnFolderDeleteFolder(key){
+  if(key.indexOf('letter:')!==0) return; // 기본 커리큘럼 합본 폴더는 삭제 불가
+  if(!confirm('이 폴더와 안에 있는 카드를 모두 삭제할까요? 되돌릴 수 없어요.')) return;
+  const content = _phonicsMyContent();
+  const L = key.slice(7);
+  delete content.letters[L];
+  if(content.folderTitles) delete content.folderTitles[key];
+  await _phonicsSaveContent();
+  _phnFolderEditKey = null;
+  const folders = _phonicsFolders(content);
+  const stageFolders = folders.filter(f=>f.key.indexOf('letter:')!==0 && f.combined).sort((a,b)=>a.level-b.level);
+  const letterFolders = folders.filter(f=>f.key.indexOf('letter:')===0);
+  window._phnAllFolders = stageFolders.concat(letterFolders);
+  phnRenderFiltered();
+  showToast('폴더를 삭제했습니다', 'success');
+}
+
+function phnRenderFiltered(){
+  const grid = document.getElementById('phn-card-grid'); if(!grid) return;
+  const q = (document.getElementById('phn-search')?.value||'').toLowerCase();
+  const folders = (window._phnAllFolders||[]).filter(f=>!q||f.title.toLowerCase().includes(q));
+  if(!folders.length){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:#94a3b8;font-size:14px;font-weight:600">${q?'검색 결과가 없습니다':'파닉스 폴더가 없습니다'}</div>`;
+    return;
+  }
+  grid.innerHTML = folders.map(f=>{
+    const isLetter = f.key.indexOf('letter:')===0;
+    if(_phnFolderEditKey === f.key){
+      return `<div style="padding:16px 18px;background:#fff;border:1.5px solid #1a56db;border-radius:16px;box-shadow:0 0 0 3px rgba(26,86,219,0.12)">
+        <div style="display:flex;gap:4px;margin-bottom:8px;align-items:center">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.color};flex-shrink:0"></span>
+          ${isLetter?`<span style="font-size:11px;font-weight:700;color:${f.color};background:${f.color}1a;border-radius:8px;padding:1px 7px;flex-shrink:0">커스텀</span>`:''}
+        </div>
+        <input id="phn-folder-title-${esc(f.key)}" class="form-input" value="${esc(f.title)}" style="margin-bottom:8px;font-size:15px;font-weight:700" onkeydown="if(event.key==='Enter')phnFolderSaveTitle('${f.key}')">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="phnFolderSaveTitle('${f.key}')">저장</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="phnFolderCancelEdit()">취소</button>
+        </div>
+        ${isLetter?`<button class="btn btn-danger btn-sm" style="width:100%;margin-top:6px" onclick="phnFolderDeleteFolder('${f.key}')">🗑 폴더 삭제</button>`:''}
+      </div>`;
+    }
+    return `<div
+      onmousedown="phnFolderPressStart('${f.key}')" onmouseup="phnFolderPressEnd()" onmouseleave="phnFolderPressEnd()"
+      ontouchstart="phnFolderPressStart('${f.key}')" ontouchend="phnFolderPressEnd()"
+      onclick="phnFolderClick('${f.key}')"
+      title="꾹 누르면 이름 수정·삭제할 수 있어요"
+      style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;cursor:pointer;user-select:none;transition:border-color .18s,box-shadow .18s,transform .18s;box-shadow:0 2px 8px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);position:relative"
+      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15,23,42,.10),0 2px 6px rgba(15,23,42,.05)';this.style.borderColor='#c8d4f0'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04)';this.style.borderColor='#e2e8f0'">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:4px;margin-bottom:5px;align-items:center">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.color};flex-shrink:0"></span>
+          ${isLetter?`<span style="font-size:11px;font-weight:700;color:${f.color};background:${f.color}1a;border-radius:8px;padding:1px 7px;flex-shrink:0">커스텀</span>`:''}
+        </div>
+        <div style="font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px">${esc(f.title)}</div>
+        <div style="font-size:14px;color:#94a3b8;margin-top:3px;font-weight:500">${f.items.length}개 카드</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function phonicsMgmtOpenStudentModal(){
+  const students = (DB.users||[]).filter(u=>u.role==='student');
+  const rows = students.length===0
+    ? '<div style="color:var(--t3);padding:20px;text-align:center">등록된 학생이 없습니다</div>'
+    : students.map(u=>{
+        const doneCount = Object.keys(u.phonics_progress||{}).length;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border)">
+          <span style="flex:1;font-size:14px;font-weight:600;color:var(--t1)">${esc(u.name)}</span>
+          <span style="font-size:12px;color:var(--t3)">${u.grade||'-'}</span>
+          <span style="font-size:12px;color:var(--t3);min-width:70px;text-align:right">${u.is_phonics?('진행 '+doneCount+'개 폴더'):''}</span>
+          <label class="toggle-wrap" style="font-size:0">
+            <span class="toggle"><input type="checkbox" ${u.is_phonics?'checked':''} onchange="togglePhonicsStudent('${u.id}', this.checked); phonicsMgmtOpenStudentModal();"><span class="toggle-slider"></span></span>
+          </label>
+        </div>`;
+      }).join('');
+  showModal(`
+    <div class="modal-title">🎓 파닉스 학생 지정</div>
+    <p style="color:var(--t3);margin:0 0 14px;font-size:13.5px">담당 학생 중 파닉스 과정을 진행할 학생을 지정하면 해당 학생 사이드바에 Phonics 탭이 표시됩니다.</p>
+    <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);max-height:400px;overflow-y:auto">${rows}</div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal();renderPhonicsMgmt()">완료</button></div>`);
+}
+
+function phonicsMgmtOpenFolder(key){
+  if(_phonicsMgmtKey !== key){ _phonicsMgmtSelectMode = false; _phonicsMgmtSelectedIds = new Set(); }
+  _phonicsMgmtView = key.indexOf('letter:')===0 ? 'letter' : 'stage';
+  _phonicsMgmtKey = key; _phonicsMgmtEditId = null; _phonicsMgmtBulkEdit = false;
+  _phonicsMgmtRender();
+}
+function phonicsMgmtBack(){ _phonicsMgmtView='root'; _phonicsMgmtKey=null; _phonicsMgmtEditId=null; _phonicsMgmtBulkEdit=false; _phonicsMgmtSelectMode=false; _phonicsMgmtSelectedIds=new Set(); _phnFolderEditKey=null; _phonicsMgmtRender(); }
+
+function phonicsMgmtShowLetterPicker(){ _phonicsMgmtView='letters'; _phonicsMgmtRender(); }
+function _phonicsMgmtRenderLetterPicker(root){
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn:'phonicsMgmtBack()', title:'새 알파벳 카드' }));
+  root.innerHTML = `
+    <div style="font-size:17px;font-weight:700;color:var(--t1);margin-bottom:14px">어떤 알파벳으로 카드를 만들까요?</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px">
+      ${letters.map(L=>`<button onclick="phonicsMgmtOpenFolder('letter:${L}')" style="height:52px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:16px;font-weight:800;color:var(--t1);cursor:pointer" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--border)'">${L}</button>`).join('')}
+    </div>`;
+}
+
+function _phonicsMgmtRenderFolder(root){
+  const content = _phonicsMyContent();
+  const key = _phonicsMgmtKey;
+  const isLetter = key.indexOf('letter:')===0;
+  const isCombined = key.indexOf('level:')===0;
+  const stage = (isLetter || isCombined) ? null : PHONICS_CURRICULUM.find(s=>s.id===key);
+  const title = _phonicsFolderTitle(key, content);
+  const sub = isLetter ? '이 알파벳으로 만든 커스텀 카드입니다.' : isCombined ? '이 레벨의 모든 유닛을 모아본 합본입니다. 카드를 눌러 바로 수정할 수 있어요.' : stage.sub;
+  const items = _phonicsFolderItems(key, content);
+
+  if(isCombined){
+    const cardHTML = it => {
+      if(_phonicsMgmtBulkEdit){
+        return `<div class="book-card" style="text-align:left">
+          <div style="font-size:10.5px;font-weight:700;color:var(--t3);margin-bottom:4px">${esc(it.unitTitle||'')}</div>
+          <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">카드 제목</label>
+          <input id="phn-ed-label-${it.id}" class="form-input" value="${esc(it.label)}" style="margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">소리 설명</label>
+          <input id="phn-ed-sound-${it.id}" class="form-input" value="${esc(it.sound)}" style="margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">예시 단어</label>
+          <textarea id="phn-ed-example-${it.id}" class="form-input" style="margin-bottom:0;min-height:60px;resize:vertical">${esc(it.example)}</textarea>
+          ${it.builtin ? `<button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px" onclick="event.stopPropagation();phonicsMgmtResetItem('${key}','${it.id}')">↺ 기본값으로 되돌리기</button>` : ''}
+        </div>`;
+      }
+      const selected = _phonicsMgmtSelectMode && _phonicsMgmtSelectedIds.has(it.id);
+      return `<div class="book-card"
+        onmousedown="phonicsMgmtCardPressStart('${key}','${it.id}')" onmouseup="phonicsMgmtCardPressEnd()" onmouseleave="phonicsMgmtCardPressEnd()"
+        ontouchstart="phonicsMgmtCardPressStart('${key}','${it.id}')" ontouchend="phonicsMgmtCardPressEnd()"
+        onclick="phonicsMgmtCardClick('${key}','${it.id}')"
+        ondblclick="if(!_phonicsMgmtSelectMode) phonicsOpenWordStudy('${key}','${it.id}','teacher')"
+        title="꾹 누르면 여러 카드를 선택할 수 있어요 · 더블클릭하면 단어 학습이 열려요"
+        style="cursor:pointer;user-select:none;position:relative;${selected?'border-color:#1a56db;background:#eff6ff;box-shadow:0 0 0 3px rgba(26,86,219,0.15);':''}">
+        ${_phonicsMgmtSelectMode?`<span style="position:absolute;top:8px;left:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid ${selected?'#1a56db':'var(--border)'};background:${selected?'#1a56db':'#fff'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${selected?'✓':''}</span>`:''}
+        <div style="font-size:10.5px;font-weight:700;color:var(--t3);margin-bottom:4px">${esc(it.unitTitle||'')}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:6px">${esc(it.label)}</div>
+        <div class="book-meta" style="margin-bottom:2px;color:#c2410c;font-weight:700">${esc(it.sound)}</div>
+        <div class="book-meta" style="opacity:0.8;white-space:pre-line;line-height:1.45;height:calc(1.45em * 3);overflow:hidden">${esc(it.example)}</div>
+        <div class="book-footer" style="margin-top:12px">
+          <button class="btn btn-secondary btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center" title="듣기" onclick="event.stopPropagation();_phonicsSpeak('${esc(it.example.replace(/\n/g, ', ')).replace(/'/g,"\\'")}')">🔊</button>
+        </div>
+      </div>`;
+    };
+    const selectBar = (_phonicsMgmtSelectMode && _phonicsMgmtSelectedIds.size>0) ? `
+      <div style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;margin-bottom:14px">
+        <span style="font-size:13.5px;font-weight:700;color:#1a56db">${_phonicsMgmtSelectedIds.size}개 선택됨</span>
+        <button onclick="phonicsMgmtMultiStudy('card')" style="margin-left:auto;border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🃏 카드 학습</button>
+        <button onclick="phonicsMgmtMultiStudy('quiz')" style="border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🎯 듣고 맞추기</button>
+        <button onclick="phonicsMgmtAssignSelected()" style="border:none;background:#ea580c;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📤 과제 배포</button>
+        <button onclick="phonicsMgmtPreviewAssignment()" style="border:1px solid #0891b2;background:#fff;color:#0891b2;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">✍️🔊 과제 미리보기</button>
+        <button onclick="phonicsMgmtReviewSubmissions()" style="border:1px solid #ea580c;background:#fff;color:#ea580c;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📥 제출 확인</button>
+        <button onclick="phonicsMgmtSelectClear()" style="border:1px solid #bfdbfe;background:#fff;color:#1a56db;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer">선택 해제</button>
+      </div>` : '';
+    _phonicsSetOverlayHeader(_phonicsOverlayHeader({
+      backFn:'phonicsMgmtBack()', title,
+      actionsHTML: _phonicsPillBtn(_phonicsMgmtBulkEdit?'✓ 완료':'✏️ 수정', 'phonicsMgmtToggleBulkEdit()', _phonicsMgmtBulkEdit)
+    }));
+    root.innerHTML = `
+      <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(sub)}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>
+      ${selectBar}
+      <div class="cards-grid">${items.map(cardHTML).join('')}</div>
+    `;
+    return;
+  }
+
+  const cardHTML = it => {
+    if(_phonicsMgmtEditId === it.id){
+      return `<div class="book-card" style="text-align:left">
+        <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">카드 제목</label>
+        <input id="phn-ed-label" class="form-input" value="${esc(it.label)}" style="margin-bottom:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">소리 설명</label>
+        <input id="phn-ed-sound" class="form-input" value="${esc(it.sound)}" style="margin-bottom:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">예시 단어</label>
+        <textarea id="phn-ed-example" class="form-input" style="margin-bottom:10px;min-height:60px;resize:vertical">${esc(it.example)}</textarea>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="phonicsMgmtSaveItem('${key}','${it.id}')">저장</button>
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="phonicsMgmtCancelEdit()">취소</button>
+        </div>
+        ${it.builtin ? `<button class="btn btn-secondary btn-sm" style="width:100%;margin-top:6px" onclick="phonicsMgmtResetItem('${key}','${it.id}')">↺ 기본값으로 되돌리기</button>` : ''}
+      </div>`;
+    }
+    return `<div class="book-card"
+      onmousedown="phonicsMgmtCardPressStart('${key}','${it.id}')" onmouseup="phonicsMgmtCardPressEnd()" onmouseleave="phonicsMgmtCardPressEnd()"
+      ontouchstart="phonicsMgmtCardPressStart('${key}','${it.id}')" ontouchend="phonicsMgmtCardPressEnd()"
+      onclick="phonicsMgmtCardClick('${key}','${it.id}')"
+      ondblclick="if(!_phonicsMgmtSelectMode) phonicsOpenWordStudy('${key}','${it.id}','teacher')"
+      title="꾹 누르면 여러 카드를 선택할 수 있어요 · 더블클릭하면 단어 학습이 열려요"
+      style="position:relative;${(_phonicsMgmtSelectMode && _phonicsMgmtSelectedIds.has(it.id))?'border-color:#1a56db;background:#eff6ff;box-shadow:0 0 0 3px rgba(26,86,219,0.15);':''}">
+      ${_phonicsMgmtSelectMode?`<span style="position:absolute;top:8px;left:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid ${_phonicsMgmtSelectedIds.has(it.id)?'#1a56db':'var(--border)'};background:${_phonicsMgmtSelectedIds.has(it.id)?'#1a56db':'#fff'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${_phonicsMgmtSelectedIds.has(it.id)?'✓':''}</span>`:''}
+      <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:6px">${esc(it.label)}</div>
+      <div class="book-meta" style="margin-bottom:2px;color:#c2410c;font-weight:700">${esc(it.sound)}</div>
+      <div class="book-meta" style="opacity:0.8;white-space:pre-line">${esc(it.example)}</div>
+      <div class="book-footer">
+        <button class="btn btn-secondary btn-sm" style="flex:1;display:flex;align-items:center;justify-content:center" title="듣기" onclick="event.stopPropagation();_phonicsSpeak('${esc(it.example.replace(/\n/g, ', ')).replace(/'/g,"\\'")}')">🔊</button>
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();phonicsMgmtEditItem('${it.id}')">✏️ 수정</button>
+        ${it.builtin ? '' : `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();phonicsMgmtDeleteItem('${key}','${it.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`}
+      </div>
+    </div>`;
+  };
+
+  const newCardHTML = _phonicsMgmtEditId === 'new' ? `<div class="book-card" style="text-align:left">
+      <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">카드 제목</label>
+      <input id="phn-ed-label" class="form-input" placeholder="예: Bb" style="margin-bottom:8px">
+      <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">소리 설명</label>
+      <input id="phn-ed-sound" class="form-input" placeholder="예: 브" style="margin-bottom:8px">
+      <label style="font-size:11px;font-weight:700;color:var(--t3);display:block;margin-bottom:2px">예시 단어</label>
+      <input id="phn-ed-example" class="form-input" placeholder="예: bat" style="margin-bottom:10px">
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="phonicsMgmtSaveItem('${key}','new')">추가</button>
+        <button class="btn btn-secondary btn-sm" style="flex:1" onclick="phonicsMgmtCancelEdit()">취소</button>
+      </div>
+    </div>` : `<div class="book-card" style="cursor:pointer;border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:132px" onclick="phonicsMgmtEditItem('new')">
+      <div style="font-size:24px;margin-bottom:6px;color:var(--t3)">➕</div>
+      <div style="font-size:14px;font-weight:700;color:var(--t3)">${isLetter?'새 카드 추가':'항목 추가'}</div>
+    </div>`;
+
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn:'phonicsMgmtBack()', title }));
+  root.innerHTML = `
+    <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(sub)}</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>
+    ${(_phonicsMgmtSelectMode && _phonicsMgmtSelectedIds.size>0) ? `
+      <div style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;margin-bottom:14px">
+        <span style="font-size:13.5px;font-weight:700;color:#1a56db">${_phonicsMgmtSelectedIds.size}개 선택됨</span>
+        <button onclick="phonicsMgmtMultiStudy('card')" style="margin-left:auto;border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🃏 카드 학습</button>
+        <button onclick="phonicsMgmtMultiStudy('quiz')" style="border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🎯 듣고 맞추기</button>
+        <button onclick="phonicsMgmtAssignSelected()" style="border:none;background:#ea580c;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📤 과제 배포</button>
+        <button onclick="phonicsMgmtPreviewAssignment()" style="border:1px solid #0891b2;background:#fff;color:#0891b2;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">✍️🔊 과제 미리보기</button>
+        <button onclick="phonicsMgmtReviewSubmissions()" style="border:1px solid #ea580c;background:#fff;color:#ea580c;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📥 제출 확인</button>
+        <button onclick="phonicsMgmtSelectClear()" style="border:1px solid #bfdbfe;background:#fff;color:#1a56db;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer">선택 해제</button>
+      </div>` : ''}
+    <div class="cards-grid">${items.map(cardHTML).join('')}${newCardHTML}</div>
+  `;
+}
+
+function phonicsMgmtEditItem(id){ _phonicsMgmtEditId = id; _phonicsMgmtRender(); }
+function phonicsMgmtCancelEdit(){ _phonicsMgmtEditId = null; _phonicsMgmtRender(); }
+
+// ── 합본 화면: 상단 버튼 하나로 전체 카드 일괄 수정 ──
+async function phonicsMgmtToggleBulkEdit(){
+  if(_phonicsMgmtBulkEdit){
+    await phonicsMgmtSaveAllBulk();
+  } else {
+    _phonicsMgmtBulkEdit = true;
+    _phonicsMgmtRender();
+  }
+}
+
+async function phonicsMgmtSaveAllBulk(){
+  const key = _phonicsMgmtKey;
+  const content = _phonicsMyContent();
+  const items = _phonicsFolderItems(key, content);
+
+  items.forEach(it=>{
+    const labelEl = document.getElementById('phn-ed-label-'+it.id);
+    if(!labelEl) return;
+    const label = (labelEl.value||'').trim();
+    if(!label) return; // 빈 제목은 건너뜀 (원본 유지)
+    const sound = (document.getElementById('phn-ed-sound-'+it.id)?.value||'').trim();
+    const example = (document.getElementById('phn-ed-example-'+it.id)?.value||'').trim();
+
+    const sep = it.id.indexOf('__');
+    const stageId = sep>=0 ? it.id.slice(0, sep) : null;
+    const realId = sep>=0 ? it.id.slice(sep+2) : it.id;
+    if(!stageId) return;
+
+    if(realId.indexOf('b')===0){
+      content.overrides[stageId] = content.overrides[stageId] || {};
+      content.overrides[stageId][realId] = { label, sound, example };
+    } else {
+      const arr = content.extra[stageId] || [];
+      const t = arr.find(x=>x.id===realId);
+      if(t){ t.label=label; t.sound=sound; t.example=example; }
+    }
+  });
+
+  await _phonicsSaveContent();
+  _phonicsMgmtBulkEdit = false;
+  _phonicsMgmtRender();
+  showToast('전체 저장했습니다', 'success');
+}
+
+async function phonicsMgmtSaveItem(key, id){
+  const label = (document.getElementById('phn-ed-label')?.value||'').trim();
+  const sound = (document.getElementById('phn-ed-sound')?.value||'').trim();
+  const example = (document.getElementById('phn-ed-example')?.value||'').trim();
+  if(!label){ showToast('카드 제목을 입력해주세요', 'error'); return; }
+  const content = _phonicsMyContent();
+  const isLetter = key.indexOf('letter:')===0;
+  const isCombined = key.indexOf('level:')===0;
+
+  if(isCombined){
+    // id 형식: "<stageId>__<realId>" — 실제 override는 해당 유닛(stage)에 저장
+    const sep = id.indexOf('__');
+    const stageId = sep>=0 ? id.slice(0, sep) : null;
+    const realId = sep>=0 ? id.slice(sep+2) : id;
+    if(stageId){
+      if(realId.indexOf('b')===0){
+        content.overrides[stageId] = content.overrides[stageId] || {};
+        content.overrides[stageId][realId] = { label, sound, example };
+      } else {
+        const arr = content.extra[stageId] || [];
+        const t = arr.find(x=>x.id===realId);
+        if(t){ t.label=label; t.sound=sound; t.example=example; }
+      }
+    }
+  } else if(id === 'new'){
+    const newItem = { id: 'x'+Date.now(), label, sound, example };
+    if(isLetter){
+      const L = key.slice(7);
+      content.letters[L] = content.letters[L] || [];
+      content.letters[L].push(newItem);
+    } else {
+      content.extra[key] = content.extra[key] || [];
+      content.extra[key].push(newItem);
+    }
+  } else if(id.indexOf('b')===0 && !isLetter){
+    content.overrides[key] = content.overrides[key] || {};
+    content.overrides[key][id] = { label, sound, example };
+  } else if(isLetter){
+    const L = key.slice(7);
+    const arr = content.letters[L] || [];
+    const t = arr.find(x=>x.id===id);
+    if(t){ t.label=label; t.sound=sound; t.example=example; }
+  } else {
+    const arr = content.extra[key] || [];
+    const t = arr.find(x=>x.id===id);
+    if(t){ t.label=label; t.sound=sound; t.example=example; }
+  }
+
+  await _phonicsSaveContent();
+  _phonicsMgmtEditId = null;
+  _phonicsMgmtRender();
+  showToast('저장했습니다', 'success');
+}
+
+async function phonicsMgmtResetItem(key, id){
+  if(!confirm('이 카드를 기본값(원본 커리큘럼)으로 되돌릴까요? 수정한 내용은 사라져요.')) return;
+  const content = _phonicsMyContent();
+  const isCombined = key.indexOf('level:')===0;
+  let stageId, realId;
+  if(isCombined){
+    const sep = id.indexOf('__');
+    stageId = sep>=0 ? id.slice(0, sep) : null;
+    realId = sep>=0 ? id.slice(sep+2) : id;
+  } else {
+    stageId = key; realId = id;
+  }
+  if(stageId && content.overrides[stageId]) delete content.overrides[stageId][realId];
+  await _phonicsSaveContent();
+  _phonicsMgmtEditId = null;
+  _phonicsMgmtRender();
+  showToast('기본값으로 되돌렸습니다', 'success');
+}
+
+async function phonicsMgmtResetAllOverrides(){
+  if(!confirm('기본 커리큘럼 카드 중 수정했던 내용을 전부 초기화할까요? 알파벳 커스텀 카드는 그대로 유지돼요.')) return;
+  const content = _phonicsMyContent();
+  content.overrides = {};
+  await _phonicsSaveContent();
+  _phonicsMgmtRender();
+  showToast('기본 커리큘럼을 전체 초기화했습니다', 'success');
+}
+
+async function phonicsMgmtDeleteItem(key, id){
+  if(!confirm('이 카드를 삭제할까요?')) return;
+  const content = _phonicsMyContent();
+  if(key.indexOf('letter:')===0){
+    const L = key.slice(7);
+    content.letters[L] = (content.letters[L]||[]).filter(x=>x.id!==id);
+  } else {
+    content.extra[key] = (content.extra[key]||[]).filter(x=>x.id!==id);
+  }
+  await _phonicsSaveContent();
+  _phonicsMgmtRender();
+}
+
+// ── 학생: 파닉스 학습 화면 (폴더형 카드) ──────────────────
+let _phonicsActiveKey = null;
+let _phonicsSelectMode = false, _phonicsSelectedIds = new Set(), _phonicsPressTimer = null, _phonicsPressFired = false;
+
+function phonicsCardPressStart(key, itemId){
+  clearTimeout(_phonicsPressTimer);
+  _phonicsPressFired = false;
+  _phonicsPressTimer = setTimeout(()=>{
+    _phonicsPressFired = true;
+    _phonicsSelectMode = true;
+    _phonicsSelectedIds.add(itemId);
+    phonicsOpenFolder(key);
+  }, 480);
+}
+function phonicsCardPressEnd(){
+  clearTimeout(_phonicsPressTimer);
+}
+function phonicsCardClick(key, itemId){
+  if(_phonicsPressFired){ _phonicsPressFired = false; return; } // 롱프레스로 이미 처리됨
+  if(!_phonicsSelectMode) return;
+  if(_phonicsSelectedIds.has(itemId)) _phonicsSelectedIds.delete(itemId);
+  else _phonicsSelectedIds.add(itemId);
+  if(_phonicsSelectedIds.size === 0) _phonicsSelectMode = false;
+  phonicsOpenFolder(key);
+}
+function phonicsSelectClear(){
+  _phonicsSelectMode = false; _phonicsSelectedIds = new Set();
+  phonicsOpenFolder(_phonicsActiveKey);
+}
+function phonicsMultiStudy(mode){
+  if(!_phonicsSelectedIds.size) return;
+  const ids = Array.from(_phonicsSelectedIds);
+  phonicsOpenWordStudyMulti(_phonicsActiveKey, ids, 'student');
+  if(mode === 'card') phonicsStudySetMode('card');
+  else if(mode === 'quiz') phonicsStudySetMode('quiz');
+}
+
+
+async function renderStudentPhonics(){
+  _phonicsCloseStudyOverlay();
+  const root = document.getElementById('phonics-student-root');
+  if(!root) return;
+  _phonicsActiveKey = null;
+  root.innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--t3);font-size:14px">불러오는 중...</div>';
+  const content = await _phonicsLoadContentForStudent();
+  window._phonicsFolderCache = content;
+  const assigns = await _phonicsLoadMyAssignments();
+  window._phnAsgList = assigns;
+  _phonicsRenderFolderList(root, content, assigns);
+}
+
+function _phonicsProgress(){
+  return (currentUser && currentUser.phonics_progress) || {};
+}
+async function _phonicsSaveProgress(prog){
+  currentUser.phonics_progress = prog;
+  try{ await sb.from('profiles').update({ phonics_progress: prog }).eq('id', currentUser.id); }catch(e){}
+}
+
+function _phonicsRenderFolderList(root, content, assigns){
+  const prog = _phonicsProgress();
+  const folders = _phonicsFolders(content);
+  const isLetter = k => k.indexOf('letter:')===0;
+  const cardHTML = f => {
+    const doneIds = new Set(prog[f.key] || []);
+    const doneCount = f.items.filter(it=>doneIds.has(it.id)).length;
+    const pct = f.items.length ? Math.round((doneCount / f.items.length) * 100) : 0;
+    const pillLabel = isLetter(f.key) ? '커스텀' : f.combined ? '합본' : 'SB'+f.level;
+    return `
+    <div style="position:relative;background:#fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid #e8edf4;
+      transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:pointer"
+      onclick="phonicsOpenFolder('${f.key}')"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='#e8edf4'">
+      <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;min-height:44px">
+        <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
+          <span style="font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap">${pillLabel}</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <span style="font-size:${pct>0?'20px':'15px'};font-weight:${pct>0?'800':'600'};color:${pct>0?'#1e3a5f':'#cbd5e1'};letter-spacing:-0.5px">${pct>0?pct+'%':'미시작'}</span>
+          ${pct>0?'<span style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span>':''}
+        </div>
+      </div>
+      <div style="padding:10px 20px 0;min-height:56px;display:flex;align-items:flex-start">
+        <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2">${f.emoji} ${esc(f.title)}</div>
+      </div>
+      <div style="padding:4px 20px 0">
+        <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:linear-gradient(90deg,#1a56db,#3b82f6);border-radius:99px;transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1)"></div>
+        </div>
+      </div>
+      <div style="padding:8px 20px 0;min-height:32px;display:flex;align-items:center">
+        <span style="font-size:14px;color:#94a3b8;font-weight:500">${f.items.length}개 카드</span>
+      </div>
+      <div style="margin-top:auto;padding:14px 16px 16px">
+        <button onclick="event.stopPropagation();phonicsOpenFolder('${f.key}')"
+          style="width:100%;padding:12px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28);min-height:44px"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          학습하기
+        </button>
+      </div>
+    </div>`;
+  };
+  const stageFolders = folders.filter(f=>!isLetter(f.key) && f.combined).sort((a,b)=>a.level-b.level);
+  const letterFolders = folders.filter(f=>isLetter(f.key));
+  const allFolders = stageFolders.concat(letterFolders);
+
+  const sl = getSlimeData();
+  const _phNextLv = sl.stage + 2;
+  const _phExpPct = Math.min(100, Math.round(((sl.exp||0) % 100)));
+
+  root.innerHTML =
+    _ionHeroBanner(sl.stage, "알파벳 소리를 익혀볼까요?", '파닉스 카드 학습 완료 시 <strong style="color:#2563eb">+10 EXP</strong>!', _phNextLv, _phExpPct)
+    + _phnAsgBannerHTML(assigns, content)
+    + `
+    <div class="search-bar" style="margin-bottom:14px"><span class="search-icon-el">🔍</span><input type="text" class="search-input" id="phn-stu-search" placeholder="파닉스 폴더 검색..." oninput="_renderPhnStuGrid()"></div>
+    <div id="phn-stu-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px"></div>
+  `;
+
+  window._phnStuAllFolders = allFolders;
+  window._phnStuCardHTML = cardHTML;
+  window._renderPhnStuGrid = function(){
+    const grid = document.getElementById('phn-stu-grid'); if(!grid) return;
+    const q = (document.getElementById('phn-stu-search')?.value||'').toLowerCase();
+    const filtered = q ? allFolders.filter(f=>f.title.toLowerCase().includes(q)) : allFolders;
+    grid.innerHTML = filtered.length ? filtered.map(cardHTML).join('')
+      : `<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:#94a3b8;font-size:14px;font-weight:600">검색 결과가 없습니다</div>`;
+  };
+  window._renderPhnStuGrid();
+}
+
+// =========================================================
+//  파닉스 과제 — 학생 수행 화면 (쓰기 4모드 + 낭독 녹음)
+// =========================================================
+let _phnAsgSubmissions = {};   // folder_key → { write:{mode:status}, read:status }
+let _phnAsgActive = null;      // 현재 열려있는 배정(assignment row)
+let _phnAsgWords = [];         // 현재 배정의 단어 목록
+let _phnAsgWriteMode = null, _phnAsgWriteIdx = 0, _phnAsgWriteImages = [];
+let _phnAsgWriteCoverShown = false, _phnAsgWriteHasStroke = false, _phnAsgWriteCanvasData = null;
+let _phnPreviewMode = false;   // true면 선생님이 미리보기 중 — 실제 제출/저장 없이 화면만 확인
+
+async function _phonicsLoadMyAssignments(){
+  if(!currentUser || currentUser.role !== 'student') return [];
+  try{
+    const [{ data: assigns }, { data: subs }] = await Promise.all([
+      sb.from('phonics_assignments').select('*').eq('student_id', currentUser.id),
+      sb.from('phonics_submissions').select('folder_key,kind,write_mode,status').eq('student_id', currentUser.id)
+    ]);
+    const subMap = {};
+    (subs||[]).forEach(s=>{
+      subMap[s.folder_key] = subMap[s.folder_key] || { write:{}, read:null };
+      if(s.kind==='write') subMap[s.folder_key].write[s.write_mode] = s.status;
+      else subMap[s.folder_key].read = s.status;
+    });
+    _phnAsgSubmissions = subMap;
+    return assigns || [];
+  }catch(e){ console.warn('파닉스 과제 조회 실패(테이블 미생성일 수 있음):', e.message); return []; }
+}
+
+function _phnAsgBannerHTML(assigns, content){
+  if(!assigns || !assigns.length) return '';
+  const folders = _phonicsFolders(content);
+  const cards = assigns.map(a=>{
+    const f = folders.find(x=>x.key===a.folder_key);
+    const title = f ? f.title : a.folder_key;
+    const opts = a.task_options || {};
+    const sub = _phnAsgSubmissions[a.folder_key] || { write:{}, read:null };
+    const wmodes = opts.write_modes || [];
+    const badge = (label, st) => {
+      const done = st==='pass', pending = st==='pending', resub = st==='resubmit';
+      const bg = done?'#dcfce7':resub?'#fee2e2':pending?'#fef3c7':'#f1f5f9';
+      const tc = done?'#166534':resub?'#991b1b':pending?'#92400e':'#64748b';
+      const tag = done?' ✓':resub?' ↺':pending?' ⏳':'';
+      return `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${bg};color:${tc}">${label}${tag}</span>`;
+    };
+    const writeBadges = wmodes.map(k=>badge(PHN_WRITE_MODE_LABELS[k]||k, sub.write[k])).join('');
+    const readBadge = opts.record ? badge('낭독', sub.read) : '';
+    return `<div onclick="phonicsOpenAssignment('${a.id}')" style="cursor:pointer;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:16px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:12px;background:#fdba74;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📤</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:800;color:#0f172a">${esc(title)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${writeBadges}${readBadge}</div>
+      </div>
+      <div style="color:#ea580c;font-size:13px;font-weight:700;flex-shrink:0">시작하기 →</div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:800;color:#ea580c;letter-spacing:.04em;margin-bottom:8px">📌 내 파닉스 과제 ${assigns.length}개</div>${cards}</div>`;
+}
+
+async function phonicsOpenAssignment(assignmentId){
+  const a = (window._phnAsgList||[]).find(x=>x.id===assignmentId);
+  if(!a) return;
+  _phnPreviewMode = false;
+  _phnAsgActive = a;
+  const content = window._phonicsFolderCache || await _phonicsLoadContentForStudent();
+  const items = _phonicsFolderItems(a.folder_key, content).filter(it=>(a.item_ids||[]).includes(it.id));
+  let words = [];
+  items.forEach(it=>{ _phonicsItemWords(it).forEach(w=>words.push({ ...w, itemLabel: it.label })); });
+  _phnAsgWords = words;
+  _phonicsRenderAssignment();
+}
+
+function _phonicsRenderAssignment(){
+  const root = _phonicsRootEl();
+  if(!root) return;
+  const a = _phnAsgActive;
+  const folders = _phonicsFolders(window._phonicsFolderCache || {});
+  const f = folders.find(x=>x.key===a.folder_key);
+  const backFn = _phnPreviewMode ? `_phonicsCloseStudyOverlay();phonicsMgmtOpenFolder('${a.folder_key}')` : "_phonicsCloseStudyOverlay();renderStudentPhonics()";
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn, title: (f?f.title:a.folder_key) + (_phnPreviewMode?' · 과제 미리보기':' · 과제') }));
+  const opts = a.task_options || {};
+  const wmodes = opts.write_modes || [];
+  const sub = _phnPreviewMode ? { write:{}, read:null } : (_phnAsgSubmissions[a.folder_key] || { write:{}, read:null });
+  const statusText = (st) => st==='pass' ? '✅ 통과' : st==='resubmit' ? '↺ 다시 제출해주세요' : st==='pending' ? '⏳ 선생님 확인 대기중' : '아직 안 함';
+  const previewNote = _phnPreviewMode ? `<div style="background:#ecfeff;border:1.5px solid #a5f3fc;color:#0e7490;border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:14px">👀 미리보기 화면이에요 — 여기서 쓰거나 녹음해도 실제로 저장되지 않아요.</div>` : '';
+  const writeCards = wmodes.map(k=>{
+    const st = sub.write[k];
+    return `<div style="border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--t1)">✍️ ${PHN_WRITE_MODE_LABELS[k]}</div>
+        <div style="font-size:12.5px;color:var(--t3);margin-top:2px">${_phnPreviewMode?'미리보기':statusText(st)}</div>
+      </div>
+      <button onclick="phonicsAssignWriteStart('${k}')" style="border:none;background:#0891b2;color:#fff;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">${st?'다시 쓰기':'시작하기'}</button>
+    </div>`;
+  }).join('');
+  const readCard = opts.record ? `
+    <div style="border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--t1)">🔊 낭독 녹음</div>
+        <div style="font-size:12.5px;color:var(--t3);margin-top:2px">${_phnPreviewMode?'미리보기':statusText(sub.read)}</div>
+        ${sub.readComment ? `<div style="font-size:12px;color:#ea580c;margin-top:4px">💬 ${esc(sub.readComment)}</div>` : ''}
+      </div>
+      <button onclick="phonicsAssignRecordStart()" style="border:none;background:#ea580c;color:#fff;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">${sub.read?'다시 녹음':'녹음하기'}</button>
+    </div>` : '';
+  root.innerHTML = `
+    <div style="max-width:520px;margin:0 auto">
+      ${previewNote}
+      <div style="font-size:13px;color:var(--t3);margin-bottom:16px">이 카드에 포함된 단어 ${_phnAsgWords.length}개를 대상으로 과제를 수행해요</div>
+      ${writeCards}${readCard}
+      ${!wmodes.length && !opts.record ? '<div style="text-align:center;color:var(--t3);padding:30px 0">배정된 과제 항목이 없어요.</div>' : ''}
+    </div>`;
+}
+
+/* ── 쓰기 과제 수행 (트레이싱 / 빈칸채워쓰기 / 가리고쓰기 / 듣고받아쓰기) ── */
+function phonicsAssignWriteStart(mode){
+  _phnAsgWriteMode = mode; _phnAsgWriteIdx = 0; _phnAsgWriteImages = [];
+  _phnAsgWriteCoverShown = false; _phnAsgWriteHasStroke = false; _phnAsgWriteCanvasData = null;
+  _phonicsRenderAssignWrite();
+}
+function _phonicsRenderAssignWrite(){
+  const root = _phonicsRootEl();
+  if(!root) return;
+  const words = _phnAsgWords;
+  const mode = _phnAsgWriteMode;
+  const w = words[_phnAsgWriteIdx];
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn:'_phonicsRenderAssignment()', title: PHN_WRITE_MODE_LABELS[mode]||'쓰기 과제' }));
+  if(!w){ root.innerHTML = `<div style="text-align:center;padding:40px;color:var(--t3)">단어가 없어요.</div>`; return; }
+  const blanked = _phonicsBlankWord(w.en, w.itemLabel);
+  let promptHtml = '';
+  if(mode==='trace') promptHtml = `<div style="font-size:34px;font-weight:800;letter-spacing:3px;color:#cbd5e1;text-align:center;margin-bottom:10px">${esc(w.en)}</div>`;
+  else if(mode==='blank') promptHtml = `<div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--t1);text-align:center;margin-bottom:10px">${esc(blanked)}</div>`;
+  else if(mode==='cover') promptHtml = _phnAsgWriteCoverShown
+    ? `<div style="font-size:13px;color:var(--t3);text-align:center;margin-bottom:10px">이제 기억해서 써보세요</div>`
+    : `<div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--t1);text-align:center;margin-bottom:10px">${esc(w.en)}</div>`;
+  else if(mode==='dictation') promptHtml = `<div style="font-size:13px;color:var(--t3);text-align:center;margin-bottom:10px">🔊 를 듣고 받아써보세요</div>`;
+  const coverBtn = (mode==='cover' && !_phnAsgWriteCoverShown)
+    ? `<button onclick="_phnAsgCoverReveal()" style="display:block;margin:0 auto 12px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">3초 보고 가리기</button>` : '';
+  root.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;text-align:center">
+      <div style="font-size:12.5px;color:var(--t3);margin-bottom:14px">${_phnAsgWriteIdx+1} / ${words.length}</div>
+      ${promptHtml}
+      <button onclick="_phonicsSpeak('${w.en.replace(/'/g,"\\'")}')" style="display:block;margin:0 auto 12px;border:1.5px solid #0891b2;background:#ecfeff;color:#0891b2;border-radius:14px;padding:8px 16px;font-size:13.5px;font-weight:800;cursor:pointer">🔊 소리 듣기</button>
+      ${coverBtn}
+      <canvas id="phn-asg-canvas" width="360" height="140" style="width:100%;max-width:360px;height:140px;border:2px dashed var(--border);border-radius:14px;background:#fff;touch-action:none;margin-bottom:12px"></canvas>
+      <div style="display:flex;justify-content:center;gap:8px">
+        <button onclick="_phnAsgWriteClear()" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer;color:var(--t2)">지우기</button>
+        <button onclick="_phnAsgWriteNext()" style="border:none;background:#0891b2;color:#fff;border-radius:10px;padding:9px 20px;font-size:13.5px;cursor:pointer;font-weight:700">${_phnAsgWriteIdx < words.length-1 ? '다음 →' : '제출하기 ✓'}</button>
+      </div>
+    </div>`;
+  requestAnimationFrame(_phnAsgWriteInitCanvas);
+}
+function _phnAsgCoverReveal(){
+  setTimeout(()=>{ _phnAsgWriteCoverShown = true; _phonicsRenderAssignWrite(); }, 3000);
+}
+// 캔버스 배경에 영어 4선 노트(사선지)를 그려준다 — 위/아래 실선 + 가운데 점선(x-height) + 베이스라인 강조
+function _phnDrawNotebookLines(ctx, w, h){
+  const marginV = h*0.12, usable = h - marginV*2;
+  const top = marginV, mid = marginV + usable/3, base = marginV + usable*2/3, bottom = h - marginV;
+  const left = 8, right = w-8;
+  ctx.save();
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(right, top); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(left, mid); ctx.lineTo(right, mid); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(left, base); ctx.lineTo(right, base); ctx.stroke();
+  ctx.restore();
+}
+function _phnAsgWriteInitCanvas(){
+  const cv = document.getElementById('phn-asg-canvas');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  if(_phnAsgWriteCanvasData){
+    const img = new Image();
+    img.onload = function(){ ctx.drawImage(img, 0, 0, cv.width, cv.height); };
+    img.src = _phnAsgWriteCanvasData;
+  } else {
+    _phnDrawNotebookLines(ctx, cv.width, cv.height);
+  }
+  if(cv._phnBound) return;
+  cv._phnBound = true;
+  ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0891b2';
+  let drawing = false, last = null;
+  function pos(e){ const r = cv.getBoundingClientRect(); return { x: (e.clientX-r.left)*(cv.width/r.width), y: (e.clientY-r.top)*(cv.height/r.height) }; }
+  cv.addEventListener('pointerdown', e=>{ e.preventDefault(); drawing=true; last=pos(e); _phnAsgWriteHasStroke=true; try{ cv.setPointerCapture(e.pointerId); }catch(err){} });
+  cv.addEventListener('pointermove', e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; });
+  function endDraw(){ drawing=false; last=null; }
+  cv.addEventListener('pointerup', endDraw);
+  cv.addEventListener('pointerleave', endDraw);
+  cv.addEventListener('pointercancel', endDraw);
+}
+function _phnAsgWriteClear(){
+  const cv = document.getElementById('phn-asg-canvas'); if(!cv) return;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  _phnDrawNotebookLines(ctx, cv.width, cv.height);
+  _phnAsgWriteHasStroke = false; _phnAsgWriteCanvasData = null;
+}
+async function _phnAsgWriteNext(){
+  const cv = document.getElementById('phn-asg-canvas');
+  const img = cv ? cv.toDataURL('image/png') : null;
+  const w = _phnAsgWords[_phnAsgWriteIdx];
+  _phnAsgWriteImages.push({ word: w.en, itemLabel: w.itemLabel, img });
+  if(_phnAsgWriteIdx < _phnAsgWords.length - 1){
+    _phnAsgWriteIdx++;
+    _phnAsgWriteCanvasData = null; _phnAsgWriteHasStroke = false; _phnAsgWriteCoverShown = false;
+    _phonicsRenderAssignWrite();
+  } else {
+    await _phnAsgWriteSubmit();
+  }
+}
+async function _phnAsgWriteSubmit(){
+  const a = _phnAsgActive;
+  if(_phnPreviewMode){
+    showToast('미리보기 완료! (실제로 저장되진 않았어요)', 'success');
+    _phonicsRenderAssignment();
+    return;
+  }
+  try{
+    await sb.from('phonics_submissions').delete().eq('student_id', currentUser.id).eq('folder_key', a.folder_key).eq('kind','write').eq('write_mode', _phnAsgWriteMode);
+    const { error } = await sb.from('phonics_submissions').insert({
+      student_id: currentUser.id, folder_key: a.folder_key, item_ids: a.item_ids,
+      kind: 'write', write_mode: _phnAsgWriteMode, payload: _phnAsgWriteImages, status: 'pending'
+    });
+    if(error) throw error;
+    showToast('쓰기 과제 제출 완료! 🎉', 'success');
+  }catch(e){ showToast('제출 실패: ' + e.message, 'error'); }
+  _phnAsgSubmissions[a.folder_key] = _phnAsgSubmissions[a.folder_key] || { write:{}, read:null };
+  _phnAsgSubmissions[a.folder_key].write[_phnAsgWriteMode] = 'pending';
+  _phonicsRenderAssignment();
+}
+
+/* ── 낭독 과제 수행 (전체 단어를 한 번에 녹음, 재녹음 허용) ── */
+let _phnRecStream=null, _phnRecTimer=null, _phnRecSeconds=0, _phnMediaRecorder=null, _phnRecordedChunks=[];
+function phonicsAssignRecordStart(){
+  const root = _phonicsRootEl();
+  if(!root) return;
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn:'_phonicsRenderAssignment()', title:'낭독 녹음' }));
+  window._phnRecBlob = null; window._phnRecSaving = false;
+  root.innerHTML = `
+    <div style="max-width:460px;margin:0 auto">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--t3);margin-bottom:4px">아래 단어를 순서대로 <b style="color:#ea580c">각각 3번씩</b> 소리 내어 읽으면서 녹음하세요</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:10px">발음이 헷갈리면 🔊를 눌러 먼저 들어봐도 돼요</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${_phnAsgWords.map(w=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg)">
+              <button onclick="_phonicsSpeak('${w.en.replace(/'/g,"\\'")}')" title="발음 듣기" style="flex-shrink:0;width:32px;height:32px;border-radius:50%;border:1.5px solid #0891b2;background:#ecfeff;color:#0891b2;cursor:pointer;font-size:14px">🔊</button>
+              <span style="flex:1;font-size:15.5px;font-weight:700;color:var(--t1);letter-spacing:.3px">${esc(w.en)} <span style="color:var(--t3);font-weight:600">·</span> ${esc(w.en)} <span style="color:var(--t3);font-weight:600">·</span> ${esc(w.en)}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;text-align:center">
+        <div id="phn-rec-status" style="font-size:14px;color:var(--t2);margin-bottom:14px">단어를 순서대로 3번씩 소리 내어 읽고 녹음 버튼을 누르세요</div>
+        <div id="phn-rec-timer" style="display:none;font-size:32px;font-weight:700;color:var(--t1);margin-bottom:14px">0:00</div>
+        <button id="phn-rec-start" onclick="phnRecStart()" style="padding:12px 26px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">🔴 녹음 시작</button>
+        <button id="phn-rec-stop" onclick="phnRecStop()" style="display:none;padding:12px 26px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">■ 중지</button>
+        <div id="phn-rec-result" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <audio id="phn-rec-audio" controls style="width:100%;margin-bottom:12px"></audio>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button onclick="phnRecRedo()" style="border:1px solid var(--border);background:var(--surface2);border-radius:9px;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--t2)">다시 녹음</button>
+            <button onclick="phnRecSave()" style="border:none;background:#ea580c;color:#fff;border-radius:9px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">제출하기</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+async function phnRecStart(){
+  try{
+    _phnRecStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const mimeTypes = ['audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/aac','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+    const supportedMime = mimeTypes.find(t=>MediaRecorder.isTypeSupported(t)) || '';
+    _phnMediaRecorder = supportedMime ? new MediaRecorder(_phnRecStream,{mimeType:supportedMime}) : new MediaRecorder(_phnRecStream);
+    window._phnRecMimeType = _phnMediaRecorder.mimeType || 'audio/webm';
+    _phnRecordedChunks = [];
+    _phnMediaRecorder.ondataavailable = e=>{ if(e.data?.size>0) _phnRecordedChunks.push(e.data); };
+    _phnMediaRecorder.onstop = phnRecOnStop;
+    _phnMediaRecorder.onerror = e=>{ showToast('녹음 오류: '+(e.error?.message||e.error?.name||'알 수 없음'),'error'); };
+    _phnMediaRecorder.start(100);
+    document.getElementById('phn-rec-start').style.display = 'none';
+    const stopBtn = document.getElementById('phn-rec-stop'); if(stopBtn) stopBtn.style.display = 'inline-block';
+    document.getElementById('phn-rec-status').innerHTML = '<span style="color:#ef4444;font-weight:700">● 녹음 중...</span>';
+    document.getElementById('phn-rec-timer').style.display = 'block';
+    _phnRecSeconds = 0;
+    _phnRecTimer = setInterval(()=>{
+      _phnRecSeconds++;
+      const el = document.getElementById('phn-rec-timer');
+      if(el) el.textContent = Math.floor(_phnRecSeconds/60)+':'+String(_phnRecSeconds%60).padStart(2,'0');
+      if(_phnRecSeconds >= 300) phnRecStop();
+    }, 1000);
+  }catch(e){
+    const msg = e.name==='NotAllowedError' ? '마이크 권한을 허용해주세요.'
+              : e.name==='NotFoundError' ? '마이크를 찾을 수 없습니다.'
+              : e.name==='NotSupportedError' ? '이 기기에서 녹음을 지원하지 않습니다.'
+              : '녹음 오류: '+(e.message||e.name);
+    showToast(msg,'error');
+  }
+}
+function phnRecStop(){
+  if(_phnMediaRecorder?.state !== 'inactive') _phnMediaRecorder?.stop();
+  _phnRecStream?.getTracks().forEach(t=>t.stop());
+  clearInterval(_phnRecTimer);
+  const stopBtn = document.getElementById('phn-rec-stop'); if(stopBtn) stopBtn.style.display = 'none';
+  const startBtn = document.getElementById('phn-rec-start'); if(startBtn) startBtn.style.display = 'inline-block';
+}
+function phnRecOnStop(){
+  const mimeType = window._phnRecMimeType || _phnMediaRecorder?.mimeType || 'audio/webm';
+  const blob = new Blob(_phnRecordedChunks, { type: mimeType });
+  window._phnRecBlob = blob;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const audio = document.getElementById('phn-rec-audio');
+    if(audio){ audio.src = reader.result; audio.onerror = () => { try{ audio.src = URL.createObjectURL(blob); }catch(e){} }; }
+  };
+  reader.onerror = () => { const audio = document.getElementById('phn-rec-audio'); if(audio) audio.src = URL.createObjectURL(blob); };
+  reader.readAsDataURL(blob);
+  const resultEl = document.getElementById('phn-rec-result'); if(resultEl) resultEl.style.display = '';
+  const timerEl = document.getElementById('phn-rec-timer'); if(timerEl) timerEl.style.display = 'none';
+  document.getElementById('phn-rec-status').innerHTML = '✅ 녹음 완료! 다시 녹음하거나 제출하세요.';
+}
+function phnRecRedo(){
+  window._phnRecBlob = null; window._phnRecSaving = false;
+  document.getElementById('phn-rec-result').style.display = 'none';
+  document.getElementById('phn-rec-status').textContent = '단어를 순서대로 소리 내어 읽고 녹음 버튼을 누르세요';
+}
+async function phnRecSave(){
+  if(window._phnRecSaving) return;
+  if(!window._phnRecBlob){ showToast('녹음을 먼저 진행해주세요.', 'error'); return; }
+  if(_phnPreviewMode){
+    showToast('미리보기 완료! (실제로 저장되진 않았어요)', 'success');
+    window._phnRecBlob = null;
+    _phonicsRenderAssignment();
+    return;
+  }
+  window._phnRecSaving = true;
+  showToast('녹음 저장 중...', 'success');
+  const a = _phnAsgActive;
+  let savedUrl = null;
+  const mimeType = window._phnRecMimeType || window._phnRecBlob?.type || 'audio/webm';
+  const ext = mimeType.includes('mp4')||mimeType.includes('aac') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+  const path = `${currentUser.id}/phonics_${a.folder_key}_${Date.now()}.${ext}`;
+  for(let attempt=0; attempt<2 && !savedUrl; attempt++){
+    try{
+      const { error: upErr } = await sb.storage.from('recordings').upload(path, window._phnRecBlob, { contentType: mimeType, upsert:true });
+      if(!upErr){ const { data: urlData } = sb.storage.from('recordings').getPublicUrl(path); savedUrl = urlData?.publicUrl || null; }
+    }catch(e){}
+  }
+  if(!savedUrl){
+    const size = window._phnRecBlob?.size || 0;
+    if(size > 0 && size <= 1.5*1024*1024){
+      try{ savedUrl = await new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>reject(new Error('FileReader 실패')); r.readAsDataURL(window._phnRecBlob); }); }catch(e){}
+    }
+  }
+  if(!savedUrl){ showToast('업로드 실패. 네트워크 확인 후 다시 시도해주세요.', 'error'); window._phnRecSaving = false; return; }
+  try{
+    await sb.from('phonics_submissions').delete().eq('student_id', currentUser.id).eq('folder_key', a.folder_key).eq('kind','read');
+    await sb.from('phonics_submissions').insert({ student_id: currentUser.id, folder_key: a.folder_key, item_ids: a.item_ids, kind:'read', recorded_url: savedUrl, status:'pending' });
+  }catch(e){ console.warn('DB 저장 실패:', e.message); }
+  showToast('낭독 과제 제출 완료! 🎉', 'success');
+  window._phnRecBlob = null; window._phnRecSaving = false;
+  _phnAsgSubmissions[a.folder_key] = _phnAsgSubmissions[a.folder_key] || { write:{}, read:null };
+  _phnAsgSubmissions[a.folder_key].read = 'pending';
+  _phonicsRenderAssignment();
+}
+
+// =========================================================
+//  파닉스 과제 — 선생님 제출 확인/채점 화면
+//  (쓰기: 이미지 보고 수동 O/X · 낭독: 재생 + 통과/재제출 + 코멘트)
+// =========================================================
+function phonicsMgmtReviewSubmissions(){
+  openPhonicsSubmissionsModal(_phonicsMgmtKey);
+}
+async function openPhonicsSubmissionsModal(folderKey){
+  let subs = [];
+  try{
+    const { data } = await sb.from('phonics_submissions').select('*, profiles(name)').eq('folder_key', folderKey).order('created_at', { ascending:false });
+    subs = data || [];
+  }catch(e){ showToast('조회 실패: ' + e.message, 'error'); return; }
+  if(!subs.length){ showToast('제출된 과제가 없습니다.', 'error'); return; }
+  const byStudent = {};
+  subs.forEach(s=>{ const name = s.profiles?.name || s.student_id.slice(0,8); byStudent[name] = byStudent[name]||[]; byStudent[name].push(s); });
+  const statusBadge = (st) => st==='pass'
+    ? '<span style="color:#166534;background:#dcfce7;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">통과</span>'
+    : st==='resubmit'
+    ? '<span style="color:#991b1b;background:#fee2e2;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">재제출</span>'
+    : '<span style="color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">대기중</span>';
+  const submissionHTML = s => {
+    if(s.kind === 'write'){
+      const imgs = (s.payload||[]).map(p=>`
+        <div style="text-align:center">
+          <img src="${p.img}" style="width:100px;height:60px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:#fff" />
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(p.word)}</div>
+        </div>`).join('');
+      return `<div style="padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:13.5px;font-weight:700;color:var(--t1)">✍️ ${PHN_WRITE_MODE_LABELS[s.write_mode]||s.write_mode}</span>
+          ${statusBadge(s.status)}
+          <span style="font-size:12px;color:var(--t3);margin-left:auto">${new Date(s.created_at).toLocaleDateString('ko-KR')}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${imgs}</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="_phnGrade('${s.id}','pass')" style="flex:1;border:1px solid #22c55e;background:#f0fdf4;color:#166534;border-radius:8px;padding:6px;font-size:12.5px;font-weight:700;cursor:pointer">✓ 통과</button>
+          <button onclick="_phnGrade('${s.id}','resubmit')" style="flex:1;border:1px solid #ef4444;background:#fef2f2;color:#991b1b;border-radius:8px;padding:6px;font-size:12.5px;font-weight:700;cursor:pointer">✕ 재제출</button>
+        </div>
+      </div>`;
+    }
+    return `<div style="padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:13.5px;font-weight:700;color:var(--t1)">🔊 낭독</span>
+        ${statusBadge(s.status)}
+        <span style="font-size:12px;color:var(--t3);margin-left:auto">${new Date(s.created_at).toLocaleDateString('ko-KR')}</span>
+      </div>
+      <audio src="${s.recorded_url||''}" controls style="width:100%;height:32px;margin-bottom:10px"></audio>
+      <textarea id="phn-comment-${s.id}" placeholder="코멘트(선택)" style="width:100%;min-height:50px;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12.5px;margin-bottom:8px;font-family:inherit">${esc(s.teacher_comment||'')}</textarea>
+      <div style="display:flex;gap:6px">
+        <button onclick="_phnGrade('${s.id}','pass')" style="flex:1;border:1px solid #22c55e;background:#f0fdf4;color:#166534;border-radius:8px;padding:6px;font-size:12.5px;font-weight:700;cursor:pointer">✓ 통과</button>
+        <button onclick="_phnGrade('${s.id}','resubmit')" style="flex:1;border:1px solid #ef4444;background:#fef2f2;color:#991b1b;border-radius:8px;padding:6px;font-size:12.5px;font-weight:700;cursor:pointer">✕ 재제출 요청</button>
+      </div>
+    </div>`;
+  };
+  showModal(`
+    <div class="modal-title">📥 파닉스 과제 제출 확인</div>
+    <div style="max-height:65vh;overflow-y:auto">
+      ${Object.entries(byStudent).map(([name,list]) => `
+        <div style="margin-bottom:16px">
+          <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px">${esc(name)} · ${list.length}개 제출</div>
+          ${list.map(submissionHTML).join('')}
+        </div>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">닫기</button></div>
+  `);
+}
+async function _phnGrade(subId, status){
+  const comment = document.getElementById('phn-comment-'+subId)?.value || null;
+  try{
+    await sb.from('phonics_submissions').update({ status, teacher_comment: comment }).eq('id', subId);
+    showToast(status==='pass' ? '통과 처리했어요' : '재제출 요청했어요', 'success');
+  }catch(e){ showToast('오류: ' + e.message, 'error'); }
+}
+
+function phonicsOpenFolder(key){
+  if(_phonicsActiveKey !== key){ _phonicsSelectMode = false; _phonicsSelectedIds = new Set(); }
+  _phonicsActiveKey = key;
+  const root = _phonicsRootEl();
+  const content = window._phonicsContent || _phonicsEmptyContent();
+  const folders = _phonicsFolders(content);
+  const f = folders.find(x=>x.key===key);
+  if(!root || !f) return;
+  const prog = _phonicsProgress();
+  const doneIds = new Set(prog[key] || []);
+
+  const cards = f.items.map(it=>{
+    const done = doneIds.has(it.id);
+    const selected = _phonicsSelectMode && _phonicsSelectedIds.has(it.id);
+    return `<div
+      onmousedown="phonicsCardPressStart('${key}','${it.id}')" onmouseup="phonicsCardPressEnd()" onmouseleave="phonicsCardPressEnd()"
+      ontouchstart="phonicsCardPressStart('${key}','${it.id}')" ontouchend="phonicsCardPressEnd()"
+      onclick="phonicsCardClick('${key}','${it.id}')"
+      ondblclick="if(!_phonicsSelectMode) phonicsOpenWordStudy('${key}','${it.id}')"
+      title="꾹 누르면 여러 카드를 선택할 수 있어요 · 더블클릭하면 단어 학습이 열려요"
+      style="cursor:pointer;user-select:none;border:1.5px solid ${selected?'#1a56db':(done?'#1a56db':'var(--border)')};border-radius:14px;padding:16px;background:${selected?'#eff6ff':'var(--surface)'};text-align:center;position:relative;box-shadow:${selected?'0 0 0 3px rgba(26,86,219,0.15)':'none'}">
+      ${_phonicsSelectMode?`<span style="position:absolute;top:8px;left:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid ${selected?'#1a56db':'var(--border)'};background:${selected?'#1a56db':'#fff'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${selected?'✓':''}</span>`:''}
+      ${done?'<span style="position:absolute;top:8px;right:10px;font-size:13px;color:#1a56db">✔</span>':''}
+      ${it.unitTitle?`<div style="font-size:10.5px;font-weight:700;color:var(--t3);margin-bottom:4px">${esc(it.unitTitle)}</div>`:''}
+      <div style="font-size:26px;font-weight:800;color:var(--t1);margin-bottom:6px">${esc(it.label)}</div>
+      <div style="font-size:13px;color:var(--t3);margin-bottom:4px">${esc(it.sound)}</div>
+      <div style="font-size:12.5px;color:var(--t3);opacity:0.8;margin-bottom:10px;white-space:pre-line">${esc(it.example)}</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <button onclick="event.stopPropagation();_phonicsSpeak('${esc(it.example.replace(/\n/g, ', ')).replace(/'/g,"\\'")}')" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--t2)">🔊 듣기</button>
+        <button onclick="event.stopPropagation();phonicsToggleDone('${key}', '${it.id}')" style="border:1px solid ${done?'#1a56db':'var(--border)'};background:${done?'#1a56db':'var(--surface2)'};color:${done?'#fff':'var(--t2)'};border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">${done?'완료됨':'완료 표시'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const selectBar = (_phonicsSelectMode && _phonicsSelectedIds.size>0) ? `
+    <div style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;margin-bottom:14px">
+      <span style="font-size:13.5px;font-weight:700;color:#1a56db">${_phonicsSelectedIds.size}개 선택됨</span>
+      <button onclick="phonicsMultiStudy('card')" style="margin-left:auto;border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🃏 카드 학습</button>
+      <button onclick="phonicsMultiStudy('quiz')" style="border:none;background:#1a56db;color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🎯 듣고 맞추기</button>
+      <button onclick="phonicsSelectClear()" style="border:1px solid #bfdbfe;background:#fff;color:#1a56db;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer">선택 해제</button>
+    </div>` : '';
+
+  root.innerHTML = `
+    <button onclick="phonicsSelectClear();renderStudentPhonics()" style="display:inline-flex;align-items:center;gap:5px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      폴더 목록으로
+    </button>
+    <div style="font-size:19px;font-weight:800;color:var(--t1);margin-bottom:2px">${f.emoji} ${esc(f.title)}</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(f.sub)}</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>
+    ${selectBar}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">${cards}</div>
+  `;
+}
+
+// ── 단어 학습 (단어장 스타일) ──────────────────────────────
+const WORD_KO = {
+  apple:'사과',alligator:'악어',ant:'개미',book:'책',bed:'침대',bat:'박쥐',cat:'고양이',cap:'모자',cup:'컵',
+  dog:'개',desk:'책상',duck:'오리',elephant:'코끼리',egg:'달걀',elbow:'팔꿈치',fish:'물고기',fan:'부채',fork:'포크',
+  gorilla:'고릴라',game:'게임',girl:'소녀',hat:'모자',hippo:'하마',hand:'손',igloo:'이글루',iguana:'이구아나',ink:'잉크',
+  jet:'제트기',jacket:'재킷',jam:'잼',king:'왕',key:'열쇠',kangaroo:'캥거루',lion:'사자',lamp:'램프',lemon:'레몬',
+  mouse:'쥐',melon:'멜론',map:'지도',nut:'견과',nest:'둥지',net:'그물',octopus:'문어',ox:'황소',ostrich:'타조',
+  panda:'판다',pen:'펜',pig:'돼지',queen:'여왕',question:'질문',quiet:'조용한',ring:'반지',rabbit:'토끼',robot:'로봇',
+  sock:'양말',sun:'태양',sea:'바다',tiger:'호랑이',top:'팽이',tent:'텐트',umbrella:'우산',up:'위로',under:'아래에',
+  violin:'바이올린',vest:'조끼',vase:'꽃병',watch:'손목시계',window:'창문',watermelon:'수박',box:'상자',fox:'여우',six:'여섯',
+  yacht:'요트','yo-yo':'요요',yellow:'노란색',zebra:'얼룩말',zoo:'동물원',zero:'영',
+  dam:'댐',ham:'햄',ram:'숫양',lap:'무릎',nap:'낮잠',can:'캔',man:'남자',pan:'냄비',mat:'매트',vet:'수의사',wet:'젖은',
+  red:'빨간색',hen:'암탉',bib:'턱받이',rib:'갈비뼈',kid:'아이',lid:'뚜껑',wig:'가발',fin:'지느러미',pin:'핀',
+  dip:'담그다',hip:'엉덩이',lip:'입술',rip:'찢다',hit:'치다',sit:'앉다',mix:'섞다',hot:'뜨거운',pot:'냄비',
+  cop:'경찰',hop:'깡충뛰다',log:'통나무',bug:'벌레',hug:'포옹',mug:'머그컵',rug:'러그',rub:'문지르다',tub:'욕조',
+  pup:'강아지',bun:'빵',fun:'재미',run:'달리다',bud:'꽃봉오리',mud:'진흙',cut:'자르다',
+  bake:'굽다',cake:'케이크',lake:'호수',rake:'갈퀴',cape:'망토',tape:'테이프',cave:'동굴',wave:'파도',
+  name:'이름',date:'날짜',gate:'대문',cane:'지팡이',mane:'갈기',case:'상자',line:'선',nine:'아홉',pine:'소나무',vine:'덩굴',
+  bike:'자전거',hike:'하이킹',lime:'라임',time:'시간',hide:'숨다',ride:'타다',pipe:'파이프',wipe:'닦다',
+  bite:'물다',kite:'연',dive:'잠수하다',five:'다섯',hose:'호스',nose:'코',pose:'자세',rose:'장미',
+  hope:'희망',rope:'밧줄',note:'메모',vote:'투표',hole:'구멍',mole:'두더지',pole:'기둥',sole:'발바닥',
+  dome:'돔',home:'집',bone:'뼈',cone:'콘',cube:'정육면체',tube:'튜브',cute:'귀여운',mute:'무음의',
+  dune:'모래언덕',june:'6월',tune:'곡조',mule:'노새',
+  black:'검은색',blade:'칼날',blimp:'비행선',blue:'파란색',clock:'시계',clam:'조개',clap:'박수치다',cliff:'절벽',
+  flag:'깃발',flame:'불꽃',flap:'펄럭이다',flute:'플루트',bride:'신부',brake:'브레이크',brave:'용감한',brick:'벽돌',
+  crab:'게',crane:'두루미',crib:'아기침대',cross:'십자가',frog:'개구리',frame:'액자',front:'앞쪽',frost:'서리',
+  glass:'유리컵',globe:'지구본',glove:'장갑',glue:'풀',plane:'비행기',plant:'식물',plate:'접시',plum:'자두',
+  slide:'미끄럼틀',sled:'썰매',slice:'조각',slim:'날씬한',drum:'드럼',dragon:'용',dress:'원피스',drive:'운전하다',
+  prize:'상',press:'누르다',price:'가격',print:'인쇄하다',truck:'트럭',trace:'따라그리다',track:'트랙',trumpet:'트럼펫',
+  smile:'미소',smell:'냄새',smoke:'연기',snake:'뱀',snack:'간식',snore:'코를 골다',stone:'돌',stove:'난로',stop:'멈추다',
+  swim:'수영하다',sweet:'달콤한',swing:'그네',bang:'쾅',fang:'송곳니',gong:'징',song:'노래',bank:'은행',tank:'탱크',
+  pink:'분홍색',wink:'윙크하다',dunk:'담그다',junk:'쓰레기',chick:'병아리',cherry:'체리',chin:'턱',bench:'벤치',
+  branch:'나뭇가지',catch:'잡다',ship:'배',shape:'모양',shop:'가게',brush:'솔',flash:'번쩍임',
+  thumb:'엄지',thick:'두꺼운',thin:'얇은',bath:'목욕',math:'수학',teeth:'이빨',
+  whale:'고래',wheel:'바퀴',whip:'채찍',whisk:'거품기',whisper:'속삭이다',white:'흰색',
+  tea:'차',leaf:'나뭇잎',meat:'고기',seal:'물개',peanut:'땅콩',bee:'벌',tree:'나무',feet:'발',
+  peel:'껍질을 벗기다',seed:'씨앗',green:'초록색',boat:'배',coat:'코트',goat:'염소',road:'길',soap:'비누',toast:'토스트',
+  pillow:'베개',blow:'불다',snow:'눈',bowl:'그릇',rain:'비',train:'기차',mail:'우편',nail:'손톱',rail:'난간',tail:'꼬리',
+  gray:'회색',pray:'기도하다',tray:'쟁반',hay:'건초',clay:'점토',play:'놀다',
+  coin:'동전',oil:'기름',boil:'끓다',coil:'감다',foil:'은박지',soil:'흙',point:'가리키다',toilet:'화장실',
+  boy:'소년',joy:'기쁨',toy:'장난감',soybean:'콩',house:'집',blouse:'블라우스',cloud:'구름',mouth:'입',count:'세다',
+  cow:'소',owl:'부엉이',gown:'가운',brown:'갈색',crown:'왕관',clown:'광대',
+  singer:'가수',letter:'편지',soccer:'축구',teacher:'선생님',bird:'새',shirt:'셔츠',skirt:'치마',
+  turtle:'거북이',purple:'보라색',nurse:'간호사',purse:'지갑',car:'자동차',star:'별',arm:'팔',card:'카드',park:'공원',farmer:'농부',
+  horse:'말',cork:'코르크',corn:'옥수수',north:'북쪽',store:'가게',cook:'요리사',hook:'고리',look:'보다',foot:'발',wood:'나무(목재)',
+  moon:'달',spoon:'숟가락',food:'음식',goose:'거위',pool:'수영장',
+  'album':'앨범',
+  'action':'액션,행동',
+  'angry':'화난',
+  'ambulance':'앰뷸런스,구급차',
+  'animal':'동물',
+  'banana':'바나나',
+  'boat':'보트,배',
+  'bear':'곰',
+  'boy':'남자아이',
+  'bus':'버스',
+  'bacon':'베이컨',
+  'cake':'케이크',
+  'candy':'캔디,사탕',
+  'cookie':'쿠키',
+  'caramel':'캐러멜',
+  'computer':'컴퓨터',
+  'donut':'도넛',
+  'dance':'춤',
+  'dinosaur':'공룡',
+  'diamond':'다이아몬드',
+  'diving':'다이빙,잠수',
+  'elevator':'엘리베이터',
+  'escalator':'에스컬레이터',
+  'engine':'엔진',
+  'edison':'에디슨',
+  'figure skating':'피겨스케이팅',
+  'family':'가족',
+  'french fries':'프렌치프라이',
+  'gas':'가스',
+  'guitar':'기타',
+  'gum':'껌',
+  'grape':'포도',
+  'hamburger':'햄버거',
+  'ham':'햄',
+  'hamster':'햄스터',
+  'helmet':'헬멧',
+  'helicopter':'헬리콥터',
+  'home run':'홈런',
+  'ill':'아픈',
+  'inline skate':'인라인스케이트',
+  'interview':'인터뷰',
+  'jelly':'젤리',
+  'juice':'주스',
+  'jump':'점프,뛰다',
+  'juggling':'저글링',
+  'jingle bell':'징글벨',
+  'koala':'코알라',
+  'kiwi':'키위',
+  'kiss':'키스',
+  'leg':'다리',
+  'laser':'레이저',
+  'log in':'로그인',
+  'lipstick':'립스틱',
+  'mayonnaise':'마요네즈',
+  'macaron':'마카롱',
+  'muffin':'머핀',
+  'marshmallow':'마시멜로',
+  'mart':'마트,시장',
+  'necktie':'넥타이',
+  'noodle':'국수,면',
+  'nail':'손톱,발톱',
+  'napkin':'냅킨',
+  'nintendo':'닌텐도',
+  'olive':'올리브',
+  'opera':'오페라',
+  'out':'밖으로',
+  'on':'켜져있는',
+  'ocarina':'오카리나',
+  'peter pan':'피터팬',
+  'pizza':'피자',
+  'penguin':'펭귄',
+  'pasta':'파스타',
+  'piano':'피아노',
+  'quick':'빠른',
+  'quarter':'4분의1',
+  'quilt':'퀼트',
+  'ribbon':'리본',
+  'radar':'레이더',
+  'roll cake':'롤케이크',
+  'roller coaster':'롤러코스터',
+  'steak':'스테이크',
+  'sofa':'소파',
+  'ski':'스키',
+  'sale':'세일,판매',
+  'taxi':'택시',
+  'table':'테이블,식탁',
+  'tennis':'테니스',
+  'uncle':'삼촌,아저씨',
+  'us':'우리',
+  'ugly':'못생긴,추한',
+  'victory':'승리',
+  'venus':'비너스,금성',
+  'valve':'밸브',
+  'wink':'윙크',
+  'waffle':'와플',
+  'wine':'와인',
+  'wedding':'결혼',
+  'tax':'세금',
+  'yak':'야크',
+  'yesterday':'어제',
+  'zipper':'지퍼',
+  'zigzag':'지그재그',
+  'kilogram':'킬로그램',
+  'lamp':'램프',
+  'camp':'캠프',
+  'tambourine':'탬버린',
+  'rap':'랩',
+  'clap':'박수(를치다)',
+  'trap':'덫',
+  'captain':'캡틴,선장',
+  'laptop':'노트북컴퓨터',
+  'van':'밴',
+  'candle':'양초',
+  'sandal':'샌들',
+  'sandwich':'샌드위치',
+  'pancake':'팬케이크',
+  'rat':'쥐',
+  'fat':'살찐',
+  'pat':'쓰다듬다',
+  'chat':'이야기하다',
+  'platform':'플랫폼,승강장',
+  'pet':'애완동물',
+  'alphabet':'알파벳',
+  'sled':'썰매',
+  'ten':'10',
+  'fence':'울타리',
+  'tent':'텐트',
+  'dentist':'치과의사',
+  'bench':'벤치',
+  'stupid':'어리석은',
+  'cupid':'큐피드',
+  'pyramid':'피라미드',
+  'midnight':'밤열두시,한밤중',
+  'dig':'파다',
+  'big':'큰',
+  'signal':'신호',
+  'win':'이기다',
+  'clip':'클립',
+  'zip':'지퍼',
+  'tip':'팁,끝',
+  'kit':'키트,한세트',
+  'pit':'구덩이',
+  'fit':'꼭맞다',
+  'rabbit':'토끼',
+  'fix':'고치다',
+  'remix':'리믹스하다',
+  'phoenix':'불사조',
+  'sixty':'60',
+  'jog':'조깅하다',
+  'frog':'개구리',
+  'mop':'대걸레',
+  'stop':'멈추다',
+  'dot':'점',
+  'hot dog':'핫도그',
+  'ox':'황소,소',
+  'mailbox':'우편함',
+  'pug':'퍼그',
+  'plug':'플러그',
+  'club':'클럽,동호회',
+  'scrub':'문질러씻다',
+  'subway':'지하철',
+  'submarine':'잠수함',
+  'hiccup':'딸꾹질',
+  'makeup':'메이크업,화장',
+  'cheer up':'힘내세요',
+  'cupcake':'컵케이크',
+  'gun':'총',
+  'lunch':'점심,도시락',
+  'thunder':'천둥',
+  'sunday':'일요일',
+  'sunglasses':'선글라스',
+  'stud':'스터드,장식못',
+  'hut':'오두막',
+  'shut':'닫다',
+  'gut':'내장,소화기관',
+  'coconut':'코코넛',
+  'shake':'흔들다',
+  'snake':'뱀',
+  'shape':'모양',
+  'ape':'유인원',
+  'escape':'도망치다,탈출하다',
+  'brave':'용감한',
+  'save':'저축하다,구하다',
+  'shave':'면도하다',
+  'microwave':'전자레인지',
+  'same':'똑같은',
+  'fame':'명성,인기',
+  'skate':'스케이트',
+  'late':'늦은',
+  'plane':'비행기',
+  'crane':'크레인',
+  'erase':'지우다',
+  'chase':'뒤쫓다',
+  'mine':'내것',
+  'wine':'와인',
+  'pineapple':'파인애플',
+  'like':'좋아하다',
+  'strike':'스트라이크,치다',
+  'dislike':'싫어하다',
+  'spike':'스파이크하다',
+  'chime':'종이울리다',
+  'dime':'다임(10센트동전)',
+  'mime':'마임',
+  'timetable':'시간표,일정표',
+  'side':'옆',
+  'wide':'넓은',
+  'stripe':'줄무늬',
+  'ripe':'잘익은',
+  'site':'사이트,장소,위치',
+  'write':'쓰다',
+  'drive':'운전하다',
+  'hive':'벌집',
+  'pope':'교황',
+  'telescope':'망원경',
+  'nope':'아니오',
+  'slope':'경사',
+  'close':'닫다',
+  'propose':'프로포즈,청혼하다',
+  'remote':'원격의,먼',
+  'promote':'촉진하다,승진시키다',
+  'quote':'인용하다',
+  'banknote':'지폐',
+  'role':'역할',
+  'bole':'나무의줄기',
+  'chrome':'크롬',
+  'rome':'로마',
+  'metronome':'메트로놈',
+  'genome':'게놈',
+  'phone':'전화',
+  'stone':'돌',
+  'zone':'지역,지대',
+  'alone':'혼자',
+  'chute':'낙하산',
+  'acute':'급성의,심각한',
+  'neptune':'해왕성',
+  'capsule':'캡슐',
+  'block':'블록',
+  'blow':'불다',
+  'blog':'블로그',
+  'blond':'금발의',
+  'class':'수업',
+  'flower':'꽃',
+  'flash':'플래시',
+  'fly':'날다',
+  'bread':'빵',
+  'brush':'브러시,붓',
+  'brown':'갈색',
+  'crown':'왕관',
+  'cream':'크림',
+  'creep':'기어가다',
+  'fruit':'과일',
+  'fresh':'신선한',
+  'fry':'튀김',
+  'glad':'기쁜',
+  'glow':'빛나다',
+  'play':'놀다',
+  'plus':'더하기',
+  'sleep':'자다',
+  'slip':'미끄러지다',
+  'slow':'느린',
+  'draw':'그리다',
+  'drone':'드론',
+  'drink':'마시다,음료',
+  'pray':'기도하다',
+  'prince':'왕자',
+  'tree':'나무',
+  'trip':'여행',
+  'train':'기차',
+  'trash':'쓰레기',
+  'small':'작은',
+  'snail':'달팽이',
+  'stick':'막대기',
+  'step':'걸음',
+  'swan':'백조',
+  'swab':'면봉',
+  'hang':'매달리다,걸다',
+  'long':'긴',
+  'sing':'노래하다',
+  'wing':'날개',
+  'skunk':'스컹크',
+  'chair':'의자',
+  'chip':'칩,조각',
+  'peach':'복숭아',
+  'touch':'터치,만지다',
+  'punch':'펀치,때리다',
+  'shell':'조개껍데기',
+  'sheep':'양',
+  'cash':'돈,현금',
+  'wash':'씻다',
+  'thursday':'목요일',
+  'three':'3',
+  'thank':'감사하다',
+  'mouth':'입',
+  'earth':'지구',
+  'month':'달,월',
+  'wheat':'밀',
+  'what':'무엇',
+  'read':'읽다',
+  'pea':'완두콩',
+  'eagle':'독수리',
+  'eat':'먹다',
+  'meet':'만나다',
+  'tweet':'짹짹,지저귀다',
+  'coast':'해안',
+  'goal':'골',
+  'load':'짐',
+  'grow':'자라다',
+  'crow':'까마귀',
+  'rainbow':'무지개',
+  'brain':'뇌',
+  'paint':'페인트',
+  'say':'말하다',
+  'may':'5월',
+  'spray':'스프레이,뿌리다',
+  'oink':'꿀꿀',
+  'join':'참여하다,가입하다',
+  'soy':'콩',
+  'troy':'트로이',
+  'annoy':'짜증나게하다',
+  'enjoy':'즐기다',
+  'employ':'고용하다',
+  'oyster':'굴',
+  'loud':'큰,시끄러운',
+  'sound':'소리,들리다',
+  'brow':'이마,눈썹',
+  'bow':'인사하다',
+  'town':'도시,마을',
+  'dirty':'더러운',
+  'stir':'젓다,섞다',
+  'tiger':'호랑이',
+  'father':'아빠',
+  'fur':'털',
+  'turkey':'칠면조',
+  'burn':'타다,화상',
+  'shark':'상어',
+  'farm':'농장',
+  'harp':'하프',
+  'short':'짧은',
+  'morning':'아침',
+  'horn':'뿔',
+  'storm':'폭풍',
+  'wool':'울,털실',
+  'good':'좋은',
+  'room':'방',
+  'roof':'지붕',
+  'balloon':'풍선',
+  'cool':'시원한'
+};
+const WORD_EMOJI = {
+  apple:'🍎',alligator:'🐊',ant:'🐜',book:'📖',bed:'🛏️',bat:'🦇',cat:'🐱',cap:'🧢',cup:'🥤',
+  dog:'🐶',desk:'🪑',duck:'🦆',elephant:'🐘',egg:'🥚',elbow:'💪',fish:'🐟',fan:'🪭',fork:'🍴',
+  gorilla:'🦍',game:'🎮',girl:'👧',hat:'🎩',hippo:'🦛',hand:'✋',igloo:'🧊',iguana:'🦎',ink:'🖋️',
+  jet:'✈️',jacket:'🧥',jam:'🍯',king:'👑',key:'🔑',kangaroo:'🦘',lion:'🦁',lamp:'💡',lemon:'🍋',
+  mouse:'🐭',melon:'🍈',map:'🗺️',nut:'🥜',nest:'🪺',net:'🥅',octopus:'🐙',ox:'🐂',ostrich:'🐦',
+  panda:'🐼',pen:'🖊️',pig:'🐷',queen:'👸',question:'❓',quiet:'🤫',ring:'💍',rabbit:'🐰',robot:'🤖',
+  sock:'🧦',sun:'☀️',sea:'🌊',tiger:'🐯',top:'🌀',tent:'⛺',umbrella:'☂️',up:'⬆️',under:'⬇️',
+  violin:'🎻',vest:'🦺',vase:'🏺',watch:'⌚',window:'🪟',watermelon:'🍉',box:'📦',fox:'🦊',six:'6️⃣',
+  yacht:'🛥️','yo-yo':'🪀',yellow:'🟡',zebra:'🦓',zoo:'🎪',zero:'0️⃣',
+  dam:'🚧',ham:'🍖',ram:'🐏',lap:'🦵',nap:'😴',can:'🥫',man:'👨',pan:'🍳',mat:'🟫',
+  vet:'👩‍⚕️',wet:'💧',red:'🔴',hen:'🐔',bib:'👶',rib:'🦴',kid:'🧒',lid:'🫙',wig:'👱',
+  fin:'🐟',pin:'📌',dip:'🥣',hip:'🦴',lip:'👄',rip:'💔',hit:'👊',sit:'💺',mix:'🌀',
+  hot:'🔥',pot:'🍲',cop:'👮',hop:'🐇',log:'🪵',bug:'🐛',hug:'🤗',mug:'☕',rug:'🟥',
+  rub:'✋',tub:'🛁',pup:'🐶',bun:'🍞',fun:'🎉',run:'🏃',bud:'🌱',mud:'🟤',cut:'✂️',
+  bake:'🍞',cake:'🎂',lake:'🏞️',rake:'🧹',cape:'🦸',tape:'📼',cave:'🕳️',wave:'🌊',
+  name:'📛',date:'📅',gate:'🚪',cane:'🦯',mane:'🦁',case:'💼',line:'➖',nine:'9️⃣',
+  pine:'🌲',vine:'🍇',bike:'🚲',hike:'🥾',lime:'🍈',time:'⏰',hide:'🙈',ride:'🚴',
+  pipe:'🚿',wipe:'🧽',bite:'🦷',kite:'🪁',dive:'🤿',five:'5️⃣',hose:'🚿',nose:'👃',
+  pose:'🤳',rose:'🌹',hope:'🙏',rope:'🪢',note:'📝',vote:'🗳️',hole:'🕳️',mole:'🐹',
+  pole:'🪝',sole:'🦶',dome:'🏛️',home:'🏠',bone:'🦴',cone:'🍦',cube:'🧊',tube:'🧴',
+  cute:'🥰',mute:'🔇',dune:'🏜️',june:'📅',tune:'🎵',mule:'🐴',
+  black:'⬛',blade:'🗡️',blimp:'🎈',blue:'🟦',clock:'🕐',clam:'🦪',clap:'👏',cliff:'⛰️',
+  flag:'🚩',flame:'🔥',flap:'🌊',flute:'🎶',bride:'👰',brake:'🛑',brave:'🦸',brick:'🧱',
+  crab:'🦀',crane:'🏗️',crib:'🛏️',cross:'✝️',frog:'🐸',frame:'🖼️',front:'⏩',frost:'❄️',
+  glass:'🥛',globe:'🌍',glove:'🧤',glue:'🧴',plane:'✈️',plant:'🌱',plate:'🍽️',plum:'🍑',
+  slide:'🛝',sled:'🛷',slice:'🍕',slim:'📏',drum:'🥁',dragon:'🐉',dress:'👗',drive:'🚗',
+  prize:'🏆',press:'🖨️',price:'💰',print:'🖨️',truck:'🚚',trace:'✏️',track:'🛤️',trumpet:'🎺',
+  smile:'😊',smell:'👃',smoke:'💨',snake:'🐍',snack:'🍿',snore:'😴',stone:'🪨',stove:'🔥',
+  stop:'🛑',swim:'🏊',sweet:'🍬',swing:'🎢',bang:'💥',fang:'🦷',gong:'🔔',song:'🎵',
+  bank:'🏦',tank:'🪖',pink:'🌸',wink:'😉',dunk:'🏀',junk:'🗑️',chick:'🐥',cherry:'🍒',
+  chin:'🧑',bench:'🪑',branch:'🌿',catch:'🧤',ship:'🚢',shape:'🔷',shop:'🏪',brush:'🖌️',
+  flash:'⚡',thumb:'👍',thick:'📏',thin:'📏',bath:'🛁',math:'➕',teeth:'🦷',whale:'🐋',
+  wheel:'☸️',whip:'🪢',whisk:'🥣',whisper:'🤫',white:'⬜',
+  tea:'🍵',leaf:'🍃',meat:'🥩',seal:'🦭',peanut:'🥜',bee:'🐝',tree:'🌳',feet:'🦶',
+  peel:'🍌',seed:'🌱',green:'🟢',boat:'⛵',coat:'🧥',goat:'🐐',road:'🛣️',soap:'🧼',toast:'🍞',
+  pillow:'🛏️',blow:'💨',snow:'❄️',bowl:'🥣',rain:'🌧️',train:'🚂',mail:'✉️',nail:'💅',
+  rail:'🛤️',tail:'🦴',gray:'⬜',pray:'🙏',tray:'🍽️',hay:'🌾',clay:'🏺',play:'🎭',
+  coin:'🪙',oil:'🛢️',boil:'♨️',coil:'🌀',foil:'🧻',soil:'🟤',point:'👉',toilet:'🚽',
+  boy:'👦',joy:'😄',toy:'🧸',soybean:'🌱',house:'🏠',blouse:'👚',cloud:'☁️',mouth:'👄',count:'🔢',
+  cow:'🐄',owl:'🦉',gown:'👘',brown:'🟤',crown:'👑',clown:'🤡',singer:'🎤',letter:'✉️',
+  soccer:'⚽',teacher:'👩‍🏫',bird:'🐦',shirt:'👕',skirt:'👗',turtle:'🐢',purple:'🟣',nurse:'👩‍⚕️',
+  purse:'👛',car:'🚗',star:'⭐',arm:'💪',card:'🃏',park:'🏞️',farmer:'👨‍🌾',horse:'🐴',
+  cork:'🍾',corn:'🌽',north:'🧭',store:'🏬',cook:'👨‍🍳',hook:'🪝',look:'👀',foot:'🦶',
+  wood:'🪵',moon:'🌙',spoon:'🥄',food:'🍔',goose:'🦢',pool:'🏊',
+  'album':'📀',
+  'action':'🎬',
+  'angry':'😠',
+  'ambulance':'🚑',
+  'animal':'🐾',
+  'banana':'🍌',
+  'boat':'⛵',
+  'bear':'🐻',
+  'boy':'👦',
+  'bus':'🚌',
+  'bacon':'🥓',
+  'cake':'🎂',
+  'candy':'🍬',
+  'cookie':'🍪',
+  'caramel':'🍮',
+  'computer':'💻',
+  'donut':'🍩',
+  'dance':'💃',
+  'dinosaur':'🦖',
+  'diamond':'💎',
+  'diving':'🤿',
+  'elevator':'🛗',
+  'escalator':'🛗',
+  'engine':'⚙️',
+  'edison':'💡',
+  'figure skating':'⛸️',
+  'family':'👨‍👩‍👧',
+  'french fries':'🍟',
+  'gas':'⛽',
+  'guitar':'🎸',
+  'gum':'🍬',
+  'grape':'🍇',
+  'hamburger':'🍔',
+  'ham':'🍖',
+  'hamster':'🐹',
+  'helmet':'⛑️',
+  'helicopter':'🚁',
+  'home run':'⚾',
+  'ill':'🤒',
+  'inline skate':'⛸️',
+  'interview':'🎙️',
+  'jelly':'🍮',
+  'juice':'🧃',
+  'jump':'🤸',
+  'juggling':'🤹',
+  'jingle bell':'🔔',
+  'koala':'🐨',
+  'kiwi':'🥝',
+  'kiss':'💋',
+  'leg':'🦵',
+  'laser':'🔦',
+  'log in':'🔑',
+  'lipstick':'💄',
+  'mayonnaise':'🥫',
+  'macaron':'🍬',
+  'muffin':'🧁',
+  'marshmallow':'🍡',
+  'mart':'🏪',
+  'necktie':'👔',
+  'noodle':'🍜',
+  'nail':'💅',
+  'napkin':'🧻',
+  'nintendo':'🎮',
+  'olive':'🫒',
+  'opera':'🎭',
+  'out':'🚪',
+  'on':'🔛',
+  'ocarina':'🎵',
+  'peter pan':'🧚',
+  'pizza':'🍕',
+  'penguin':'🐧',
+  'pasta':'🍝',
+  'piano':'🎹',
+  'quick':'⚡',
+  'quarter':'🪙',
+  'quilt':'🧵',
+  'ribbon':'🎀',
+  'radar':'📡',
+  'roll cake':'🍰',
+  'roller coaster':'🎢',
+  'steak':'🥩',
+  'sofa':'🛋️',
+  'ski':'⛷️',
+  'sale':'🏷️',
+  'taxi':'🚕',
+  'table':'🛎️',
+  'tennis':'🎾',
+  'uncle':'👨',
+  'us':'🧑‍🤝‍🧑',
+  'ugly':'😖',
+  'victory':'🏆',
+  'venus':'♀️',
+  'valve':'🔧',
+  'wink':'😉',
+  'waffle':'🧇',
+  'wine':'🍷',
+  'wedding':'💒',
+  'tax':'💰',
+  'yak':'🐃',
+  'yesterday':'📅',
+  'zipper':'🤐',
+  'zigzag':'⚡',
+  'kilogram':'⚖️',
+  'lamp':'💡',
+  'camp':'⛺',
+  'tambourine':'🎵',
+  'rap':'🎤',
+  'clap':'👏',
+  'trap':'🪤',
+  'captain':'🧑‍✈️',
+  'laptop':'💻',
+  'van':'🚐',
+  'candle':'🕯️',
+  'sandal':'👡',
+  'sandwich':'🥪',
+  'pancake':'🥞',
+  'rat':'🐀',
+  'fat':'🐷',
+  'pat':'🤚',
+  'chat':'💬',
+  'platform':'🚉',
+  'pet':'🐾',
+  'alphabet':'🔤',
+  'sled':'🛷',
+  'ten':'🔟',
+  'fence':'🚧',
+  'tent':'⛺',
+  'dentist':'🦷',
+  'bench':'🪑',
+  'stupid':'😵',
+  'cupid':'💘',
+  'pyramid':'🔺',
+  'midnight':'🌙',
+  'dig':'⛏️',
+  'big':'🐘',
+  'signal':'🚦',
+  'win':'🏆',
+  'clip':'📎',
+  'zip':'🤐',
+  'tip':'💡',
+  'kit':'🧰',
+  'pit':'🕳️',
+  'fit':'✅',
+  'rabbit':'🐰',
+  'fix':'🔧',
+  'remix':'🎧',
+  'phoenix':'🔥',
+  'sixty':'6️⃣',
+  'jog':'🏃',
+  'frog':'🐸',
+  'mop':'🧹',
+  'stop':'🛑',
+  'dot':'⚫',
+  'hot dog':'🌭',
+  'ox':'🐂',
+  'mailbox':'📫',
+  'pug':'🐶',
+  'plug':'🔌',
+  'club':'🏛️',
+  'scrub':'🧽',
+  'subway':'🚇',
+  'submarine':'🚤',
+  'hiccup':'😯',
+  'makeup':'💄',
+  'cheer up':'📣',
+  'cupcake':'🧁',
+  'gun':'🔫',
+  'lunch':'🍱',
+  'thunder':'⛈️',
+  'sunday':'📅',
+  'sunglasses':'🕶️',
+  'stud':'📌',
+  'hut':'🛖',
+  'shut':'🚪',
+  'gut':'🫀',
+  'coconut':'🥥',
+  'shake':'🤝',
+  'snake':'🐍',
+  'shape':'🔷',
+  'ape':'🦍',
+  'escape':'🏃',
+  'brave':'🦸',
+  'save':'💾',
+  'shave':'🪒',
+  'microwave':'📡',
+  'same':'🟰',
+  'fame':'🌟',
+  'skate':'⛸️',
+  'late':'⏰',
+  'plane':'✈️',
+  'crane':'🏗️',
+  'erase':'🧹',
+  'chase':'🏃',
+  'mine':'⛏️',
+  'wine':'🍷',
+  'pineapple':'🍍',
+  'like':'❤️',
+  'strike':'🎳',
+  'dislike':'👎',
+  'spike':'🏐',
+  'chime':'🔔',
+  'dime':'🪙',
+  'mime':'🎭',
+  'timetable':'📅',
+  'side':'↔️',
+  'wide':'↔️',
+  'stripe':'🦓',
+  'ripe':'🍌',
+  'site':'📍',
+  'write':'✍️',
+  'drive':'🚗',
+  'hive':'🐝',
+  'pope':'⛪',
+  'telescope':'🔭',
+  'nope':'🙅',
+  'slope':'⛰️',
+  'close':'🚪',
+  'propose':'💍',
+  'remote':'📡',
+  'promote':'📈',
+  'quote':'💬',
+  'banknote':'💵',
+  'role':'🎭',
+  'bole':'🌳',
+  'chrome':'🔩',
+  'rome':'🏛️',
+  'metronome':'🎵',
+  'genome':'🧬',
+  'phone':'📱',
+  'stone':'🪨',
+  'zone':'🗺️',
+  'alone':'🧍',
+  'chute':'🪂',
+  'acute':'⚠️',
+  'neptune':'🪐',
+  'capsule':'💊',
+  'block':'🧱',
+  'blow':'💨',
+  'blog':'📝',
+  'blond':'👱',
+  'class':'🏫',
+  'flower':'🌸',
+  'flash':'⚡',
+  'fly':'🪰',
+  'bread':'🍞',
+  'brush':'🖌️',
+  'brown':'🟤',
+  'crown':'👑',
+  'cream':'🍦',
+  'creep':'🕷️',
+  'fruit':'🍎',
+  'fresh':'🥬',
+  'fry':'🍟',
+  'glad':'😄',
+  'glow':'✨',
+  'play':'🎮',
+  'plus':'➕',
+  'sleep':'😴',
+  'slip':'🛷',
+  'slow':'🐢',
+  'draw':'✏️',
+  'drone':'🚁',
+  'drink':'🥤',
+  'pray':'🙏',
+  'prince':'🤴',
+  'tree':'🌳',
+  'trip':'🧳',
+  'train':'🚂',
+  'trash':'🗑️',
+  'small':'🤏',
+  'snail':'🐌',
+  'stick':'🥢',
+  'step':'👣',
+  'swan':'🦢',
+  'swab':'🩹',
+  'hang':'🪝',
+  'long':'📏',
+  'sing':'🎤',
+  'wing':'🪽',
+  'skunk':'🦨',
+  'alphabet':'🔤',
+  'chair':'🪑',
+  'chip':'🍟',
+  'peach':'🍑',
+  'touch':'👆',
+  'punch':'👊',
+  'shell':'🐚',
+  'sheep':'🐑',
+  'cash':'💵',
+  'wash':'🧼',
+  'thursday':'📅',
+  'three':'3️⃣',
+  'thank':'🙏',
+  'mouth':'👄',
+  'earth':'🌍',
+  'month':'📅',
+  'wheat':'🌾',
+  'what':'❓',
+  'read':'📖',
+  'pea':'🟢',
+  'eagle':'🦅',
+  'eat':'🍽️',
+  'meet':'🤝',
+  'tweet':'🐦',
+  'coast':'🏖️',
+  'goal':'🥅',
+  'load':'📦',
+  'grow':'🌱',
+  'crow':'🐦‍⬛',
+  'rainbow':'🌈',
+  'brain':'🧠',
+  'paint':'🎨',
+  'say':'💬',
+  'may':'📅',
+  'spray':'💨',
+  'oink':'🐷',
+  'join':'🤝',
+  'soy':'🫘',
+  'troy':'🏛️',
+  'annoy':'😤',
+  'enjoy':'😊',
+  'employ':'💼',
+  'oyster':'🦪',
+  'loud':'📢',
+  'sound':'🔊',
+  'brow':'🤨',
+  'bow':'🙇',
+  'town':'🏘️',
+  'dirty':'🟤',
+  'stir':'🥄',
+  'tiger':'🐯',
+  'father':'👨',
+  'fur':'🐾',
+  'turkey':'🦃',
+  'burn':'🔥',
+  'shark':'🦈',
+  'farm':'🚜',
+  'harp':'🎼',
+  'short':'📏',
+  'morning':'🌅',
+  'horn':'🎺',
+  'storm':'⛈️',
+  'wool':'🧶',
+  'good':'👍',
+  'room':'🚪',
+  'roof':'🏠',
+  'balloon':'🎈',
+  'cool':'😎'
+};
+function _phonicsWordKo(word){ return WORD_KO[String(word||'').trim().toLowerCase()] || ''; }
+function _phonicsWordEmoji(word){ return WORD_EMOJI[String(word||'').trim().toLowerCase()] || '🔤'; }
+function _phonicsItemWords(item){
+  return String(item.example||'').split(/[,\n]/).map(w=>w.trim()).filter(Boolean).map(w=>({ en:w, ko:_phonicsWordKo(w), emoji:_phonicsWordEmoji(w) }));
+}
+
+let _phonicsStudyFolder = null, _phonicsStudyItemId = null, _phonicsStudyItemIds = null, _phonicsStudyMode = 'list', _phonicsStudyIdx = 0, _phonicsQuiz = null, _phonicsStudyCtx = 'student', _phonicsCardView = 'grid', _phonicsQuizOrder = 'seq';
+let _phonicsLetterQuiz = null;                         // 소리 듣고 글자 고르기 퀴즈 상태
+let _phonicsWriteIdx = 0, _phonicsWriteRevealed = false, _phonicsWriteScore = {correct:0, total:0};   // 쓰기 연습 상태
+let _phonicsWriteDrawing = false, _phonicsWriteHasStroke = false;   // 캔버스 드로잉 상태(재렌더 없이 유지)
+let _phonicsWriteCanvasData = null;   // 정답 확인 시 재렌더돼도 그림이 사라지지 않도록 임시 저장
+let _phonicsOddSound = null;   // 다른 소리 찾기 상태
+let _phonicsMatch = null;   // 짝짓기 상태 — 패턴(소리) 2개 이상이면 단어↔소리패턴, 아니면 단어↔뜻
+
+function phonicsOpenWordStudy(folderKey, itemId, ctx){
+  _phonicsStudyFolder = folderKey; _phonicsStudyItemId = itemId; _phonicsStudyItemIds = null;
+  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'seq';
+  _phonicsOddSound = null; _phonicsMatch = null;
+  _phonicsStudyCtx = ctx === 'teacher' ? 'teacher' : 'student';
+  _phonicsRenderWordStudy();
+}
+function phonicsOpenWordStudyMulti(folderKey, itemIds, ctx){
+  _phonicsStudyFolder = folderKey; _phonicsStudyItemId = null; _phonicsStudyItemIds = itemIds.slice();
+  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'seq';
+  _phonicsOddSound = null; _phonicsMatch = null;
+  _phonicsStudyCtx = ctx === 'teacher' ? 'teacher' : 'student';
+  _phonicsRenderWordStudy();
+}
+function _phonicsStudyData(){
+  const content = _phonicsStudyCtx === 'teacher' ? _phonicsMyContent() : (window._phonicsContent || _phonicsEmptyContent());
+  const folders = _phonicsFolders(content);
+  const f = folders.find(x=>x.key===_phonicsStudyFolder);
+  if(!f) return null;
+  if(_phonicsStudyItemIds && _phonicsStudyItemIds.length){
+    const items = f.items.filter(it=>_phonicsStudyItemIds.includes(it.id));
+    if(!items.length) return null;
+    let words = [];
+    items.forEach(it=>{ _phonicsItemWords(it).forEach(w=>words.push({ ...w, itemLabel: it.label })); });
+    return { words, items, folderItems: f.items, title: items.length+'개 카드 모음', sub: items.map(it=>it.label).join(' · '), multi:true };
+  }
+  const it = f.items.find(x=>x.id===_phonicsStudyItemId);
+  if(!it) return null;
+  return { words: _phonicsItemWords(it).map(w=>({...w, itemLabel: it.unitTitle||''})), items:[it], folderItems: f.items, title: it.label, sub: it.sound, multi:false };
+}
+function phonicsStudySetMode(mode){
+  _phonicsStudyMode = mode; _phonicsStudyIdx = 0;
+  if(mode==='quiz') _phonicsQuiz = _phonicsBuildQuiz();
+  if(mode==='letter') _phonicsLetterQuiz = _phonicsBuildLetterQuiz();
+  if(mode==='write'){ _phonicsWriteIdx = 0; _phonicsWriteRevealed = false; _phonicsWriteScore = {correct:0, total:0}; _phonicsWriteHasStroke = false; _phonicsWriteCanvasData = null; }
+  if(mode==='oddsound') _phonicsOddSound = _phonicsBuildOddSound();
+  if(mode==='match') _phonicsMatch = _phonicsBuildMatch();
+  _phonicsRenderWordStudy();
+}
+function phonicsStudyBackToFolder(){
+  if(_phonicsStudyCtx === 'teacher') phonicsMgmtOpenFolder(_phonicsStudyFolder);
+  else phonicsOpenFolder(_phonicsStudyFolder);
+}
+function _phonicsBuildQuiz(){
+  const data = _phonicsStudyData();
+  if(!data) return null;
+  let words = data.words.filter(w=>w.ko);
+  if(words.length < 2) return { questions: [], score:0, idx:0 };
+  let questions = words.map(w=>{
+    const wrongPool = words.filter(x=>x.en!==w.en);
+    const wrongs = [];
+    while(wrongs.length < Math.min(3, wrongPool.length)){
+      const cand = wrongPool[Math.floor(Math.random()*wrongPool.length)];
+      if(!wrongs.find(x=>x.en===cand.en)) wrongs.push(cand);
+    }
+    const options = [w, ...wrongs].sort(()=>Math.random()-0.5);
+    return { word:w, options };
+  });
+  if(_phonicsQuizOrder === 'random'){
+    questions = questions.map(q=>({q,r:Math.random()})).sort((a,b)=>a.r-b.r).map(x=>x.q);
+  }
+  return { questions, score:0, idx:0, answered:false };
+}
+function phonicsQuizSetOrder(mode){
+  _phonicsQuizOrder = mode;
+  _phonicsQuiz = _phonicsBuildQuiz();
+  _phonicsRenderWordStudy();
+}
+function phonicsQuizAnswer(chosenEn){
+  const q = _phonicsQuiz;
+  if(!q || q.answered) return;
+  q.answered = true;
+  if(chosenEn === q.questions[q.idx].word.en) q.score++;
+  q.chosen = chosenEn;
+  _phonicsRenderWordStudy();
+}
+function phonicsQuizNext(){
+  const q = _phonicsQuiz;
+  if(!q) return;
+  q.idx++; q.answered = false; q.chosen = null;
+  _phonicsRenderWordStudy();
+}
+
+/* ── 소리 듣고 글자(철자) 고르기 ──────────────────────────
+   파닉스의 대전제(알파벳/음소의 "소리"를 익힌다)에 가장 가까운 문제 유형.
+   폴더 안의 카드(예: Aa, an, at ...) 중 예시 단어를 하나 들려주고,
+   그 소리에 해당하는 철자 카드를 4지선다로 고르게 한다. ──────── */
+function _phonicsBuildLetterQuiz(){
+  const data = _phonicsStudyData();
+  if(!data) return null;
+  const targets = (data.items||[]).filter(it=>it.label && _phonicsItemWords(it).length);
+  if(targets.length < 1) return { questions: [], score:0, idx:0 };
+  const pool = (data.folderItems||[]).filter(it=>it.label);
+  let questions = targets.map(it=>{
+    const words = _phonicsItemWords(it);
+    const sample = words[Math.floor(Math.random()*words.length)];
+    const wrongPool = pool.filter(x=>x.label!==it.label);
+    const wrongs = [];
+    while(wrongs.length < Math.min(3, wrongPool.length)){
+      const cand = wrongPool[Math.floor(Math.random()*wrongPool.length)];
+      if(!wrongs.find(x=>x.label===cand.label)) wrongs.push(cand);
+    }
+    const options = [it, ...wrongs].sort(()=>Math.random()-0.5);
+    return { item: it, sample, options };
+  });
+  if(_phonicsQuizOrder === 'random'){
+    questions = questions.map(q=>({q,r:Math.random()})).sort((a,b)=>a.r-b.r).map(x=>x.q);
+  }
+  return { questions, score:0, idx:0, answered:false };
+}
+function phonicsLetterQuizSetOrder(mode){
+  _phonicsQuizOrder = mode;
+  _phonicsLetterQuiz = _phonicsBuildLetterQuiz();
+  _phonicsRenderWordStudy();
+}
+function phonicsLetterQuizAnswer(chosenLabel){
+  const q = _phonicsLetterQuiz;
+  if(!q || q.answered) return;
+  q.answered = true;
+  if(chosenLabel === q.questions[q.idx].item.label) q.score++;
+  q.chosen = chosenLabel;
+  _phonicsRenderWordStudy();
+}
+function phonicsLetterQuizNext(){
+  const q = _phonicsLetterQuiz;
+  if(!q) return;
+  q.idx++; q.answered = false; q.chosen = null;
+  _phonicsRenderWordStudy();
+}
+
+/* ── 다른 소리 찾기 (Odd One Out) ──────────────────────────
+   폴더 안에 소리 패턴이 2개 이상 있을 때만 동작. 단어 4개 중
+   3개는 같은 패턴, 1개만 다른 패턴 — 글자는 빈칸 처리해서
+   눈으로 읽지 않고 소리로만 구별하게 한다. ──────────────── */
+function _phonicsBuildOddSound(){
+  const data = _phonicsStudyData();
+  const patternSet = data && data.items && data.items.length >= 2 ? [...new Set(data.items.map(it=>it.label))] : [];
+  if(!data || patternSet.length < 2) return { rounds: [], idx: 0, score: {correct:0, total:0}, picked: null, done: false, correct: null };
+  const byPattern = {};
+  patternSet.forEach(p=>{ byPattern[p] = data.words.filter(w=>w.itemLabel===p); });
+  const rounds = [];
+  patternSet.forEach(majority=>{
+    const majWords = byPattern[majority];
+    const others = patternSet.filter(p=>p!==majority && byPattern[p].length>0);
+    if(majWords.length < 3 || !others.length) return;
+    const oddPattern = others[Math.floor(Math.random()*others.length)];
+    const oddWords = byPattern[oddPattern];
+    const chosen3 = majWords.slice(0,3);
+    const oddWord = oddWords[Math.floor(Math.random()*oddWords.length)];
+    const base = [...chosen3, oddWord]; // 마지막(3번 idx)이 다른 소리
+    const order = base.map((_,i)=>i).sort(()=>Math.random()-0.5);
+    const words = order.map(i=>base[i]);
+    const oddIdx = order.indexOf(3);
+    rounds.push({ words, oddIdx });
+  });
+  return { rounds, idx: 0, score: {correct:0, total:0}, picked: null, done: false, correct: null };
+}
+function phonicsOddSoundPick(idx){
+  const s = _phonicsOddSound;
+  if(!s || !s.rounds.length || s.done) return;
+  const r = s.rounds[s.idx];
+  s.picked = idx;
+  s.done = true;
+  s.correct = (idx === r.oddIdx);
+  s.score.total++;
+  if(s.correct) s.score.correct++;
+  _phonicsRenderWordStudy();
+}
+function phonicsOddSoundNext(){
+  const s = _phonicsOddSound;
+  if(!s || !s.rounds.length) return;
+  s.idx = (s.idx + 1) % s.rounds.length;
+  s.picked = null; s.done = false; s.correct = null;
+  _phonicsRenderWordStudy();
+}
+
+/* ── 짝짓기 (영단어 ↔ 뜻 연결하기) ─────────────────────────
+   비쥬얼 파닉스의 "Look and match" 유형. 영단어 카드를 먼저
+   탭하고, 그에 맞는 뜻 카드를 탭해서 짝을 맞춘다. ──────────── */
+// 소리 짝짓기용: 패턴 라벨에서 실제 비교할 글자만 추출 ("Aa"→"A", "oo (단)"→"oo" 등)
+function _phonicsPatternLetters(rawPattern){
+  const raw = String(rawPattern||'');
+  // "Aa","Bb"...처럼 대문자+동일 소문자 2글자인 "알파벳 이름 표기"만 낱자 하나로 취급 (oo, am 같은 실제 2글자 패턴과는 구분)
+  if(/^[A-Z][a-z]$/.test(raw) && raw[0].toLowerCase() === raw[1]) return raw[0];
+  return raw.replace(/[^a-zA-Z]/g,'');
+}
+// 단어 안에서 소리 패턴이 들어간 자리를 밑줄로 가려서 반환 (정답을 미리 보여주지 않기 위함)
+function _phonicsBlankWord(word, rawPattern){
+  const p = _phonicsPatternLetters(rawPattern);
+  const w = String(word||'');
+  if(!p) return w;
+  const idx = w.toLowerCase().indexOf(p.toLowerCase());
+  if(idx === -1) return w;
+  return w.slice(0, idx) + '_'.repeat(p.length) + w.slice(idx + p.length);
+}
+function _phonicsBuildMatch(){
+  const data = _phonicsStudyData();
+  const shuffle = arr => arr.map((_,i)=>i).sort(()=>Math.random()-0.5);
+  if(!data) return { mode:'meaning', pairs: [], enOrder: [], koOrder: [], matchedIdx: [], selEn: null, selKo: null, wrongFlash: null };
+
+  // 폴더에 소리 패턴(카드)이 2개 이상이면 "단어 → 소리 패턴" 매칭(다대일, 3열 레이아웃)으로 진행
+  const patternSet = data.items && data.items.length >= 2 ? [...new Set(data.items.map(it=>it.label))] : [];
+  if(patternSet.length >= 2){
+    // 패턴별로 단어를 모아, 라운드로빈으로 뽑아서 모든 패턴이 고르게 섞이도록 함
+    const byPattern = {};
+    patternSet.forEach(p=>{ byPattern[p] = data.words.filter(w=>w.itemLabel===p); });
+    const rows = Math.min(patternSet.length, 6);
+    const patterns = patternSet.slice(0, rows);
+    const target = rows * 2;
+    const words = [];
+    let round = 0;
+    while(words.length < target && round < 10){
+      let added = false;
+      for(const p of patterns){
+        if(words.length >= target) break;
+        if(byPattern[p][round]){ words.push(byPattern[p][round]); added = true; }
+      }
+      if(!added) break;
+      round++;
+    }
+    if(words.length >= 4){
+      const order = shuffle(words);
+      const half = Math.ceil(order.length/2);
+      const leftIdx = order.slice(0, half);
+      const rightIdx = order.slice(half);
+      return { mode:'sound', words, patterns, leftIdx, rightIdx, matchedIdx: [], selWord: null, selPattern: null, wrongFlash: null };
+    }
+  }
+  // 패턴이 1개뿐인 카드(단일 소리)는 기존처럼 단어-뜻 매칭(1대1)
+  const pool = data.words.filter(w=>w.ko);
+  const pairs = pool.slice(0, 6);
+  return { mode:'meaning', pairs, enOrder: shuffle(pairs), koOrder: shuffle(pairs), matchedIdx: [], selEn: null, selKo: null, wrongFlash: null };
+}
+function phonicsMatchPick(side, idx){
+  const m = _phonicsMatch;
+  if(!m || m.wrongFlash) return;
+  if(m.mode === 'sound'){
+    if(side==='word'){ if(m.matchedIdx.includes(idx)) return; m.selWord = idx; }
+    else { m.selPattern = idx; }
+    if(m.selWord!=null && m.selPattern!=null){
+      const correct = m.words[m.selWord].itemLabel === m.patterns[m.selPattern];
+      if(correct){
+        m.matchedIdx.push(m.selWord);
+        m.selWord = null; m.selPattern = null;
+        _phonicsRenderWordStudy();
+      } else {
+        m.wrongFlash = { word:m.selWord, pattern:m.selPattern };
+        _phonicsRenderWordStudy();
+        setTimeout(()=>{
+          if(!_phonicsMatch) return;
+          _phonicsMatch.wrongFlash = null; _phonicsMatch.selWord = null; _phonicsMatch.selPattern = null;
+          _phonicsRenderWordStudy();
+        }, 550);
+      }
+    } else {
+      _phonicsRenderWordStudy();
+    }
+    return;
+  }
+  if(m.matchedIdx.includes(idx)) return;
+  if(side==='en') m.selEn = idx; else m.selKo = idx;
+  if(m.selEn!=null && m.selKo!=null){
+    if(m.selEn === m.selKo){
+      m.matchedIdx.push(m.selEn);
+      m.selEn = null; m.selKo = null;
+      _phonicsRenderWordStudy();
+    } else {
+      m.wrongFlash = { en:m.selEn, ko:m.selKo };
+      _phonicsRenderWordStudy();
+      setTimeout(()=>{
+        if(!_phonicsMatch) return;
+        _phonicsMatch.wrongFlash = null; _phonicsMatch.selEn = null; _phonicsMatch.selKo = null;
+        _phonicsRenderWordStudy();
+      }, 550);
+    }
+  } else {
+    _phonicsRenderWordStudy();
+  }
+}
+function phonicsMatchRestart(){
+  _phonicsMatch = _phonicsBuildMatch();
+  _phonicsRenderWordStudy();
+}
+
+/* ── 쓰기 연습 (소리 듣고 철자를 직접 쓰기) ──────────────────
+   비쥬얼 파닉스처럼, 소리를 듣고 그 철자를 캔버스에 직접 써보는 문제.
+   자동 채점(OCR) 대신, 쓴 뒤 정답을 확인하고 스스로 채점하는 방식.
+   PC는 마우스, 모바일은 손가락으로 그린다 (Pointer Events로 통합 처리). ──── */
+function _phonicsWriteTargets(){
+  const data = _phonicsStudyData();
+  if(!data) return [];
+  return (data.items||[]).filter(it=>it.label);
+}
+function phonicsWriteReveal(){
+  const cv0 = document.getElementById('phn-write-canvas');
+  if(cv0){ try{ _phonicsWriteCanvasData = cv0.toDataURL(); }catch(e){} }
+  _phonicsWriteRevealed = true;
+  _phonicsRenderWordStudy();
+}
+function phonicsWriteMark(correct){
+  _phonicsWriteScore.total++;
+  if(correct) _phonicsWriteScore.correct++;
+  phonicsWriteNext();
+}
+function phonicsWriteNext(){
+  const targets = _phonicsWriteTargets();
+  _phonicsWriteIdx = (_phonicsWriteIdx + 1) % Math.max(1, targets.length);
+  _phonicsWriteRevealed = false;
+  _phonicsWriteHasStroke = false;
+  _phonicsWriteCanvasData = null;
+  _phonicsRenderWordStudy();
+}
+function phonicsWritePrev(){
+  const targets = _phonicsWriteTargets();
+  _phonicsWriteIdx = (_phonicsWriteIdx - 1 + Math.max(1, targets.length)) % Math.max(1, targets.length);
+  _phonicsWriteRevealed = false;
+  _phonicsWriteHasStroke = false;
+  _phonicsWriteCanvasData = null;
+  _phonicsRenderWordStudy();
+}
+function phonicsWriteClear(){
+  const cv = document.getElementById('phn-write-canvas');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  _phnDrawNotebookLines(ctx, cv.width, cv.height);
+  _phonicsWriteHasStroke = false;
+  _phonicsWriteCanvasData = null;
+  const btn = document.getElementById('phn-write-check-btn');
+  if(btn) btn.disabled = false;
+}
+// 캔버스에 마우스(PC)/손가락(모바일) 드로잉을 붙인다. 렌더 직후 1회 호출.
+function _phonicsWriteInitCanvas(){
+  const cv = document.getElementById('phn-write-canvas');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  // 정답 확인처럼 재렌더가 일어나도 그려둔 내용이 사라지지 않도록 복원
+  if(_phonicsWriteCanvasData){
+    const img = new Image();
+    img.onload = function(){ ctx.drawImage(img, 0, 0, cv.width, cv.height); };
+    img.src = _phonicsWriteCanvasData;
+  } else {
+    _phnDrawNotebookLines(ctx, cv.width, cv.height);
+  }
+  if(cv._phnBound) return;
+  cv._phnBound = true;
+  ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a56db';
+  let drawing = false, last = null;
+  function pos(e){
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
+  }
+  cv.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    drawing = true; last = pos(e);
+    _phonicsWriteHasStroke = true;
+    try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  cv.addEventListener('pointermove', e=>{
+    if(!drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+  });
+  function endDraw(e){ drawing = false; last = null; }
+  cv.addEventListener('pointerup', endDraw);
+  cv.addEventListener('pointerleave', endDraw);
+  cv.addEventListener('pointercancel', endDraw);
+}
+
+
+
+// 학습 모드 선택 툴바(컬러 아이콘 필) — 모드별 라벨/색상 정의
+const _PHN_MODES = [
+  { key:'card',     label:'카드 학습',            color:'#1a56db' },
+  { key:'letter',   label:'소리 듣고 철자 고르기',  color:'#7c3aed' },
+  { key:'quiz',     label:'듣고 맞추기',           color:'#dc2626' },
+  { key:'write',    label:'듣고 쓰기',             color:'#0891b2' },
+  { key:'oddsound', label:'다른 소리 찾기',        color:'#059669' },
+  { key:'match',    label:'짝짓기',               color:'#ea580c' }
+];
+function _phonicsRenderWordStudy(){
+  const root = _phonicsRootEl();
+  if(!root) return;
+  const data = _phonicsStudyData();
+  if(!data){ phonicsStudyBackToFolder(); return; }
+  const words = data.words;
+
+  const header = `
+    <button onclick="phonicsStudyBackToFolder()" style="display:inline-flex;align-items:center;gap:5px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      뒤로
+    </button>
+    ${data.multi?'':`<div style="font-size:12px;color:var(--t3);font-weight:700">${esc(words[0]?.itemLabel||'')}</div>`}
+    <div style="font-size:22px;font-weight:800;color:var(--t1);margin-bottom:2px">${esc(data.title)} ${data.multi?'':`<span style="font-size:14px;font-weight:600;color:var(--t3)">· ${esc(data.sub)}</span>`}</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:16px">${data.multi?esc(data.sub)+' · ':''}단어 ${words.length}개</div>
+    <div style="display:flex;flex-wrap:nowrap;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:8px;margin-bottom:20px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      ${_PHN_MODES.map(m=>`
+      <div onclick="phonicsStudySetMode('${m.key}')" style="flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 16px;border-radius:11px;cursor:pointer;user-select:none;white-space:nowrap;background:${_phonicsStudyMode===m.key?'#f4f6f8':'transparent'};transition:background .15s">
+        <span style="width:9px;height:9px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
+        <span style="font-size:13.5px;font-weight:700;color:${_phonicsStudyMode===m.key?'var(--t1)':'var(--t2)'};white-space:nowrap">${m.label}</span>
+      </div>`).join('')}
+    </div>`;
+
+  if(words.length === 0 && _phonicsStudyMode !== 'letter' && _phonicsStudyMode !== 'write' && _phonicsStudyMode !== 'oddsound' && _phonicsStudyMode !== 'match'){
+    root.innerHTML = header + `<div style="text-align:center;color:var(--t3);padding:30px 0">단어가 없어요.</div>`;
+    return;
+  }
+
+  if(_phonicsStudyMode === 'card'){
+    const toggleBar = `<div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+      <button onclick="_phonicsCardView='one';_phonicsRenderWordStudy()" style="border:1.5px solid ${_phonicsCardView==='one'?'#1a56db':'var(--border)'};background:${_phonicsCardView==='one'?'#eff6ff':'var(--surface)'};color:${_phonicsCardView==='one'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🃏 하나씩</button>
+      <button onclick="_phonicsCardView='grid';_phonicsRenderWordStudy()" style="border:1.5px solid ${_phonicsCardView==='grid'?'#1a56db':'var(--border)'};background:${_phonicsCardView==='grid'?'#eff6ff':'var(--surface)'};color:${_phonicsCardView==='grid'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">▦ 모두 보기</button>
+      <button onclick="_phonicsCardView='list';_phonicsRenderWordStudy()" style="border:1.5px solid ${_phonicsCardView==='list'?'#1a56db':'var(--border)'};background:${_phonicsCardView==='list'?'#eff6ff':'var(--surface)'};color:${_phonicsCardView==='list'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">📋 목차형</button>
+    </div>`;
+
+    if(_phonicsCardView==='list'){
+      const rows = words.map((w,i)=>`
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;font-weight:700;color:var(--t3);width:20px;flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+          <span style="font-size:16px;font-weight:800;color:var(--t1);flex-shrink:0">${esc(w.en)}</span>
+          <span style="font-size:14px;color:#1a56db;font-weight:600;flex:1">${esc(w.ko||'-')}</span>
+          <button onclick="_phonicsSpeak('${esc(w.en).replace(/'/g,"\\'")}')" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;flex-shrink:0">🔊</button>
+        </div>`).join('');
+      root.innerHTML = header + toggleBar + `<div style="border:1.5px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)">${rows}</div>`;
+      return;
+    }
+
+    if(_phonicsCardView==='grid'){
+      const allCards = words.map(w=>`
+        <div style="border:1.5px solid var(--border);border-radius:16px;padding:20px 12px;background:var(--surface);text-align:center;box-shadow:0 2px 8px rgba(15,23,42,0.05)">
+          ${data.multi && w.itemLabel?`<div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:4px">${esc(w.itemLabel)}</div>`:''}
+          <div style="font-size:36px;margin-bottom:8px">${w.emoji}</div>
+          <div style="font-size:17px;font-weight:800;color:var(--t1);margin-bottom:4px">${esc(w.en)}</div>
+          <div style="font-size:13.5px;color:#1a56db;font-weight:600;margin-bottom:8px">${esc(w.ko||'-')}</div>
+          <button onclick="_phonicsSpeak('${esc(w.en).replace(/'/g,"\\'")}')" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;color:var(--t2)">🔊 듣기</button>
+        </div>`).join('');
+      root.innerHTML = header + toggleBar + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">${allCards}</div>`;
+      return;
+    }
+
+    const w = words[_phonicsStudyIdx] || words[0];
+    root.innerHTML = header + toggleBar + `
+      <div style="max-width:360px;margin:0 auto;text-align:center">
+        <div style="border:1.5px solid var(--border);border-radius:20px;padding:32px 20px;background:var(--surface);box-shadow:0 4px 16px rgba(15,23,42,0.06)">
+          ${data.multi && w.itemLabel?`<div style="font-size:11.5px;font-weight:700;color:var(--t3);margin-bottom:6px">${esc(w.itemLabel)}</div>`:''}
+          <div style="font-size:56px;margin-bottom:10px">${w.emoji}</div>
+          <div style="font-size:30px;font-weight:800;color:var(--t1);margin-bottom:10px">${esc(w.en)}</div>
+          <div style="font-size:17px;color:#1a56db;font-weight:600;margin-bottom:18px">${esc(w.ko||'-')}</div>
+          <button onclick="_phonicsSpeak('${esc(w.en).replace(/'/g,"\\'")}')" style="border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--t2)">🔊 발음 듣기</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+          <button onclick="_phonicsStudyIdx=(${_phonicsStudyIdx}-1+${words.length})%${words.length};_phonicsRenderWordStudy()" style="border:none;background:var(--surface2);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--t2)">‹ 이전</button>
+          <span style="font-size:12.5px;color:var(--t3)">${_phonicsStudyIdx+1} / ${words.length}</span>
+          <button onclick="_phonicsStudyIdx=(${_phonicsStudyIdx}+1)%${words.length};_phonicsRenderWordStudy()" style="border:none;background:var(--surface2);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--t2)">다음 ›</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if(_phonicsStudyMode === 'quiz'){
+    const q = _phonicsQuiz;
+    const orderBar = `<div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+      <button onclick="phonicsQuizSetOrder('seq')" style="border:1.5px solid ${_phonicsQuizOrder==='seq'?'#1a56db':'var(--border)'};background:${_phonicsQuizOrder==='seq'?'#eff6ff':'var(--surface)'};color:${_phonicsQuizOrder==='seq'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">➡️ 순서대로</button>
+      <button onclick="phonicsQuizSetOrder('random')" style="border:1.5px solid ${_phonicsQuizOrder==='random'?'#1a56db':'var(--border)'};background:${_phonicsQuizOrder==='random'?'#eff6ff':'var(--surface)'};color:${_phonicsQuizOrder==='random'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🔀 랜덤</button>
+    </div>`;
+    if(!q || !q.questions || !q.questions.length){
+      root.innerHTML = header + orderBar + `<div style="text-align:center;color:var(--t3);padding:30px 0">퀴즈를 만들려면 뜻이 있는 단어가 2개 이상 필요해요.</div>`;
+      return;
+    }
+    if(q.idx >= q.questions.length){
+      root.innerHTML = header + orderBar + `<div style="max-width:360px;margin:0 auto;text-align:center;border:1.5px solid var(--border);border-radius:20px;padding:40px 20px;background:var(--surface)">
+        <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:8px">🎉 완료!</div>
+        <div style="font-size:15px;color:var(--t2);margin-bottom:16px">${q.score} / ${q.questions.length} 정답</div>
+        <button onclick="phonicsQuizSetOrder('${_phonicsQuizOrder}')" style="border:1px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:700">다시 풀기</button>
+      </div>`;
+      return;
+    }
+    const cur = q.questions[q.idx];
+    root.innerHTML = header + orderBar + `
+      <div style="max-width:360px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:10px">${q.idx+1} / ${q.questions.length}</div>
+        <button onclick="_phonicsSpeak('${esc(cur.word.en).replace(/'/g,"\\'")}')" style="border:1.5px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:14px;padding:14px 22px;font-size:16px;cursor:pointer;font-weight:800;margin-bottom:16px">🔊 소리 듣기</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${cur.options.map(opt=>{
+            let bg='var(--surface)', bd='var(--border)', tc='var(--t1)';
+            if(q.answered){
+              if(opt.en===cur.word.en){ bg='#dcfce7'; bd='#22c55e'; }
+              else if(opt.en===q.chosen){ bg='#fee2e2'; bd='#ef4444'; }
+            }
+            return `<button ${q.answered?'disabled':''} onclick="phonicsQuizAnswer('${esc(opt.en).replace(/'/g,"\\'")}')" style="border:1.5px solid ${bd};background:${bg};color:${tc};border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:${q.answered?'default':'pointer'}">${esc(opt.en)}</button>`;
+          }).join('')}
+        </div>
+        ${q.answered?`<button onclick="phonicsQuizNext()" style="margin-top:16px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-weight:700">다음 문제 →</button>`:''}
+      </div>`;
+    if(!q.answered){ setTimeout(()=>{ try{ _phonicsSpeak(cur.word.en); }catch(e){} }, 150); }
+    return;
+  }
+
+  if(_phonicsStudyMode === 'letter'){
+    const q = _phonicsLetterQuiz;
+    const orderBar = `<div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+      <button onclick="phonicsLetterQuizSetOrder('seq')" style="border:1.5px solid ${_phonicsQuizOrder==='seq'?'#1a56db':'var(--border)'};background:${_phonicsQuizOrder==='seq'?'#eff6ff':'var(--surface)'};color:${_phonicsQuizOrder==='seq'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">➡️ 순서대로</button>
+      <button onclick="phonicsLetterQuizSetOrder('random')" style="border:1.5px solid ${_phonicsQuizOrder==='random'?'#1a56db':'var(--border)'};background:${_phonicsQuizOrder==='random'?'#eff6ff':'var(--surface)'};color:${_phonicsQuizOrder==='random'?'#1a56db':'var(--t2)'};border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer">🔀 랜덤</button>
+    </div>`;
+    if(!q || !q.questions || !q.questions.length){
+      root.innerHTML = header + orderBar + `<div style="text-align:center;color:var(--t3);padding:30px 0">글자 퀴즈를 만들려면 예시 단어가 있는 카드가 1개 이상 필요해요.</div>`;
+      return;
+    }
+    if(q.idx >= q.questions.length){
+      root.innerHTML = header + orderBar + `<div style="max-width:360px;margin:0 auto;text-align:center;border:1.5px solid var(--border);border-radius:20px;padding:40px 20px;background:var(--surface)">
+        <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:8px">🎉 완료!</div>
+        <div style="font-size:15px;color:var(--t2);margin-bottom:16px">${q.score} / ${q.questions.length} 정답</div>
+        <button onclick="phonicsLetterQuizSetOrder('${_phonicsQuizOrder}')" style="border:1px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:700">다시 풀기</button>
+      </div>`;
+      return;
+    }
+    const cur = q.questions[q.idx];
+    root.innerHTML = header + orderBar + `
+      <div style="max-width:360px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">${q.idx+1} / ${q.questions.length}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--t3);margin-bottom:10px">이 소리는 어떤 철자일까요?</div>
+        <button onclick="_phonicsSpeak('${esc(cur.sample.en).replace(/'/g,"\\'")}')" style="border:1.5px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:14px;padding:14px 22px;font-size:16px;cursor:pointer;font-weight:800;margin-bottom:16px">🔊 소리 듣기</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${cur.options.map(opt=>{
+            let bg='var(--surface)', bd='var(--border)', tc='var(--t1)';
+            if(q.answered){
+              if(opt.label===cur.item.label){ bg='#dcfce7'; bd='#22c55e'; }
+              else if(opt.label===q.chosen){ bg='#fee2e2'; bd='#ef4444'; }
+            }
+            return `<button ${q.answered?'disabled':''} onclick="phonicsLetterQuizAnswer('${esc(opt.label).replace(/'/g,"\\'")}')" style="border:1.5px solid ${bd};background:${bg};color:${tc};border-radius:10px;padding:14px 8px;font-size:18px;font-weight:800;cursor:${q.answered?'default':'pointer'}">${esc(opt.label)}</button>`;
+          }).join('')}
+        </div>
+        ${q.answered?`<div style="margin-top:12px;font-size:13px;color:var(--t3)">정답: <b style="color:var(--t1)">${esc(cur.item.label)}</b> (${esc(cur.item.sound)}) · ${esc(cur.sample.en)}</div>`:''}
+        ${q.answered?`<button onclick="phonicsLetterQuizNext()" style="margin-top:12px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-weight:700">다음 문제 →</button>`:''}
+      </div>`;
+    return;
+  }
+
+  if(_phonicsStudyMode === 'write'){
+    const targets = _phonicsWriteTargets();
+    if(!targets.length){
+      root.innerHTML = header + `<div style="text-align:center;color:var(--t3);padding:30px 0">쓰기 연습을 하려면 카드가 1개 이상 필요해요.</div>`;
+      return;
+    }
+    const it = targets[_phonicsWriteIdx % targets.length];
+    const sampleWords = _phonicsItemWords(it);
+    const sample = sampleWords[0];
+    root.innerHTML = header + `
+      <div style="max-width:400px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">${_phonicsWriteIdx+1} / ${targets.length} &nbsp;·&nbsp; 이번 세션 ${_phonicsWriteScore.correct}/${_phonicsWriteScore.total} 맞음</div>
+        <div style="font-size:14px;font-weight:600;color:var(--t3);margin-bottom:8px">소리를 듣고 철자를 써 보세요</div>
+        ${sample?`<button onclick="_phonicsSpeak('${esc(sample.en).replace(/'/g,"\\'")}')" style="border:1.5px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:14px;padding:12px 20px;font-size:15px;cursor:pointer;font-weight:800;margin-bottom:14px">🔊 소리 듣기</button>`:''}
+        <div style="border:1.5px solid var(--border);border-radius:16px;background:#fff;overflow:hidden;margin:0 auto 10px;box-shadow:0 2px 8px rgba(15,23,42,0.05)">
+          <canvas id="phn-write-canvas" width="640" height="360" style="width:100%;height:220px;display:block;touch-action:none;cursor:crosshair"></canvas>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px">
+          <button onclick="phonicsWriteClear()" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer;color:var(--t2)">🧹 지우기</button>
+          <button onclick="phonicsWriteReveal()" style="border:1px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer">✅ 정답 확인</button>
+        </div>
+        ${_phonicsWriteRevealed ? `
+        <div style="border:1.5px solid #22c55e;background:#f0fdf4;border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:#16a34a;letter-spacing:1px;margin-bottom:4px">정답</div>
+          <div style="font-size:28px;font-weight:900;color:#166534;margin-bottom:2px">${esc(it.label)}</div>
+          <div style="font-size:13px;color:#166534">${esc(it.sound)}${sample?' · '+esc(sample.en):''}</div>
+        </div>
+        <div style="font-size:13px;color:var(--t3);margin-bottom:10px">내가 쓴 철자와 비교해서 스스로 채점해 주세요</div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+          <button onclick="phonicsWriteMark(true)" style="flex:1;max-width:150px;border:1.5px solid #22c55e;background:#dcfce7;color:#166534;border-radius:10px;padding:10px;font-size:13.5px;font-weight:700;cursor:pointer">⭕ 맞았어요</button>
+          <button onclick="phonicsWriteMark(false)" style="flex:1;max-width:150px;border:1.5px solid #ef4444;background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;font-size:13.5px;font-weight:700;cursor:pointer">❌ 틀렸어요</button>
+        </div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button onclick="phonicsWritePrev()" style="border:none;background:var(--surface2);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--t2)">‹ 이전</button>
+          <button onclick="phonicsWriteNext()" style="border:none;background:var(--surface2);border-radius:8px;padding:8px 14px;cursor:pointer;color:var(--t2)">건너뛰기 ›</button>
+        </div>
+      </div>`;
+    _phonicsWriteInitCanvas();
+    return;
+  }
+
+  if(_phonicsStudyMode === 'oddsound'){
+    const s = _phonicsOddSound;
+    if(!s || !s.rounds.length){
+      root.innerHTML = header + `<div style="text-align:center;color:var(--t3);padding:30px 0">다른 소리 찾기를 하려면 소리 패턴이 2개 이상 필요해요.</div>`;
+      return;
+    }
+    const r = s.rounds[s.idx];
+    const cellStyle = (state) => {
+      if(state==='correct') return { bd:'#22c55e', bg:'#f0fdf4', tc:'#166534' };
+      if(state==='wrong') return { bd:'#ef4444', bg:'#fef2f2', tc:'#991b1b' };
+      if(state==='dim') return { bd:'var(--border)', bg:'var(--surface2)', tc:'var(--t3)' };
+      return { bd:'var(--border)', bg:'var(--surface)', tc:'var(--t1)' };
+    };
+    const items = r.words.map((w,i)=>{
+      let state = '';
+      if(s.done){
+        if(i === r.oddIdx) state = 'correct';
+        else if(i === s.picked) state = 'wrong';
+        else state = 'dim';
+      }
+      const st = cellStyle(state);
+      const shown = s.done ? w.en : _phonicsBlankWord(w.en, w.itemLabel);
+      return `<div onclick="phonicsOddSoundPick(${i})" style="border:1.5px solid ${st.bd};background:${st.bg};border-radius:14px;padding:16px 10px;text-align:center;cursor:${s.done?'default':'pointer'}">
+        <div onclick="event.stopPropagation();_phonicsSpeak('${w.en.replace(/'/g,"\\'")}')" style="width:34px;height:34px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:15px;cursor:pointer">🔊</div>
+        <div style="font-size:15px;font-weight:800;letter-spacing:1px;color:${st.tc}">${esc(shown)}</div>
+      </div>`;
+    }).join('');
+    root.innerHTML = header + `
+      <div style="max-width:440px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:14px">${s.idx+1} / ${s.rounds.length} &nbsp;·&nbsp; 이번 세션 ${s.score.correct}/${s.score.total} 맞음</div>
+        <div style="font-size:13.5px;color:var(--t2);margin-bottom:16px">🔊 를 눌러 4개를 다 들어보고, 소리가 다른 하나를 골라보세요</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${items}</div>
+        ${s.done ? `
+        <div style="margin-top:16px;font-size:14px;font-weight:700;color:${s.correct?'#16a34a':'#dc2626'}">${s.correct?'정답이에요! 🎉':'아쉬워요. 정답은 "'+esc(r.words[r.oddIdx].en)+'" 예요.'}</div>
+        <button onclick="phonicsOddSoundNext()" style="margin-top:14px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:9px 20px;font-size:13.5px;cursor:pointer;font-weight:700">다음 문제 →</button>` : ''}
+      </div>`;
+    return;
+  }
+
+
+  if(_phonicsStudyMode === 'match'){
+    const m = _phonicsMatch;
+    const cellStyle = (state) => {
+      if(state==='matched') return { bd:'#22c55e', bg:'#dcfce7', tc:'#166534' };
+      if(state==='wrong') return { bd:'#ef4444', bg:'#fee2e2', tc:'#991b1b' };
+      if(state==='sel') return { bd:'#1a56db', bg:'#eff6ff', tc:'var(--t1)' };
+      return { bd:'var(--border)', bg:'var(--surface)', tc:'var(--t1)' };
+    };
+
+    if(m && m.mode === 'sound'){
+      if(m.words.length < 4 || m.patterns.length < 2){
+        root.innerHTML = header + `<div style="text-align:center;color:var(--t3);padding:30px 0">소리 짝짓기를 하려면 소리 패턴이 2개 이상, 단어가 4개 이상 필요해요.</div>`;
+        return;
+      }
+      const allMatched = m.matchedIdx.length === m.words.length;
+      const wordCell = (origIdx) => {
+        if(origIdx===null || origIdx===undefined) return `<div></div>`;
+        const matched = m.matchedIdx.includes(origIdx);
+        const wrong = m.wrongFlash && m.wrongFlash.word===origIdx;
+        const sel = m.selWord===origIdx;
+        const st = cellStyle(matched?'matched':wrong?'wrong':sel?'sel':'');
+        const shown = matched ? m.words[origIdx].en : _phonicsBlankWord(m.words[origIdx].en, m.words[origIdx].itemLabel);
+        return `<div style="display:flex;gap:6px">
+          <button onclick="event.stopPropagation();_phonicsSpeak('${m.words[origIdx].en.replace(/'/g,"\\'")}')" title="소리 듣기" style="flex:0 0 38px;border-radius:10px;border:1.5px solid ${st.bd};background:${st.bg};color:${st.tc};cursor:pointer;font-size:14px">🔊</button>
+          <button onclick="phonicsMatchPick('word',${origIdx})" ${matched?'disabled':''} style="flex:1;min-width:0;padding:11px 8px;border-radius:10px;border:1.5px solid ${st.bd};background:${st.bg};color:${st.tc};font-weight:700;font-size:13.5px;letter-spacing:1px;cursor:${matched?'default':'pointer'}">${esc(shown)}</button>
+        </div>`;
+      };
+      const rows = m.patterns.map((p, r) => {
+        const wrongP = m.wrongFlash && m.wrongFlash.pattern===r;
+        const selP = m.selPattern===r;
+        const stP = cellStyle(wrongP?'wrong':selP?'sel':'');
+        const leftOrig = m.leftIdx[r] !== undefined ? m.leftIdx[r] : null;
+        const rightOrig = m.rightIdx[r] !== undefined ? m.rightIdx[r] : null;
+        return `<div style="display:grid;grid-template-columns:1fr 88px 1fr;gap:10px;align-items:center;margin-bottom:12px">
+          ${wordCell(leftOrig)}
+          <button onclick="phonicsMatchPick('pattern',${r})" style="width:84px;height:84px;margin:0 auto;border-radius:50%;border:1.5px solid ${stP.bd};background:${stP.bg};color:${stP.tc};font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">${esc(p)}</button>
+          ${wordCell(rightOrig)}
+        </div>`;
+      }).join('');
+      root.innerHTML = header + `
+        <div style="max-width:640px;margin:0 auto">
+          <div style="font-size:13px;color:var(--t3);text-align:center;margin-bottom:16px">🔊 를 눌러 단어를 듣고, 빈칸에 들어갈 소리 패턴을 가운데서 골라보세요</div>
+          ${allMatched ? `
+            <div style="text-align:center;border:1.5px solid var(--border);border-radius:16px;padding:28px 20px;background:var(--surface);margin-bottom:14px">
+              <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:12px">🎉 다 짝지었어요!</div>
+              <button onclick="phonicsMatchRestart()" style="border:1px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:10px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer">다시 하기</button>
+            </div>` : rows}
+        </div>`;
+      return;
+    }
+
+    if(!m || !m.pairs || m.pairs.length < 2){
+      root.innerHTML = header + `<div style="text-align:center;color:var(--t3);padding:30px 0">짝짓기를 하려면 뜻이 있는 단어가 2개 이상 필요해요.</div>`;
+      return;
+    }
+    const allMatched = m.matchedIdx.length === m.pairs.length;
+    const enCol = m.enOrder.map(i=>{
+      const matched = m.matchedIdx.includes(i);
+      const wrong = m.wrongFlash && m.wrongFlash.en===i;
+      const sel = m.selEn===i;
+      const st = cellStyle(matched?'matched':wrong?'wrong':sel?'sel':'');
+      return `<button onclick="phonicsMatchPick('en',${i})" ${matched?'disabled':''} style="display:block;width:100%;margin-bottom:8px;padding:12px;border-radius:10px;border:1.5px solid ${st.bd};background:${st.bg};color:${st.tc};font-weight:700;font-size:14px;cursor:${matched?'default':'pointer'}">${esc(m.pairs[i].en)}</button>`;
+    }).join('');
+    const koCol = m.koOrder.map(i=>{
+      const matched = m.matchedIdx.includes(i);
+      const wrong = m.wrongFlash && m.wrongFlash.ko===i;
+      const sel = m.selKo===i;
+      const st = cellStyle(matched?'matched':wrong?'wrong':sel?'sel':'');
+      return `<button onclick="phonicsMatchPick('ko',${i})" ${matched?'disabled':''} style="display:block;width:100%;margin-bottom:8px;padding:12px;border-radius:10px;border:1.5px solid ${st.bd};background:${st.bg};color:${st.tc};font-weight:700;font-size:14px;cursor:${matched?'default':'pointer'}">${esc(m.pairs[i].ko)}</button>`;
+    }).join('');
+    root.innerHTML = header + `
+      <div style="max-width:420px;margin:0 auto">
+        <div style="font-size:13px;color:var(--t3);text-align:center;margin-bottom:12px">영단어와 뜻을 순서대로 눌러 짝을 맞춰보세요</div>
+        ${allMatched ? `
+          <div style="text-align:center;border:1.5px solid var(--border);border-radius:16px;padding:28px 20px;background:var(--surface);margin-bottom:14px">
+            <div style="font-size:20px;font-weight:800;color:var(--t1);margin-bottom:12px">🎉 다 짝지었어요!</div>
+            <button onclick="phonicsMatchRestart()" style="border:1px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:10px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer">다시 하기</button>
+          </div>` : `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>${enCol}</div>
+            <div>${koCol}</div>
+          </div>`}
+      </div>`;
+    return;
+  }
+
+  // list mode (default) — 단어장 스타일
+  const rows = words.map((w,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--t3);width:22px;flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+      <span style="font-weight:700;color:var(--t1);font-size:15px">${esc(w.en)}</span>
+      <span style="color:var(--t3);font-size:14px">${esc(w.ko||'-')}</span>
+      <button onclick="_phonicsSpeak('${esc(w.en).replace(/'/g,"\\'")}')" style="margin-left:auto;border:none;background:none;cursor:pointer;color:var(--t3);font-size:15px">🔊</button>
+    </div>`).join('');
+  root.innerHTML = header + `<div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)">${rows}</div>`;
+}
+
+
+async function phonicsToggleDone(key, itemId){
+  const prog = _phonicsProgress();
+  const list = new Set(prog[key] || []);
+  if(list.has(itemId)) list.delete(itemId); else list.add(itemId);
+  prog[key] = Array.from(list);
+  await _phonicsSaveProgress(prog);
+  phonicsOpenFolder(key);
+}
+
 async function renderSpeaking(){
   const pg=document.getElementById('pg-speaking'); if(!pg) return;
   pg.innerHTML='<div style="max-width:920px;margin:0 auto;padding:8px 4px"><div id="spl-head"></div><div id="spl-list" style="margin-top:18px;color:#94a3b8">불러오는 중...</div></div>';
@@ -13201,6 +16486,8 @@ const pageTitles = {
   'pg-new-wordbook':'Voca',
   'pg-new-sentbook':'Reading',
   'pg-student-grammar':'Grammar',
+  'pg-phonics':'Phonics',
+  'pg-student-phonics':'Phonics',
   'pg-student-exam':'Exam',
   'pg-aihub':'AI Hub',
   'pg-speaking':'Speaking',
@@ -13319,6 +16606,8 @@ function showPage(id, addHistory = true) {
   if (id==='pg-teachers') renderTeachersMgmt();
   if (id==='pg-speaking') renderSpeaking();
   if (id==='pg-student-speaking') renderStudentSpeaking();
+  if (id==='pg-phonics') renderPhonicsMgmt();
+  if (id==='pg-student-phonics') renderStudentPhonics();
   if (id==='pg-editor') { refreshSelects(); document.getElementById('editor-sel').value=''; loadEditor(); }
   if (id==='pg-sentences') {
     if (!window._skipSentCollReset) _sentActiveColl = null;
@@ -19897,6 +23186,14 @@ window._wvFocusHTML = function(ws){
     +   '<button onclick="_fmSelAll(true)" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:9px;border:1.5px solid #d8e4f0;background:#fff;color:#475569;cursor:pointer;font-family:inherit">전체 선택</button>'
     +   '<button onclick="_fmSelAll(false)" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:9px;border:1.5px solid #d8e4f0;background:#fff;color:#475569;cursor:pointer;font-family:inherit">해제</button>'
     +   '<button id="fm-startbtn" onclick="_fmStartMixed()" disabled style="font-size:13px;font-weight:800;padding:7px 16px;border-radius:10px;border:none;background:#cbd5e1;color:#fff;cursor:not-allowed;font-family:inherit">시작</button>'
+    +   '<div style="width:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:9px;margin-top:2px;border-top:1px solid #eef2f7">'
+    +     '<span style="font-size:11.5px;font-weight:700;color:#94a3b8;margin-right:2px">학습 유형</span>'
+    +     _fmModeChip('all',   '전체 랜덤')
+    +     _fmModeChip('choice_en2ko','객관식 영→한')
+    +     _fmModeChip('choice_ko2en','객관식 한→영')
+    +     _fmModeChip('input_en2ko', '주관식 영→한')
+    +     _fmModeChip('input_ko2en', '주관식 한→영')
+    +   '</div>'
     + '</div>'
     + ws.map(function(w,i){
         var id=String(w.id||w.en);
@@ -19908,6 +23205,37 @@ window._wvFocusHTML = function(ws){
       }).join('')
     + '</div>';
 };
+var _FM_ALL_MODES=['choice_en2ko','choice_ko2en','input_en2ko','input_ko2en'];
+window._fmAllRandom = true;                        // 기본: 전체 랜덤
+window._fmModes = new Set();                        // 개별 선택(복수 가능)
+window._fmModeChip = function(v, label){
+  var on = (v==='all') ? !!window._fmAllRandom : window._fmModes.has(v);
+  return '<button onclick="_fmSetMode(\''+v+'\')" data-m="'+v+'" class="fm-mchip" style="font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit;border:1.5px solid '+(on?'#3b6cb7':'#dde5ef')+';background:'+(on?'#3b6cb7':'#fff')+';color:'+(on?'#fff':'#64748b')+'">'+label+'</button>';
+};
+window._fmSetMode = function(v){
+  if(v==='all'){
+    window._fmAllRandom = true;
+    window._fmModes.clear();                      // 개별 선택 해제
+  }else{
+    window._fmAllRandom = false;                  // 개별을 고르면 전체 랜덤 꺼짐
+    if(window._fmModes.has(v)) window._fmModes.delete(v);
+    else window._fmModes.add(v);
+    if(window._fmModes.size===0){                 // 전부 끄면 전체 랜덤으로 복귀
+      window._fmAllRandom = true;
+    }
+  }
+  _fmPaintModes();
+  _fmSelPaint();
+};
+function _fmPaintModes(){
+  document.querySelectorAll('.fm-mchip').forEach(function(b){
+    var m=b.getAttribute('data-m');
+    var on = (m==='all') ? !!window._fmAllRandom : window._fmModes.has(m);
+    b.style.borderColor = on?'#3b6cb7':'#dde5ef';
+    b.style.background  = on?'#3b6cb7':'#fff';
+    b.style.color       = on?'#fff':'#64748b';
+  });
+}
 window._fmSelToggle = function(i){
   var ws=window._fmWords||[]; var w=ws[i]; if(!w) return;
   var id=String(w.id||w.en);
@@ -19931,16 +23259,19 @@ function _fmSelPaint(){
   var c=document.getElementById('fm-selcnt'); if(c) c.textContent=n+'개';
   var b=document.getElementById('fm-startbtn');
   if(b){ b.disabled=!n; b.style.background=n?'#3b6cb7':'#cbd5e1'; b.style.cursor=n?'pointer':'not-allowed';
-         b.textContent=n?('시작 ('+(n*4)+'문항)'):'시작'; }
+         var per = window._fmAllRandom ? _FM_ALL_MODES.length : Math.max(1, window._fmModes.size);
+    b.textContent=n?('시작 ('+(n*per)+'문항)'):'시작'; }
 }
 // ── 선택 단어 × 4모드 = 완전 랜덤 통합 출제 ──
 window._fmStartMixed = function(){
   var ws=(window._fmWords||[]).filter(function(w){ return window._fmSel.has(String(w.id||w.en)); });
   if(!ws.length) return;
-  var MODES=['choice_en2ko','choice_ko2en','input_en2ko','input_ko2en'];
+  var MODES = window._fmAllRandom ? _FM_ALL_MODES.slice()
+           : _FM_ALL_MODES.filter(function(m){ return window._fmModes.has(m); });
+  if(!MODES.length) MODES=_FM_ALL_MODES.slice();
   var pool=[];
   ws.forEach(function(w){ MODES.forEach(function(m){ pool.push({w:w, step:m}); }); });
-  pool=_fmSpread(pool);
+  pool=(MODES.length>1)?_fmSpread(pool):_fmShuffle(pool);
   window._fmState={ kind:'mixed', pool:ws, queue:pool, round:1, idx:0, results:[], wrongThisRound:[] };
   _fmRender();
 };
@@ -20087,6 +23418,12 @@ function _fmRender(){
   // 이전 문항의 포커스/선택 잔상 제거 (직전 클릭 위치에 색이 남는 문제 방지)
   try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
   try{ var sel=window.getSelection&&window.getSelection(); if(sel&&sel.removeAllRanges) sel.removeAllRanges(); }catch(e){}
+  // 🔊 영어가 문제로 나올 때 자동 발음
+  try{
+    if(step==='choice_en2ko'||step==='input_en2ko'){
+      var _e=(it&&it.en)||''; if(_e) setTimeout(function(){ _gmSpeak(_e); }, 260);
+    }
+  }catch(e){}
   var inp=document.getElementById('fm-input'); if(inp) setTimeout(function(){ inp.focus(); },50);
 }
 
@@ -20115,9 +23452,9 @@ window._fmAnswer=async function(val){
   else if(step==='order'){ correct=it.en||''; }
   else { correct=(window._fmBlankAns||[]).join(' '); }
   ok=_fmNorm(val)===_fmNorm(correct);
-  if(!ok && (step==='input_en2ko')){            // 한국어 뜻은 일부만 맞아도 인정
+  if(!ok && (step==='input_en2ko')){            // 한국어 뜻은 일부만 맞아도 인정 (단, 품사가 같을 때만)
     var a=_fmNorm(val), b=_fmNorm(correct);
-    if(a && (b.indexOf(a)>=0 || a.indexOf(b)>=0)) ok=true;
+    if(a && (b.indexOf(a)>=0 || a.indexOf(b)>=0) && _fmPosMatch(correct, val)) ok=true;
   }
   // ── 영→한 주관식: 로컬에서 오답이면 AI가 동의어·다른 표현인지 재채점 ──
   var aiJudged=false;
@@ -20126,7 +23463,7 @@ window._fmAnswer=async function(val){
     _fmGradingUI(true);
     try{
       var r=await _fmAIGrade(it.en||'', correct, val);
-      if(r===true){ ok=true; aiJudged=true; }
+      if(r===true && _fmPosMatch(correct, val)){ ok=true; aiJudged=true; }   // 품사 불일치면 AI가 O라 해도 오답
     }catch(e){ /* 실패 시 로컬 판정 유지 */ }
     _fmGradingUI(false);
     st._grading=false;
@@ -20138,13 +23475,35 @@ window._fmAnswer=async function(val){
 };
 
 // AI 채점: 동의어·다른 표현이면 정답 인정
+// 한국어 뜻의 품사 추정 (동사/형용사/명사)
+function _fmPos(t){
+  t=String(t||'').trim();
+  if(!t) return '';
+  // 여러 뜻이면 첫 번째 기준
+  var first=t.split(/[,;·/]/)[0].trim();
+  if(/(하다|되다|시키다|짓다|하기|이다)$/.test(first)) return 'v';
+  if(/(흘리다|부르다|먹다|가다|오다|쓰다|보다|주다|받다|사다|팔다|입다|자다|앉다|서다|살다|죽다|웃다|울다|열다|닫다|넣다|빼다|찾다|잃다|만들다|기르다|나르다|끌다|밀다|던지다|잡다|놓다|배우다|가르치다|묻다|답하다)$/.test(first)) return 'v';
+  if(/다$/.test(first)) return 'v';                    // 일반 동사 어미
+  if(/(한|는|운|던|스러운|로운|적인|없는|있는)$/.test(first)) return 'a';   // 형용사형
+  return 'n';
+}
+function _fmPosMatch(correct, ans){
+  var pc=_fmPos(correct), pa=_fmPos(ans);
+  if(!pc||!pa) return true;
+  return pc===pa;
+}
 async function _fmAIGrade(word, correct, userAns){
   var prompt='영어 단어 뜻 채점. 학생 답이 정답과 같은 의미면 O, 다르면 X만 출력.\n'
     +'단어: '+word+'\n정답: '+correct+'\n학생 답: '+userAns+'\n'
-    +'기준: 동의어·유의어·표현 차이·어미 차이·품사 형태 차이는 정답(O). '
-    +'뜻이 다르거나 관련 없으면 오답(X). 정답의 여러 뜻 중 하나만 써도 정답(O).\n'
+    +'[정답 O] 뜻이 같은 동의어·유의어, 표현만 다른 경우, 조사/어미 차이(\'~을 하다\' vs \'~하다\'), 정답의 여러 뜻 중 하나만 쓴 경우.\n'
+    +'[오답 X] 뜻이 다르거나 관련 없는 경우. 그리고 **품사가 다르면 오답**이다. '
+    +'정답이 동사(~하다/~되다)인데 학생이 명사로 썼거나, 정답이 명사인데 동사·형용사로 썼거나, '
+    +'정답이 형용사(~한/~는)인데 학생이 명사·동사로 쓴 경우는 모두 X. '
+    +'예) 정답 \'침을 흘리다\'(동사) · 학생 \'침\'(명사) → X. '
+    +'예) 정답 \'건강\'(명사) · 학생 \'건강한\'(형용사) → X. '
+    +'예) 정답 \'소개하다\'(동사) · 학생 \'소개\'(명사) → X.\n'
     +'출력: O 또는 X 한 글자만.';
-  var msgs=[{role:'system',content:'너는 영어 단어 채점기다. O 또는 X 한 글자만 출력한다.'},
+  var msgs=[{role:'system',content:'너는 엄격한 영어 단어 채점기다. 뜻이 같아도 품사가 다르면 오답 처리한다. O 또는 X 한 글자만 출력한다.'},
             {role:'user',content:prompt}];
   var raw='';
   try{
@@ -20176,11 +23535,35 @@ function _fmFeedback(ok, correct, next, aiJudged, token){
   var ov=document.getElementById('fm-overlay'); if(!ov) return;
   var box=ov.querySelector('.fm-body'); if(!box) return next();
   var g=ov.querySelector('.fm-grading'); if(g) g.remove();
+  // 🔊 퀴즈와 동일한 사운드 시스템
+  try{ ok ? _playCorrectSound() : _playWrongSound(); }catch(e){}
+  // 정답 영어 단어 발음 (한→영 문제는 정답이 영어, 영→한 문제는 문제가 영어)
+  try{
+    var _st=window._fmState, _q=_st&&_st.queue[_st.idx];
+    var _step=(_q&&_q.step)?_q.step:_q;
+    var _it=(_q&&_q.w)?_q.w:(_st&&_st.item);
+    var _en=(_it&&_it.en)||'';
+    // 영→한 문제는 출제 시 이미 읽어줬으므로 제외 → 한→영 유형만 정답 발음
+    if(_en && /_ko2en$/.test(String(_step))) setTimeout(function(){ _gmSpeak(_en); }, 220);
+  }catch(e){}
   box.classList.add('fm-locked');                       // 마우스 위치와 무관하게 hover 차단
   Array.prototype.forEach.call(ov.querySelectorAll('.fm-opt'), function(b){
-    var v=b.getAttribute('data-v')||'';
-    if(_fmNorm(v)===_fmNorm(correct)) b.classList.add('fm-correct');
-    else if(window._fmPicked!=null && _fmNorm(v)===_fmNorm(window._fmPicked) && !ok) b.classList.add('fm-wrong');
+    // 속성값 대신 실제 표시 텍스트로 비교(이스케이프 차이 방지)
+    var v=(b.textContent||b.getAttribute('data-v')||'');
+    var isC=_fmNorm(v)===_fmNorm(correct);
+    var isW=(!ok && window._fmPicked!=null && _fmNorm(v)===_fmNorm(window._fmPicked));
+    if(isC){
+      b.classList.add('fm-correct');
+      b.style.setProperty('border-color','#16a34a','important');
+      b.style.setProperty('background','#dcfce7','important');
+      b.style.setProperty('color','#15803d','important');
+      b.style.setProperty('font-weight','700','important');
+    } else if(isW){
+      b.classList.add('fm-wrong');
+      b.style.setProperty('border-color','#dc2626','important');
+      b.style.setProperty('background','#fee2e2','important');
+      b.style.setProperty('color','#b91c1c','important');
+    }
   });
   Array.prototype.forEach.call(ov.querySelectorAll('.fm-fb'), function(x){ x.remove(); });  // 이전 피드백 제거
   var fb=document.createElement('div'); fb.className='fm-fb '+(ok?'ok':'no');
@@ -20230,7 +23613,7 @@ function _fmResult(){
     +'<button class="fm-submit" onclick="_fmClose()">닫기</button></div></div>';
 }
 
-window._fmClose=function(){ var ov=document.getElementById('fm-overlay'); if(ov) ov.remove(); window._fmState=null; };
+window._fmClose=function(){ try{ speechSynthesis.cancel(); }catch(e){} clearTimeout(window._fmNextT); var ov=document.getElementById('fm-overlay'); if(ov) ov.remove(); window._fmState=null; };
 function _fmEsc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
 function _fmCSS(){
@@ -20255,7 +23638,8 @@ function _fmCSS(){
    +'@media (hover:hover) and (pointer:fine){.fm-opt:hover{border-color:#1e4db7;background:#f0f6ff}}'
    +'.fm-box,.fm-opt,.fm-w,.fm-q,.fm-submit,.fm-chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}'
    +'.fm-opt{touch-action:manipulation}'
-   +'#fm-overlay input,#fm-overlay textarea{-webkit-user-select:text;user-select:text}'
+   +'#fm-overlay *{-webkit-touch-callout:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent!important}'
+   +'#fm-overlay input,#fm-overlay textarea{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}'
    +'.fm-opt:focus,.fm-opt:focus-visible,.fm-opt:active{outline:none!important;border-color:#e2e8f0!important;background:#fff!important;box-shadow:none!important}'
    +'.fm-opt.fm-correct:focus,.fm-opt.fm-correct{border-color:#16a34a!important;background:#dcfce7!important}'
    +'.fm-opt.fm-wrong:focus,.fm-opt.fm-wrong{border-color:#dc2626!important;background:#fee2e2!important}'
@@ -35253,6 +38637,10 @@ async function openStudentDetailInline(studentId) {
         </div>
         <div data-sdm-meta style="font-size:13px;color:var(--t3)">${s.grade||'학년 미설정'} · 단어장 ${assigned.length}개</div>
       </div>
+      <label class="toggle-wrap" style="font-size:13px;color:var(--t3);font-weight:600;flex-shrink:0" title="파닉스 과정 학생으로 지정하면 학생 사이드바에 Phonics 탭이 표시됩니다">
+        🔤 파닉스
+        <span class="toggle"><input type="checkbox" ${s.is_phonics?'checked':''} onchange="togglePhonicsStudent('${s.id}', this.checked)"><span class="toggle-slider"></span></span>
+      </label>
       <div style="display:flex;gap:7px;flex-shrink:0">
         <button class="btn btn-secondary btn-sm" onclick="openJellyGiveModal('${s.id}','${esc(s.name)}')">🍬 지급</button>
         <button class="btn btn-secondary btn-sm" onclick="openTaskReminderModal('${s.id}')" title="과제 알림 보내기">📋 알림</button>
@@ -78040,8 +81428,11 @@ function elRtHTML(w){
       +(b.role?('<span class="rt-ans" contenteditable="true">정답 — 역할: '+esc(b.role)+(b.summary?(' / 요약: '+esc(b.summary)):'')+'</span>'):'')
       +'</div>'+arrow;
   }).join('');
+  const devQ='<div class="rt-q" style="margin-top:10px;padding-top:10px;border-top:1px dashed #dedcd5">'
+    +'블록을 다 채웠다면, 이 글 <b>전체</b>는 어떤 방식으로 전개되나요? (나열형 / 대조형 / 인과형 / 문제-해결형 / 일반-구체형 / 시간순 중 하나) '+F()+'</div>'
+    +(w.dev_pattern?('<span class="rt-ans" contenteditable="true">정답 — 전개방식: '+esc(w.dev_pattern)+'</span>'):'');
   const s1=blocks?step('02','Map','흐름 지도',
-    '<div class="rt-instr">각 블록의 <b>역할</b>과 <b>한 줄 요약</b>을 채우며 글의 뼈대를 그리세요.</div>'+blocks,'blocks'):'';
+    '<div class="rt-instr">각 블록의 <b>역할</b>과 <b>한 줄 요약</b>을 채우며 글의 뼈대를 그리세요.</div>'+blocks+devQ,'blocks'):'';
 
   // 02 Signal — 연결어
   const _seen={};
@@ -78069,15 +81460,19 @@ function elRtHTML(w){
   const s3t=(T.subject||T.main_idea)?step('04','Topic','소재·주제',
     '<div class="rt-instr">글이 <b>무엇에 대해</b>(소재) <b>무엇을 말하는지</b>(주제) 구분해 쓰세요.</div>'
     +'<div class="rt-q">① 소재 — 반복되는 핵심어를 <b>영어 원문</b>으로: '+F('long')+'</div>'
+    +'<div class="rt-q" style="padding-left:14px">이 소재를 글쓴이는 <b>넓게</b> 다루나요, <b>좁게(구체적으로)</b> 다루나요? 그렇게 판단한 근거는? '+F('long')+'</div>'
     +'<div class="rt-q">② 주제(소재에 대한 글쓴이의 관점): '+F('long')+'</div>'
     +'<div class="rt-q" style="margin-top:10px">③ 주제문이 <b>글에 직접 쓰여 있나요?</b></div>'
     +'<div class="rt-q" style="padding-left:14px">☐ 있다 → 몇 번 문장인가요? '+F()+'</div>'
     +'<div class="rt-q" style="padding-left:14px">☐ 없다(암시적) → 여러 문장을 묶어 <b>내 말로</b> 주제를 만들어 쓰세요.'+F('full')+'</div>'
+    +'<div class="rt-q" style="margin-top:10px">④ 이 글은 어떤 <b>종류의 글</b>인가요? (설명문 / 논설문 / 서사문 / 묘사문 / 실용문 중 하나) '+F()+'</div>'
     +(T.subject?('<span class="rt-ans" contenteditable="true">정답 — 소재: <span class="rt-en">'+esc(T.subject)+'</span>'
       +(T.subject_ko?(' ('+esc(T.subject_ko)+')'):'')
+      +(T.scope?(' / 소재의 폭: '+esc(T.scope)+(T.scope_note?(' — '+esc(T.scope_note)):'')):'')
       +(T.main_idea?(' / 주제: '+esc(T.main_idea)):'')
       +(T.explicit===false?' / 주제문 없음(암시적) — 여러 문장을 종합해 도출'
         :(T.topic_sentence_no?(' / 주제문: '+esc(T.topic_sentence_no)+'번'+(T.topic_sentence_en?(' — <span class="rt-en">'+esc(T.topic_sentence_en)+'</span>'):'')):''))
+      +(T.genre?(' / 글의 종류: '+esc(T.genre)):'')
       +'</span>'):''),'topic'):'';
 
   // 04 Evidence — 근거 찾기 (명시/암시 대응)
@@ -78085,9 +81480,11 @@ function elRtHTML(w){
   const evItems=EV.map((e,i)=>'<div class="rt-item"><span class="rt-no">'+(i+1)+'</span>'+esc(e.claim||'')
     +'<div class="rt-reason">이 주장을 뒷받침하는 문장 번호: '+F()+'</div>'
     +'<div class="rt-reason">직접 쓰여 있지 않다면, 어떤 내용으로 <b>추론</b>했나요? '+F('long')+'</div>'
-    +(e.answer?('<span class="rt-ans" contenteditable="true">정답 — '+esc(e.answer)+'</span>'):'')+'</div>').join('');
+    +'<div class="rt-reason">이 주장은 <b>사실(Fact)</b>인가요, <b>의견(Opinion)</b>인가요? '+F()+'</div>'
+    +((e.answer||e.kind)?('<span class="rt-ans" contenteditable="true">정답 — '+(e.answer?esc(e.answer):'')
+      +(e.kind?(' / 구분: '+esc(e.kind==='fact'?'사실(Fact)':(e.kind==='opinion'?'의견(Opinion)':e.kind))):'')+'</span>'):'')+'</div>').join('');
   const s3e=evItems?step('05','Evidence','근거 찾기',
-    '<div class="rt-instr">주장마다 <b>근거</b>를 찾으세요. 글에 직접 없으면 <b>추론 과정</b>을 쓰면 됩니다.</div>'+evItems):'';
+    '<div class="rt-instr">주장마다 <b>근거</b>를 찾으세요. 글에 직접 없으면 <b>추론 과정</b>을 쓰면 됩니다. 그리고 그 주장이 검증 가능한 <b>사실</b>인지, 글쓴이의 <b>의견</b>인지도 구별하세요.</div>'+evItems):'';
 
   // 05 Reason — 문장 역할 근거
   const _ksAll = !!w.reason_all;
@@ -78143,11 +81540,19 @@ function elRtHTML(w){
 
   // 06 Check
   const chk=(w.checklist||[]).map((c,i)=>'<li><span class="cb"></span>'+ed('checklist.'+i,c)+'</li>').join('');
-  const s6=step('08','Check','스스로 점검',
-    (chk?('<ul class="rt-chk">'+chk+'</ul>'):'')
+  const fixedChk='<li><span class="cb"></span>각 문장이 주제에서 벗어나지 않았는지(<b>통일성</b>) 확인했나요?</li>'
+    +'<li><span class="cb"></span>문장들이 연결어·지시어로 자연스럽게 이어지는지(<b>응집성</b>) 확인했나요?</li>';
+  const s6=step('09','Check','스스로 점검',
+    '<ul class="rt-chk">'+fixedChk+(chk?chk:'')+'</ul>'
     +'<div class="rt-q" style="margin-top:12px">가장 헷갈렸던 문장과 그 이유를 적어보세요.</div>'+F('full')+F('full'));
 
-  const body=s0+s4+s1+s2+s3t+s3e+s3+s5+s6;
+  // 08 Title — 제목 짓기 (핵심 주장을 압축한 표현 찾기)
+  const s7=step('08','Title','제목 짓기',
+    '<div class="rt-instr">07단계에서 찾은 핵심 주장을 바탕으로, 이 글에 어울리는 <b>제목</b>을 지어보세요. 제목은 주제를 압축해 담아야 합니다.</div>'
+    +F('full')
+    +(w.title_answer?('<span class="rt-ans" contenteditable="true">예시 제목 — '+esc(w.title_answer)+'</span>'):''));
+
+  const body=s0+s4+s1+s2+s3t+s3e+s3+s5+s7+s6;
   return '<div class="rt-root">'+head+goals+strat+passage+(body||'<div class="rt-instr">내용이 비어 있습니다. 다시 생성해 주세요.</div>')
     +'<div class="rt-foot">ION ENGLISH · 논리독해 훈련</div></div>';
 }
@@ -78620,12 +82025,14 @@ async function elGenerateReadThink(){
     +'"passage":[{"en":"문장1"},{"en":"문장2"}],'
     +'"blocks":[{"role":"","summary":"한 줄 요약(한국어)","relation":"다음 블록과의 논리 관계(구체화/일반화/예시/재진술/부연/상술/대조/반박/양보/인과/귀결/전환/나열/문제제기/해결책)","sentences":["영어 원문 문장"],"sent_tags":[{"t":["대립구조/G-S 연결/나열 대응/구조 역접/문장 결합/정보 전환/시제 전환/단어 발전 중 해당되는 것만 0~3개"],"why":"이 문장에 그 전략이 걸리는 이유 한 줄(한국어)","gs":{"g":"t에 G-S 연결이 있을 때만: 일반(General) 부분","s":"구체(Specific) 부분"}}]}],'
     +'"connectors":[{"word":"지문에 실제로 나온 영어 표현 그대로","fn":"기능(대조/인과/예시/추가/귀결)","type":"explicit 또는 implicit","sent":1}],'
-    +'"topic":{"subject":"소재(영어 원문 핵심 명사구)","subject_ko":"소재 한국어 뜻","main_idea":"주제(한국어 한 문장)","explicit":true,"topic_sentence_no":1,"topic_sentence_en":"주제문 영어 원문"},'
-    +'"evidence":[{"claim":"글쓴이의 주장(한국어)","answer":"근거 문장 번호와 근거 요약(한국어)"}],'
+    +'"topic":{"subject":"소재(영어 원문 핵심 명사구)","subject_ko":"소재 한국어 뜻","scope":"좁음 또는 넓음","scope_note":"소재의 폭을 그렇게 판단한 근거(한국어 한 줄)","main_idea":"주제(한국어 한 문장)","explicit":true,"topic_sentence_no":1,"topic_sentence_en":"주제문 영어 원문","genre":"설명문/논설문/서사문/묘사문/실용문 중 하나"},'
+    +'"evidence":[{"claim":"글쓴이의 주장(한국어)","answer":"근거 문장 번호와 근거 요약(한국어)","kind":"fact 또는 opinion"}],'
     +'"key_sentences":[{"en":"핵심 문장(영어 원문)","answer":"역할과 앞 문장과의 관계(한국어)"}],'
     +'"key_vocab":[{"word":"","ko":""}],'
     +'"judge_flow":["핵심 주장 판별 흐름 4단계(한국어)"],'
     +'"main_claim":"글의 핵심 주장 한 문장(한국어)",'
+    +'"dev_pattern":"글 전체의 전개방식(나열형/대조형/인과형/문제-해결형/일반-구체형/시간순 중 하나, 한국어)",'
+    +'"title_answer":"이 글에 어울리는 제목 예시(한국어 한 줄, 주제를 압축)",'
     +'"checklist":["점검 항목 3개(한국어)"]}\n'
     +'개수: goals 3, blocks 3~5, evidence 2~3, key_sentences 4~5, key_vocab 4~6, judge_flow 4, checklist 3.\n'
     +'[connectors] word 는 반드시 지문에 나온 영어 표현 그대로 쓴다(한국어 번역 금지).\n'
@@ -78642,7 +82049,10 @@ async function elGenerateReadThink(){
     +'  · explicit=true 이면 topic_sentence_no(문장 번호)와 topic_sentence_en(그 문장 영어 원문)을 반드시 넣는다.\n'
     +'  · 여러 문장에 흩어져 있어 한 문장으로 특정할 수 없을 때만 explicit=false 로 한다. 애매하면 explicit=true 를 우선한다.\n'
     +'  · main_idea 는 어느 경우든 한국어 한 문장으로 정리한다.\n'
-    +'[evidence] 근거가 지문에 직접 없으면 answer 에 어떤 내용에서 추론했는지 설명한다.\n'
+    +'[evidence] 근거가 지문에 직접 없으면 answer 에 어떤 내용에서 추론했는지 설명한다. kind 는 그 주장이 검증 가능한 사실 진술이면 "fact", 글쓴이의 판단·평가·제안이면 "opinion" 이다.\n'
+    +'[topic 추가] scope 는 소재를 넓게 다루는지(예: "동물" 전반) 좁게 다루는지(예: "북극곰의 사냥 습성") 판단해 "좁음" 또는 "넓음" 으로 쓰고, scope_note 에 그 근거를 한 줄로 쓴다. genre 는 글의 목적에 따라 판정한다(정보 전달=설명문, 주장·설득=논설문, 이야기 서술=서사문, 대상 묘사=묘사문, 실용 정보=실용문).\n'
+    +'[dev_pattern] blocks 의 relation 흐름을 종합해 글 전체의 전개방식을 하나로 정한다. 예/대조가 반복되면 나열형, A vs B 대립이 중심이면 대조형, 원인→결과가 중심이면 인과형, 문제제기→해결책이면 문제-해결형, 일반 원리→구체 사례면 일반-구체형이다.\n'
+    +'[title_answer] main_claim 을 압축한 한국어 제목을 하나 만든다. 완전한 문장이 아니라 제목 형태(명사구)로 쓴다.\n'
     +'[judge_flow] 각 항목에 번호를 붙이지 마라. 내용만 쓴다.\n'
     +'[중요] 모든 키를 채운 완전한 JSON 을 끝까지 출력한다. 문장은 간결하게 써서 응답이 잘리지 않게 한다.';
   let made=null, lastErr='';
@@ -78685,8 +82095,8 @@ const _RT_PARTS={
     spec:'"connectors":[{"word":"지문에 나온 영어 표현 그대로","fn":"기능","type":"explicit 또는 implicit","sent":1}]',
     rule:'논리 표지를 빠짐없이 찾는다(문장 수의 80% 이상 목표). 중복 금지(대소문자만 다른 것도 중복). 구 단위(In fact, Instead of, Rather than)를 접속사보다 우선한다. type:"implicit" 항목을 1개 이상 포함한다.'},
   topic:{label:'소재·주제',
-    spec:'"topic":{"subject":"소재(영어 핵심 명사구)","subject_ko":"한국어 뜻","main_idea":"주제(한국어 한 문장)","explicit":true,"topic_sentence_no":1,"topic_sentence_en":"주제문 영어 원문"}',
-    rule:'subject 는 반복되는 핵심 명사구를 영어 원문 그대로 쓴다. So/Therefore/Thus 가 붙은 문장이나 마지막 단락의 제안·당위 문장은 주제문이므로 explicit=true 로 판정한다. 애매하면 explicit=true 를 우선한다.'},
+    spec:'"topic":{"subject":"소재(영어 핵심 명사구)","subject_ko":"한국어 뜻","scope":"좁음 또는 넓음","scope_note":"근거 한 줄","main_idea":"주제(한국어 한 문장)","explicit":true,"topic_sentence_no":1,"topic_sentence_en":"주제문 영어 원문","genre":"설명문/논설문/서사문/묘사문/실용문 중 하나"}',
+    rule:'subject 는 반복되는 핵심 명사구를 영어 원문 그대로 쓴다. So/Therefore/Thus 가 붙은 문장이나 마지막 단락의 제안·당위 문장은 주제문이므로 explicit=true 로 판정한다. 애매하면 explicit=true 를 우선한다. scope 는 소재를 넓게(일반적 범주) 다루는지 좁게(구체적 대상) 다루는지 판단하고 scope_note 에 근거를 쓴다. genre 는 글의 목적(정보전달/주장/서술/묘사/실용)에 따라 정한다.'},
   key_vocab:{label:'핵심 어휘',
     spec:'"key_vocab":[{"word":"","ko":""}]',
     rule:'지문 이해에 꼭 필요한 어휘 4~6개를 고른다. 이전과 다른 어휘를 우선 고려한다.'}
