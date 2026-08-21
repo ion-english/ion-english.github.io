@@ -12873,6 +12873,7 @@ function _splTextToExpr(text){
 //  학생: 폴더 카드 → 플래시카드 학습 (기본 6단계 + 선생님 커스텀 카드)
 // ═══════════════════════════════════════════════════════════════
 const PHONICS_LEVELS = [
+  { level:0, title:'SB0 · 알파벳 카드', emoji:'🔡', color:'#f59e0b' },
   { level:1, title:'SB1 · 알파벳 소리', emoji:'🔤', color:'#1a56db' },
   { level:2, title:'SB2 · 단모음', emoji:'🅰️', color:'#059669' },
   { level:3, title:'SB3 · 장모음 (Magic E)', emoji:'✨', color:'#7c3aed' },
@@ -12881,6 +12882,58 @@ const PHONICS_LEVELS = [
 ];
 // Smart Phonics 3rd Edition (SB1~SB5) Audio Script 기준 실제 유닛/단어 구성
 const PHONICS_CURRICULUM = [
+  // ── SB0: 알파벳 카드 — SB1(단어 속 소리)과 달리 예시 단어 없이, 알파벳 글자 자체(이름+모양)만 익히는 가장 첫 단계 ──
+  { id:'sb0-u1', level:0, title:'알파벳 1 · Aa Bb Cc', emoji:'🔡',
+    sub:'단어 없이 알파벳 글자 자체를 익혀요 — 이름을 듣고, 모양을 보고, 사선지에 여러 번 써봐요',
+    items:[
+      {label:'Aa',sound:'에이',example:''},
+      {label:'Bb',sound:'비',example:''},
+      {label:'Cc',sound:'씨',example:''}
+    ]},
+  { id:'sb0-u2', level:0, title:'알파벳 2 · Dd Ee Ff', emoji:'🔡', sub:'',
+    items:[
+      {label:'Dd',sound:'디',example:''},
+      {label:'Ee',sound:'이',example:''},
+      {label:'Ff',sound:'에프',example:''}
+    ]},
+  { id:'sb0-u3', level:0, title:'알파벳 3 · Gg Hh Ii', emoji:'🔡', sub:'',
+    items:[
+      {label:'Gg',sound:'지',example:''},
+      {label:'Hh',sound:'에이치',example:''},
+      {label:'Ii',sound:'아이',example:''}
+    ]},
+  { id:'sb0-u4', level:0, title:'알파벳 4 · Jj Kk Ll', emoji:'🔡', sub:'',
+    items:[
+      {label:'Jj',sound:'제이',example:''},
+      {label:'Kk',sound:'케이',example:''},
+      {label:'Ll',sound:'엘',example:''}
+    ]},
+  { id:'sb0-u5', level:0, title:'알파벳 5 · Mm Nn Oo', emoji:'🔡', sub:'',
+    items:[
+      {label:'Mm',sound:'엠',example:''},
+      {label:'Nn',sound:'엔',example:''},
+      {label:'Oo',sound:'오',example:''}
+    ]},
+  { id:'sb0-u6', level:0, title:'알파벳 6 · Pp Qq Rr', emoji:'🔡', sub:'',
+    items:[
+      {label:'Pp',sound:'피',example:''},
+      {label:'Qq',sound:'큐',example:''},
+      {label:'Rr',sound:'알',example:''}
+    ]},
+  { id:'sb0-u7', level:0, title:'알파벳 7 · Ss Tt Uu Vv', emoji:'🔡', sub:'',
+    items:[
+      {label:'Ss',sound:'에스',example:''},
+      {label:'Tt',sound:'티',example:''},
+      {label:'Uu',sound:'유',example:''},
+      {label:'Vv',sound:'브이',example:''}
+    ]},
+  { id:'sb0-u8', level:0, title:'알파벳 8 · Ww Xx Yy Zz', emoji:'🔡', sub:'',
+    items:[
+      {label:'Ww',sound:'더블유',example:''},
+      {label:'Xx',sound:'엑스',example:''},
+      {label:'Yy',sound:'와이',example:''},
+      {label:'Zz',sound:'지',example:''}
+    ]},
   // ── SB1: 알파벳 소리 ──
   { id:'sb1-u1', level:1, title:'Unit 1. Aa·Bb·Cc', emoji:'🔤',
     sub:'글자 이름이 아니라 "소리"를 익혀요',
@@ -13190,6 +13243,7 @@ function _phonicsCombinedItems(level, content){
 }
 function _phonicsDefaultFolderTitle(key){
   if(key.indexOf('letter:')===0) return key.slice(7)+' 카드';
+  if(key === 'level:0') return '알파벳 카드';
   if(key.indexOf('level:')===0){ const lvl = PHONICS_LEVELS.find(l=>l.level===parseInt(key.slice(6),10)); return (lvl?lvl.title:'')+' 합본'; }
   const stage = PHONICS_CURRICULUM.find(s=>s.id===key);
   return stage ? stage.title : key;
@@ -13696,9 +13750,14 @@ function phonicsMgmtOpenStudentModal(){
 }
 
 function phonicsMgmtOpenFolder(key){
+  if(key === 'level:0'){ _phonicsOpenAlphabetList(key, 'teacher'); return; }
   if(_phonicsMgmtKey !== key){ _phonicsMgmtSelectMode = false; _phonicsMgmtSelectedIds = new Set(); }
   _phonicsMgmtView = key.indexOf('letter:')===0 ? 'letter' : 'stage';
   _phonicsMgmtKey = key; _phonicsMgmtEditId = null; _phonicsMgmtBulkEdit = false;
+  _phonicsMgmtRender();
+}
+function phonicsMgmtEditAlphabetRaw(){
+  _phonicsMgmtView = 'stage'; _phonicsMgmtKey = 'level:0'; _phonicsMgmtEditId = null; _phonicsMgmtBulkEdit = false;
   _phonicsMgmtRender();
 }
 function phonicsMgmtBack(){ _phonicsMgmtView='root'; _phonicsMgmtKey=null; _phonicsMgmtEditId=null; _phonicsMgmtBulkEdit=false; _phonicsMgmtSelectMode=false; _phonicsMgmtSelectedIds=new Set(); _phnFolderEditKey=null; _phonicsMgmtRender(); }
@@ -13781,7 +13840,10 @@ function _phonicsMgmtRenderFolder(root){
     }));
     root.innerHTML = `
       <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(sub)}</div>
-      <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>
+      ${key==='level:0' ? `
+        <button onclick="_phonicsOpenAlphabetList('level:0','teacher')" style="width:100%;margin:8px 0 16px;padding:13px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface);color:var(--t1);font-size:14.5px;font-weight:800;cursor:pointer" onmouseover="this.style.borderColor='#1a56db'" onmouseout="this.style.borderColor='var(--border)'">학생 화면 미리보기 (목록·쓰기순서·퀴즈)</button>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">아래는 각 카드의 이름·소리 데이터를 수정하는 화면이에요. 실제 학생에게 보이는 목록형 화면은 위 버튼으로 확인하세요.</div>
+      ` : `<div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>`}
       ${selectBar}
       <div class="cards-grid">${items.map(cardHTML).join('')}</div>
     `;
@@ -14077,40 +14139,15 @@ function _phonicsRenderFolderList(root, content, assigns){
     const pct = f.items.length ? Math.round((doneCount / f.items.length) * 100) : 0;
     const pillLabel = isLetter(f.key) ? '커스텀' : f.combined ? '합본' : 'SB'+f.level;
     return `
-    <div style="position:relative;background:#fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;
-      box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid #e8edf4;
-      transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:pointer"
-      onclick="phonicsOpenFolder('${f.key}')"
-      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
-      onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='#e8edf4'">
-      <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;min-height:44px">
-        <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
-          <span style="font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap">${pillLabel}</span>
-        </div>
-        <div style="display:flex;align-items:baseline;gap:4px">
-          <span style="font-size:${pct>0?'20px':'15px'};font-weight:${pct>0?'800':'600'};color:${pct>0?'#1e3a5f':'#cbd5e1'};letter-spacing:-0.5px">${pct>0?pct+'%':'미시작'}</span>
-          ${pct>0?'<span style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span>':''}
-        </div>
+    <div class="book-card" onclick="phonicsOpenFolder('${f.key}')" style="cursor:pointer">
+      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:2px 9px;flex-shrink:0">${pillLabel}</span>
+        <span style="margin-left:auto;font-size:13px;font-weight:700;color:${pct===100?'#16a34a':pct>0?'#2563eb':'#cbd5e1'}">${pct>0?pct+'%':'미시작'}</span>
       </div>
-      <div style="padding:10px 20px 0;min-height:56px;display:flex;align-items:flex-start">
-        <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2">${f.emoji} ${esc(f.title)}</div>
-      </div>
-      <div style="padding:4px 20px 0">
-        <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
-          <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:linear-gradient(90deg,#1a56db,#3b82f6);border-radius:99px;transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1)"></div>
-        </div>
-      </div>
-      <div style="padding:8px 20px 0;min-height:32px;display:flex;align-items:center">
-        <span style="font-size:14px;color:#94a3b8;font-weight:500">${f.items.length}개 카드</span>
-      </div>
-      <div style="margin-top:auto;padding:14px 16px 16px">
-        <button onclick="event.stopPropagation();phonicsOpenFolder('${f.key}')"
-          style="width:100%;padding:12px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28);min-height:44px"
-          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          학습하기
-        </button>
+      <div class="book-name">${f.emoji} ${esc(f.title)}</div>
+      <div class="book-meta" style="margin-bottom:10px">${f.items.length}개 카드</div>
+      <div style="height:6px;background:var(--surface2,#f1f5f9);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#1a56db,#3b82f6);border-radius:99px;transition:width 0.6s"></div>
       </div>
     </div>`;
   };
@@ -14127,7 +14164,7 @@ function _phonicsRenderFolderList(root, content, assigns){
     + _phnAsgBannerHTML(assigns, content)
     + `
     <div class="search-bar" style="margin-bottom:14px"><span class="search-icon-el">🔍</span><input type="text" class="search-input" id="phn-stu-search" placeholder="파닉스 폴더 검색..." oninput="_renderPhnStuGrid()"></div>
-    <div id="phn-stu-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px"></div>
+    <div id="phn-stu-grid" class="cards-grid"></div>
   `;
 
   window._phnStuAllFolders = allFolders;
@@ -14583,7 +14620,263 @@ async function _phnGrade(subId, status){
   }catch(e){ showToast('오류: ' + e.message, 'error'); }
 }
 
+// ═══════════════════════════════════════════════════════════
+//  SB0 · 알파벳 카드 전용 화면 — 단어장처럼 목록형, 대/소문자 쓰기 순서 표시
+// ═══════════════════════════════════════════════════════════
+const PHN_ALPHA_STROKES_UPPER = {
+  A:[{d:'M50,10 L20,90'},{d:'M50,10 L80,90'},{d:'M32,55 L68,55'}],
+  B:[{d:'M25,10 L25,90'},{d:'M25,10 C55,10 55,45 25,48'},{d:'M25,50 C60,50 60,90 25,90'}],
+  C:[{d:'M70,25 C55,10 25,20 25,50 C25,80 55,90 70,75'}],
+  D:[{d:'M25,10 L25,90'},{d:'M25,10 C60,10 65,50 25,90'}],
+  E:[{d:'M25,10 L25,90'},{d:'M25,10 L70,10'},{d:'M25,50 L60,50'},{d:'M25,90 L70,90'}],
+  F:[{d:'M25,10 L25,90'},{d:'M25,10 L70,10'},{d:'M25,50 L60,50'}],
+  G:[{d:'M70,25 C55,10 25,20 25,50 C25,80 55,90 70,75 L70,60'},{d:'M70,60 L50,60'}],
+  H:[{d:'M25,10 L25,90'},{d:'M75,10 L75,90'},{d:'M25,50 L75,50'}],
+  I:[{d:'M50,10 L50,90'}],
+  J:[{d:'M65,10 L65,70 C65,88 45,88 35,72'}],
+  K:[{d:'M25,10 L25,90'},{d:'M75,10 L25,50'},{d:'M25,50 L75,90'}],
+  L:[{d:'M25,10 L25,90'},{d:'M25,90 L70,90'}],
+  M:[{d:'M20,90 L20,10'},{d:'M20,10 L50,60'},{d:'M50,60 L80,10'},{d:'M80,10 L80,90'}],
+  N:[{d:'M25,90 L25,10'},{d:'M25,10 L75,90'},{d:'M75,90 L75,10'}],
+  O:[{d:'M50,10 C25,10 20,50 20,50 C20,50 25,90 50,90 C75,90 80,50 80,50 C80,50 75,10 50,10'}],
+  P:[{d:'M25,10 L25,90'},{d:'M25,10 C60,10 60,45 25,48'}],
+  Q:[{d:'M50,10 C25,10 20,50 20,50 C20,50 25,90 50,90 C75,90 80,50 80,50 C80,50 75,10 50,10'},{d:'M60,65 L80,90'}],
+  R:[{d:'M25,10 L25,90'},{d:'M25,10 C60,10 60,45 25,48'},{d:'M40,48 L75,90'}],
+  S:[{d:'M68,22 C60,10 35,10 28,25 C20,42 45,48 55,52 C68,58 72,72 60,82 C50,90 30,88 25,75'}],
+  T:[{d:'M20,10 L80,10'},{d:'M50,10 L50,90'}],
+  U:[{d:'M25,10 L25,65 C25,85 75,85 75,65 L75,10'}],
+  V:[{d:'M20,10 L50,90'},{d:'M50,90 L80,10'}],
+  W:[{d:'M15,10 L32,90'},{d:'M32,90 L50,35'},{d:'M50,35 L68,90'},{d:'M68,90 L85,10'}],
+  X:[{d:'M22,10 L78,90'},{d:'M78,10 L22,90'}],
+  Y:[{d:'M20,10 L50,50'},{d:'M80,10 L50,50'},{d:'M50,50 L50,90'}],
+  Z:[{d:'M22,10 L78,10'},{d:'M78,10 L22,90'},{d:'M22,90 L78,90'}],
+};
+const PHN_ALPHA_STROKES_LOWER = {
+  a:[{d:'M65,58 C55,50 35,50 28,65 C20,82 40,98 58,92 C65,89 65,80 65,58'},{d:'M65,58 L65,98'}],
+  b:[{d:'M28,10 L28,98'},{d:'M28,65 C50,50 72,58 72,80 C72,98 45,102 28,90'}],
+  c:[{d:'M70,60 C60,50 35,52 30,68 C25,85 50,98 68,88'}],
+  d:[{d:'M72,65 C60,50 35,52 30,68 C25,85 50,98 68,90'},{d:'M72,10 L72,98'}],
+  e:[{d:'M28,75 L70,75 C70,58 45,50 32,62 C20,75 30,98 55,95 C63,94 68,90 70,86'}],
+  f:[{d:'M65,15 C50,10 45,20 45,35 L45,98'},{d:'M30,55 L60,55'}],
+  g:[{d:'M68,60 C58,50 35,52 30,68 C25,84 45,95 62,90'},{d:'M68,60 L68,105 C68,118 50,120 38,112'}],
+  h:[{d:'M28,10 L28,98'},{d:'M28,68 C40,52 72,55 72,72 L72,98'}],
+  i:[{dot:true,x:50,y:22},{d:'M50,50 L50,98'}],
+  j:[{dot:true,x:60,y:20},{d:'M60,50 L60,105 C60,118 42,118 35,110'}],
+  k:[{d:'M28,10 L28,98'},{d:'M28,72 L62,50'},{d:'M32,75 L65,98'}],
+  l:[{d:'M50,10 L50,98'}],
+  m:[{d:'M20,50 L20,98'},{d:'M20,68 C28,52 48,55 48,72 L48,98'},{d:'M48,68 C56,52 76,55 76,72 L76,98'}],
+  n:[{d:'M28,50 L28,98'},{d:'M28,68 C40,52 72,55 72,72 L72,98'}],
+  o:[{d:'M50,50 C30,50 25,72 30,85 C36,98 64,98 70,85 C75,72 70,50 50,50'}],
+  p:[{d:'M28,50 L28,118'},{d:'M28,65 C50,50 72,58 72,80 C72,98 45,102 28,90'}],
+  q:[{d:'M72,65 C60,50 35,52 30,68 C25,85 50,98 68,90'},{d:'M72,50 L72,118'}],
+  r:[{d:'M32,50 L32,98'},{d:'M32,65 C40,52 55,52 60,58'}],
+  s:[{d:'M65,58 C58,50 35,50 30,60 C25,70 45,72 55,76 C65,80 68,90 58,96 C48,100 32,98 28,90'}],
+  t:[{d:'M45,20 L45,90 C45,98 55,98 60,92'},{d:'M28,55 L60,55'}],
+  u:[{d:'M28,50 L28,85 C28,98 62,98 62,85 L62,50'},{d:'M62,50 L62,98'}],
+  v:[{d:'M25,50 L50,98'},{d:'M50,98 L75,50'}],
+  w:[{d:'M18,50 L32,98'},{d:'M32,98 L50,65'},{d:'M50,65 L68,98'},{d:'M68,98 L82,50'}],
+  x:[{d:'M25,50 L75,98'},{d:'M75,50 L25,98'}],
+  y:[{d:'M25,50 L50,90'},{d:'M75,50 L38,110 C34,118 28,120 22,118'}],
+  z:[{d:'M25,52 L75,52'},{d:'M75,52 L25,98'},{d:'M25,98 L75,98'}],
+};
+function _phnArrowStub(d, len){
+  const nums = (d.match(/-?[\d.]+/g)||[]).map(Number);
+  if(nums.length < 4) return null;
+  const sx=nums[0], sy=nums[1], tx=nums[2], ty=nums[3];
+  const dx=tx-sx, dy=ty-sy;
+  const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+  const ux=dx/dist, uy=dy/dist;
+  return { sx, sy, ex: sx+ux*len, ey: sy+uy*len };
+}
+function _phnStrokeSVG(letter, isUpper, uid){
+  const strokes = (isUpper ? PHN_ALPHA_STROKES_UPPER : PHN_ALPHA_STROKES_LOWER)[letter];
+  if(!strokes) return '';
+  const vb = isUpper ? '0 0 100 100' : '0 0 100 120';
+  const markerId = 'phnarrow-'+uid;
+  const baseline = isUpper ? '' : `<line x1="4" y1="100" x2="96" y2="100" stroke="#e2e8f0" stroke-width="1.5"/><line x1="4" y1="50" x2="96" y2="50" stroke="#f1f5f9" stroke-width="1.2" stroke-dasharray="2,2"/>`;
+  // 글자 모양 자체는 진한 잉크색으로 은은하게, 화살표는 각 획의 시작점에서 짧게만 표시
+  const letterPaths = strokes.filter(s=>!s.dot).map(s=>`<path d="${s.d}" fill="none" stroke="#334155" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`).join('');
+
+  // 시작점이 겹치는(같은 지점에서 여러 획이 출발하는) 경우 숫자 배지가 서로 가려지지 않도록
+  // 가까운 시작점끼리 묶어서(cluster) 부채꼴로 펼쳐 배치한다.
+  const info = strokes.map((s,i)=>{
+    if(s.dot) return { dot:true, x:s.x, y:s.y, n:i+1 };
+    const stub = _phnArrowStub(s.d, 15);
+    return stub ? { dot:false, n:i+1, sx:stub.sx, sy:stub.sy, ex:stub.ex, ey:stub.ey } : null;
+  }).filter(Boolean);
+  const clusters = [];
+  info.filter(it=>!it.dot).forEach(it=>{
+    let cl = clusters.find(c=>Math.hypot(c.sx-it.sx, c.sy-it.sy) < 6);
+    if(!cl){ cl = { sx:it.sx, sy:it.sy, members:[] }; clusters.push(cl); }
+    cl.members.push(it);
+  });
+  const badgePos = {};
+  clusters.forEach(cl=>{
+    const k = cl.members.length;
+    const R = k>1 ? 17 : 11;
+    cl.members.forEach((m,idx)=>{
+      const angle = (-90 + idx*(360/k)) * Math.PI/180;
+      badgePos[m.n] = { x: cl.sx + Math.cos(angle)*R, y: cl.sy + Math.sin(angle)*R };
+    });
+  });
+
+  const overlay = info.map(it=>{
+    if(it.dot){
+      const bx = it.x-10, by = it.y-2;
+      return `<circle cx="${it.x}" cy="${it.y}" r="4" fill="#334155" opacity="0.85"/>`
+           + `<circle cx="${bx}" cy="${by}" r="7" fill="#fff" stroke="#f97316" stroke-width="1.2"/>`
+           + `<text x="${bx}" y="${by+3.2}" font-size="8.5" font-weight="800" fill="#f97316" text-anchor="middle">${it.n}</text>`;
+    }
+    const b = badgePos[it.n];
+    return `<path d="M${it.sx},${it.sy} L${it.ex},${it.ey}" fill="none" stroke="#3b82f6" stroke-width="2.4" stroke-linecap="round" marker-end="url(#${markerId})"/>`
+         + `<circle cx="${it.sx}" cy="${it.sy}" r="3" fill="#f97316"/>`
+         + `<line x1="${it.sx}" y1="${it.sy}" x2="${b.x}" y2="${b.y}" stroke="#fdba74" stroke-width="1"/>`
+         + `<circle cx="${b.x}" cy="${b.y}" r="7" fill="#fff" stroke="#f97316" stroke-width="1.1"/>`
+         + `<text x="${b.x}" y="${b.y+3.2}" font-size="8.5" font-weight="800" fill="#f97316" text-anchor="middle">${it.n}</text>`;
+  }).join('');
+  return `<svg viewBox="${vb}" width="100%" height="100%" style="overflow:visible;display:block">
+    <defs><marker id="${markerId}" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#3b82f6"/></marker></defs>
+    ${baseline}${letterPaths}${overlay}
+  </svg>`;
+}
+
+let _phnAlphaQuiz = null;
+let _phnAlphaCtx = 'student';
+function _phonicsOpenAlphabetList(key, ctx){
+  _phnAlphaQuiz = null;
+  _phnAlphaCtx = ctx === 'teacher' ? 'teacher' : 'student';
+  _phonicsRenderAlphabetList(key);
+}
+function _phnAlphaBack(){
+  if(_phnAlphaCtx === 'teacher'){ phonicsMgmtBack(); }
+  else { renderStudentPhonics(); }
+}
+function _phonicsRenderAlphabetList(key){
+  const root = _phonicsRootEl();
+  if(!root) return;
+  const content = window._phonicsContent || _phonicsEmptyContent();
+  const folders = _phonicsFolders(content);
+  const f = folders.find(x=>x.key===key);
+  if(!f) return;
+  const prog = _phonicsProgress();
+  const doneIds = new Set(prog[key] || []);
+  const rows = f.items.map((it,i)=>{
+    const upper = it.label[0], lower = it.label[1] || it.label[0].toLowerCase();
+    const done = doneIds.has(it.id);
+    const numStr = String(i+1).padStart(2,'0');
+    return `<div style="display:grid;grid-template-columns:26px 96px 96px 1fr auto auto auto;gap:16px;align-items:center;padding:16px;border-bottom:1px solid var(--border)${done?';background:#f5fef8':''}">
+      <span style="font-size:12px;font-weight:700;color:${done?'#5dc888':'#c8d5e8'};text-align:center">${numStr}</span>
+      <div style="width:92px;height:92px" title="대문자 쓰는 순서">${_phnStrokeSVG(upper, true, 'u'+i)}</div>
+      <div style="width:92px;height:110px" title="소문자 쓰는 순서">${_phnStrokeSVG(lower, false, 'l'+i)}</div>
+      <div style="min-width:0">
+        <div style="font-size:24px;font-weight:800;color:var(--t1);letter-spacing:0.3px;font-family:Georgia,serif">${esc(upper)}&nbsp;&nbsp;${esc(lower)}</div>
+        <div style="font-size:13px;color:#c2410c;font-weight:700">${esc(it.sound)}</div>
+      </div>
+      <button onclick="_phonicsSpeak('${upper}')" title="듣기" style="width:34px;height:34px;border-radius:50%;border:1.5px solid #0891b2;background:#ecfeff;color:#0891b2;cursor:pointer;font-size:14px;flex-shrink:0">🔊</button>
+      <button onclick="phonicsOpenWritingPractice('${key}','${it.id}')" title="사선지에 쓰기 연습" style="width:34px;height:34px;border-radius:50%;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;cursor:pointer;font-size:14px;flex-shrink:0">✍️</button>
+      <button onclick="phonicsToggleDone('${key}', '${it.id}');_phonicsRenderAlphabetList('${key}')" title="완료 표시" style="width:34px;height:34px;border-radius:50%;border:1.5px solid ${done?'#16a34a':'var(--border)'};background:${done?'#22c55e':'var(--surface2)'};color:${done?'#fff':'var(--t3)'};cursor:pointer;font-size:13px;font-weight:900;flex-shrink:0">${done?'✓':''}</button>
+    </div>`;
+  }).join('');
+  const doneCount = f.items.filter(it=>doneIds.has(it.id)).length;
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({
+    backFn: '_phnAlphaBack()', title: f.title,
+    actionsHTML: _phnAlphaCtx === 'teacher' ? _phonicsPillBtn('✏️ 카드 데이터 수정', 'phonicsMgmtEditAlphabetRaw()', false) : ''
+  }));
+  root.innerHTML = `
+    <button onclick="_phnAlphaBack()" style="display:inline-flex;align-items:center;gap:5px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      폴더 목록으로
+    </button>
+    <div style="font-size:19px;font-weight:800;color:var(--t1);margin-bottom:2px">${f.emoji} ${esc(f.title)}</div>
+    <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(f.sub)}</div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">✔ 대문자·소문자 옆 화살표 순서를 따라 써보세요 · 완료 ${doneCount}/${f.items.length}개</div>
+    <button onclick="phonicsAlphabetQuizStart('${key}')" style="width:100%;margin-bottom:16px;padding:16px 18px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='#1a56db';this.style.background='#f7f9ff'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:2px">소리 듣고 대문자·소문자 맞추기</div>
+        <div style="font-size:12.5px;color:var(--t3)">퀴즈로 확인해보기</div>
+      </div>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;overflow:hidden">${rows}</div>
+  `;
+}
+
+/* ── 소리 듣고 대문자·소문자 맞추기 퀴즈 ── */
+function _phnBuildAlphaQuiz(key){
+  const content = window._phonicsContent || _phonicsEmptyContent();
+  const items = _phonicsFolderItems(key, content);
+  const letters = items.map(it=>it.label[0]).filter(Boolean);
+  let questions = letters.map(L=>{
+    const correctUpper = Math.random() < 0.5;
+    const wrongPool = letters.filter(x=>x!==L);
+    const wrongs = [];
+    while(wrongs.length < 3 && wrongPool.length){
+      const cand = wrongPool[Math.floor(Math.random()*wrongPool.length)];
+      if(!wrongs.includes(cand)) wrongs.push(cand);
+    }
+    const opts = [{ letter:L, upper: correctUpper, correct:true }]
+      .concat(wrongs.map(w=>({ letter:w, upper: Math.random()<0.5, correct:false })));
+    return { letter:L, options: opts.sort(()=>Math.random()-0.5) };
+  });
+  questions = questions.map(q=>({q,r:Math.random()})).sort((a,b)=>a.r-b.r).map(x=>x.q);
+  return { key, questions, idx:0, score:0, answered:false, chosen:null };
+}
+function phonicsAlphabetQuizStart(key){
+  _phnAlphaQuiz = _phnBuildAlphaQuiz(key);
+  _phonicsRenderAlphabetQuiz();
+}
+function _phonicsRenderAlphabetQuiz(){
+  const root = _phonicsRootEl();
+  const q = _phnAlphaQuiz;
+  if(!root || !q) return;
+  if(q.idx >= q.questions.length){
+    root.innerHTML = `
+      <div style="max-width:420px;margin:0 auto;text-align:center;padding:40px 0">
+        <div style="font-size:44px;margin-bottom:10px">${q.score===q.questions.length?'🏆':'🎉'}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--t1);margin-bottom:6px">${q.score} / ${q.questions.length} 맞혔어요!</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
+          <button onclick="phonicsAlphabetQuizStart('${q.key}')" style="border:none;background:#1a56db;color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">다시 풀기</button>
+          <button onclick="_phonicsRenderAlphabetList('${q.key}')" style="border:1px solid var(--border);background:var(--surface2);color:var(--t2);border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer">목록으로</button>
+        </div>
+      </div>`;
+    return;
+  }
+  const cur = q.questions[q.idx];
+  const optHTML = cur.options.map(o=>{
+    const isChosen = q.answered && q.chosen === o;
+    const showState = q.answered && (o.correct || isChosen);
+    const bg = showState ? (o.correct ? '#dcfce7' : '#fee2e2') : '#fff';
+    const border = showState ? (o.correct ? '#16a34a' : '#dc2626') : 'var(--border)';
+    const ch = o.upper ? o.letter : o.letter.toLowerCase();
+    return `<button ${q.answered?'disabled':''} onclick="_phnAlphaQuizAnswer(${cur.options.indexOf(o)})" style="padding:22px 0;border-radius:16px;border:2px solid ${border};background:${bg};font-size:38px;font-weight:800;font-family:Georgia,serif;color:var(--t1);cursor:${q.answered?'default':'pointer'}">${esc(ch)}</button>`;
+  }).join('');
+  root.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;text-align:center">
+      <button onclick="_phonicsRenderAlphabetList('${q.key}')" style="display:inline-flex;align-items:center;gap:5px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px;float:left">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        그만하기
+      </button>
+      <div style="clear:both"></div>
+      <div style="font-size:12.5px;color:var(--t3);margin-bottom:14px">${q.idx+1} / ${q.questions.length}</div>
+      <button onclick="_phonicsSpeak('${cur.letter}')" style="width:88px;height:88px;border-radius:50%;border:none;background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;cursor:pointer;margin:0 auto 20px;box-shadow:0 6px 20px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:18px">소리를 듣고 알맞은 글자를 골라보세요</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${optHTML}</div>
+    </div>`;
+  requestAnimationFrame(()=>{ try{ _phonicsSpeak(cur.letter); }catch(e){} });
+}
+function _phnAlphaQuizAnswer(optIdx){
+  const q = _phnAlphaQuiz;
+  if(!q || q.answered) return;
+  const cur = q.questions[q.idx];
+  const chosen = cur.options[optIdx];
+  q.answered = true; q.chosen = chosen;
+  if(chosen.correct) q.score++;
+  _phonicsRenderAlphabetQuiz();
+  setTimeout(()=>{ q.idx++; q.answered=false; q.chosen=null; _phonicsRenderAlphabetQuiz(); }, 900);
+}
+
 function phonicsOpenFolder(key){
+  if(key === 'level:0'){ _phonicsOpenAlphabetList(key, 'student'); return; }
   if(_phonicsActiveKey !== key){ _phonicsSelectMode = false; _phonicsSelectedIds = new Set(); }
   _phonicsActiveKey = key;
   const root = _phonicsRootEl();
@@ -14597,22 +14890,23 @@ function phonicsOpenFolder(key){
   const cards = f.items.map(it=>{
     const done = doneIds.has(it.id);
     const selected = _phonicsSelectMode && _phonicsSelectedIds.has(it.id);
-    return `<div
+    return `<div class="book-card"
       onmousedown="phonicsCardPressStart('${key}','${it.id}')" onmouseup="phonicsCardPressEnd()" onmouseleave="phonicsCardPressEnd()"
       ontouchstart="phonicsCardPressStart('${key}','${it.id}')" ontouchend="phonicsCardPressEnd()"
       onclick="phonicsCardClick('${key}','${it.id}')"
       ondblclick="if(!_phonicsSelectMode) phonicsOpenWordStudy('${key}','${it.id}')"
       title="꾹 누르면 여러 카드를 선택할 수 있어요 · 더블클릭하면 단어 학습이 열려요"
-      style="cursor:pointer;user-select:none;border:1.5px solid ${selected?'#1a56db':(done?'#1a56db':'var(--border)')};border-radius:14px;padding:16px;background:${selected?'#eff6ff':'var(--surface)'};text-align:center;position:relative;box-shadow:${selected?'0 0 0 3px rgba(26,86,219,0.15)':'none'}">
+      style="cursor:pointer;user-select:none;position:relative;${selected?'border-color:#1a56db;background:#eff6ff;box-shadow:0 0 0 3px rgba(26,86,219,0.15);':''}">
       ${_phonicsSelectMode?`<span style="position:absolute;top:8px;left:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid ${selected?'#1a56db':'var(--border)'};background:${selected?'#1a56db':'#fff'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${selected?'✓':''}</span>`:''}
       ${done?'<span style="position:absolute;top:8px;right:10px;font-size:13px;color:#1a56db">✔</span>':''}
-      ${it.unitTitle?`<div style="font-size:10.5px;font-weight:700;color:var(--t3);margin-bottom:4px">${esc(it.unitTitle)}</div>`:''}
-      <div style="font-size:26px;font-weight:800;color:var(--t1);margin-bottom:6px">${esc(it.label)}</div>
-      <div style="font-size:13px;color:var(--t3);margin-bottom:4px">${esc(it.sound)}</div>
-      <div style="font-size:12.5px;color:var(--t3);opacity:0.8;margin-bottom:10px;white-space:pre-line">${esc(it.example)}</div>
-      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-        <button onclick="event.stopPropagation();_phonicsSpeak('${esc(it.example.replace(/\n/g, ', ')).replace(/'/g,"\\'")}')" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--t2)">🔊 듣기</button>
-        <button onclick="event.stopPropagation();phonicsToggleDone('${key}', '${it.id}')" style="border:1px solid ${done?'#1a56db':'var(--border)'};background:${done?'#1a56db':'var(--surface2)'};color:${done?'#fff':'var(--t2)'};border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">${done?'완료됨':'완료 표시'}</button>
+      ${it.unitTitle?`<div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:5px">${esc(it.unitTitle)}</div>`:''}
+      <div style="font-size:${it.example?'23px':'34px'};font-weight:800;color:var(--t1);margin-bottom:7px;font-family:${it.example?"inherit":"Georgia, serif"}">${esc(it.label)}</div>
+      <div class="book-meta" style="margin-bottom:4px;font-size:16px;color:#c2410c;font-weight:700">${esc(it.sound)}</div>
+      ${it.example?`<div class="book-meta" style="font-size:15px;color:var(--t1);white-space:pre-line;line-height:1.5">${esc(it.example)}</div>`:''}
+      <div class="book-footer">
+        <button class="btn btn-secondary btn-sm" style="flex:1" title="듣기" onclick="event.stopPropagation();_phonicsSpeak('${esc((it.example?it.example.replace(/\n/g, ', '):it.label)).replace(/'/g,"\\'")}')">🔊 듣기</button>
+        <button class="btn btn-secondary btn-sm" style="flex:1" title="사선지에 여러 번 써보기" onclick="event.stopPropagation();phonicsOpenWritingPractice('${key}','${it.id}')">✍️ 쓰기</button>
+        <button class="btn ${done?'btn-primary':'btn-secondary'} btn-sm" style="flex:1" onclick="event.stopPropagation();phonicsToggleDone('${key}', '${it.id}')">${done?'완료됨':'완료 표시'}</button>
       </div>
     </div>`;
   }).join('');
@@ -14634,8 +14928,98 @@ function phonicsOpenFolder(key){
     <div style="font-size:13px;color:var(--t3);margin-bottom:2px">${esc(f.sub)}</div>
     <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">💡 카드를 꾹 누르면 여러 개를 골라 한번에 학습할 수 있어요 · 더블클릭하면 바로 단어 학습이 열려요</div>
     ${selectBar}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">${cards}</div>
+    <div class="cards-grid">${cards}</div>
   `;
+}
+
+// ── 알파벳 쓰기 연습 (사선지에 여러 번 따라쓰기) — 4줄 정식 노트 괘선 사용 ──
+let _phnPracticeCtx = null;
+function _phnDrawPracticeSheet(ctx, w, h, rows, letter){
+  ctx.clearRect(0, 0, w, h);
+  const gap = Math.max(22, h * 0.06);
+  const rowH = (h - gap*(rows-1)) / rows;
+  for(let r=0; r<rows; r++){
+    const y0 = r*(rowH+gap);
+    ctx.save();
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(1, y0+1, w-2, rowH-2, 10); else ctx.rect(1, y0+1, w-2, rowH-2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(0, y0);
+    _phnDrawNotebookLines(ctx, w, rowH);
+    ctx.restore();
+  }
+  if(letter){
+    ctx.save();
+    ctx.font = '700 ' + Math.floor(rowH*0.5) + 'px Georgia, serif';
+    ctx.fillStyle = 'rgba(148,163,184,0.4)';
+    ctx.textBaseline = 'alphabetic';
+    const rowsToGuide = Math.min(rows, 2);
+    for(let r=0; r<rowsToGuide; r++){
+      const y0 = r*(rowH+gap);
+      const marginV = rowH*0.12, usable = rowH - marginV*2;
+      const base = marginV + usable*2/3;
+      ctx.fillText(letter, 14, y0+base);
+    }
+    ctx.restore();
+  }
+}
+function phonicsOpenWritingPractice(key, itemId){
+  const content = window._phonicsContent || _phonicsEmptyContent();
+  const items = _phonicsFolderItems(key, content);
+  const it = items.find(x=>x.id===itemId);
+  if(!it) return;
+  _phnPracticeCtx = { key, letter: it.label, sound: it.sound };
+  _phonicsRenderWritingPractice();
+}
+function _phonicsRenderWritingPractice(){
+  const root = _phonicsRootEl();
+  if(!root || !_phnPracticeCtx) return;
+  const { key, letter, sound } = _phnPracticeCtx;
+  _phonicsSetOverlayHeader(_phonicsOverlayHeader({ backFn:`phonicsOpenFolder('${key}')`, title: letter+' 쓰기 연습' }));
+  root.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;text-align:center">
+      <button onclick="phonicsOpenFolder('${key}')" style="display:inline-flex;align-items:center;gap:5px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0 0 14px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        폴더로 돌아가기
+      </button>
+      <div style="font-size:48px;font-weight:900;color:var(--t1);margin-bottom:4px;font-family:Georgia,serif">${esc(letter)}</div>
+      <div style="font-size:14px;color:var(--t3);margin-bottom:14px">${esc(sound)}</div>
+      <button onclick="_phonicsSpeak('${letter.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;border:1.5px solid #0891b2;background:#ecfeff;color:#0891b2;border-radius:14px;padding:8px 16px;font-size:13.5px;font-weight:800;cursor:pointer">🔊 소리 듣기</button>
+      <div style="font-size:12.5px;color:#94a3b8;margin-bottom:10px">희미한 글자를 따라 사선지에 여러 번 써보세요</div>
+      <canvas id="phn-practice-canvas" width="380" height="420" style="width:100%;max-width:380px;height:420px;border:2px dashed var(--border);border-radius:14px;background:#fff;touch-action:none;margin-bottom:12px"></canvas>
+      <div style="display:flex;justify-content:center;gap:8px">
+        <button onclick="_phnPracticeClear()" style="border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer;color:var(--t2)">지우기</button>
+        <button onclick="phonicsOpenFolder('${key}')" style="border:none;background:#0891b2;color:#fff;border-radius:10px;padding:9px 20px;font-size:13.5px;cursor:pointer;font-weight:700">완료 ✓</button>
+      </div>
+    </div>`;
+  requestAnimationFrame(_phnPracticeInitCanvas);
+}
+function _phnPracticeInitCanvas(){
+  const cv = document.getElementById('phn-practice-canvas');
+  if(!cv || !_phnPracticeCtx) return;
+  const ctx = cv.getContext('2d');
+  _phnDrawPracticeSheet(ctx, cv.width, cv.height, 4, _phnPracticeCtx.letter);
+  if(cv._phnBound) return;
+  cv._phnBound = true;
+  ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1e3a5f';
+  let drawing = false, last = null;
+  function pos(e){ const r = cv.getBoundingClientRect(); return { x: (e.clientX-r.left)*(cv.width/r.width), y: (e.clientY-r.top)*(cv.height/r.height) }; }
+  cv.addEventListener('pointerdown', e=>{ e.preventDefault(); drawing=true; last=pos(e); try{ cv.setPointerCapture(e.pointerId); }catch(err){} });
+  cv.addEventListener('pointermove', e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; });
+  function endDraw(){ drawing=false; last=null; }
+  cv.addEventListener('pointerup', endDraw);
+  cv.addEventListener('pointerleave', endDraw);
+  cv.addEventListener('pointercancel', endDraw);
+}
+function _phnPracticeClear(){
+  const cv = document.getElementById('phn-practice-canvas'); if(!cv || !_phnPracticeCtx) return;
+  const ctx = cv.getContext('2d');
+  _phnDrawPracticeSheet(ctx, cv.width, cv.height, 4, _phnPracticeCtx.letter);
 }
 
 // ── 단어 학습 (단어장 스타일) ──────────────────────────────
@@ -15432,7 +15816,7 @@ function _phonicsItemWords(item){
   return String(item.example||'').split(/[,\n]/).map(w=>w.trim()).filter(Boolean).map(w=>({ en:w, ko:_phonicsWordKo(w), emoji:_phonicsWordEmoji(w) }));
 }
 
-let _phonicsStudyFolder = null, _phonicsStudyItemId = null, _phonicsStudyItemIds = null, _phonicsStudyMode = 'list', _phonicsStudyIdx = 0, _phonicsQuiz = null, _phonicsStudyCtx = 'student', _phonicsCardView = 'grid', _phonicsQuizOrder = 'seq';
+let _phonicsStudyFolder = null, _phonicsStudyItemId = null, _phonicsStudyItemIds = null, _phonicsStudyMode = 'list', _phonicsStudyIdx = 0, _phonicsQuiz = null, _phonicsStudyCtx = 'student', _phonicsCardView = 'grid', _phonicsQuizOrder = 'random';
 let _phonicsLetterQuiz = null;                         // 소리 듣고 글자 고르기 퀴즈 상태
 let _phonicsWriteIdx = 0, _phonicsWriteRevealed = false, _phonicsWriteScore = {correct:0, total:0};   // 쓰기 연습 상태
 let _phonicsWriteDrawing = false, _phonicsWriteHasStroke = false;   // 캔버스 드로잉 상태(재렌더 없이 유지)
@@ -15442,14 +15826,14 @@ let _phonicsMatch = null;   // 짝짓기 상태 — 패턴(소리) 2개 이상�
 
 function phonicsOpenWordStudy(folderKey, itemId, ctx){
   _phonicsStudyFolder = folderKey; _phonicsStudyItemId = itemId; _phonicsStudyItemIds = null;
-  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'seq';
+  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'random';
   _phonicsOddSound = null; _phonicsMatch = null;
   _phonicsStudyCtx = ctx === 'teacher' ? 'teacher' : 'student';
   _phonicsRenderWordStudy();
 }
 function phonicsOpenWordStudyMulti(folderKey, itemIds, ctx){
   _phonicsStudyFolder = folderKey; _phonicsStudyItemId = null; _phonicsStudyItemIds = itemIds.slice();
-  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'seq';
+  _phonicsStudyMode = 'list'; _phonicsStudyIdx = 0; _phonicsQuiz = null; _phonicsCardView = 'grid'; _phonicsQuizOrder = 'random';
   _phonicsOddSound = null; _phonicsMatch = null;
   _phonicsStudyCtx = ctx === 'teacher' ? 'teacher' : 'student';
   _phonicsRenderWordStudy();
@@ -15986,22 +16370,23 @@ function _phonicsRenderWordStudy(){
     }
     const cur = q.questions[q.idx];
     root.innerHTML = header + orderBar + `
-      <div style="max-width:360px;margin:0 auto;text-align:center">
-        <div style="font-size:12.5px;color:var(--t3);margin-bottom:10px">${q.idx+1} / ${q.questions.length}</div>
-        <button onclick="_phonicsSpeak('${esc(cur.word.en).replace(/'/g,"\\'")}')" style="border:1.5px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:14px;padding:14px 22px;font-size:16px;cursor:pointer;font-weight:800;margin-bottom:16px">🔊 소리 듣기</button>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="max-width:420px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:14px">${q.idx+1} / ${q.questions.length}</div>
+        <button onclick="_phonicsSpeak('${esc(cur.word.en).replace(/'/g,"\\'")}')" style="width:88px;height:88px;border-radius:50%;border:none;background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;cursor:pointer;margin:0 auto 20px;box-shadow:0 6px 20px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:18px">소리를 듣고 알맞은 단어를 골라보세요</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           ${cur.options.map(opt=>{
-            let bg='var(--surface)', bd='var(--border)', tc='var(--t1)';
+            let bg='#fff', bd='var(--border)';
             if(q.answered){
-              if(opt.en===cur.word.en){ bg='#dcfce7'; bd='#22c55e'; }
-              else if(opt.en===q.chosen){ bg='#fee2e2'; bd='#ef4444'; }
+              if(opt.en===cur.word.en){ bg='#dcfce7'; bd='#16a34a'; }
+              else if(opt.en===q.chosen){ bg='#fee2e2'; bd='#dc2626'; }
             }
-            return `<button ${q.answered?'disabled':''} onclick="phonicsQuizAnswer('${esc(opt.en).replace(/'/g,"\\'")}')" style="border:1.5px solid ${bd};background:${bg};color:${tc};border-radius:10px;padding:12px 8px;font-size:14px;font-weight:700;cursor:${q.answered?'default':'pointer'}">${esc(opt.en)}</button>`;
+            return `<button ${q.answered?'disabled':''} onclick="phonicsQuizAnswer('${esc(opt.en).replace(/'/g,"\\'")}')" style="padding:22px 8px;border-radius:16px;border:2px solid ${bd};background:${bg};font-size:20px;font-weight:800;font-family:Georgia,serif;color:var(--t1);cursor:${q.answered?'default':'pointer'}">${esc(opt.en)}</button>`;
           }).join('')}
         </div>
-        ${q.answered?`<button onclick="phonicsQuizNext()" style="margin-top:16px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-weight:700">다음 문제 →</button>`:''}
       </div>`;
     if(!q.answered){ setTimeout(()=>{ try{ _phonicsSpeak(cur.word.en); }catch(e){} }, 150); }
+    else { setTimeout(()=>{ if(_phonicsStudyMode==='quiz' && _phonicsQuiz===q && q.answered) phonicsQuizNext(); }, 900); }
     return;
   }
 
@@ -16025,23 +16410,23 @@ function _phonicsRenderWordStudy(){
     }
     const cur = q.questions[q.idx];
     root.innerHTML = header + orderBar + `
-      <div style="max-width:360px;margin:0 auto;text-align:center">
-        <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">${q.idx+1} / ${q.questions.length}</div>
-        <div style="font-size:14px;font-weight:600;color:var(--t3);margin-bottom:10px">이 소리는 어떤 철자일까요?</div>
-        <button onclick="_phonicsSpeak('${esc(cur.sample.en).replace(/'/g,"\\'")}')" style="border:1.5px solid #1a56db;background:#eff6ff;color:#1a56db;border-radius:14px;padding:14px 22px;font-size:16px;cursor:pointer;font-weight:800;margin-bottom:16px">🔊 소리 듣기</button>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="max-width:340px;margin:0 auto;text-align:center">
+        <div style="font-size:12.5px;color:var(--t3);margin-bottom:14px">${q.idx+1} / ${q.questions.length}</div>
+        <button onclick="_phonicsSpeak('${esc(cur.sample.en).replace(/'/g,"\\'")}')" style="width:88px;height:88px;border-radius:50%;border:none;background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;cursor:pointer;margin:0 auto 20px;box-shadow:0 6px 20px rgba(26,86,219,0.3);display:flex;align-items:center;justify-content:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:18px">소리를 듣고 알맞은 글자를 골라보세요</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           ${cur.options.map(opt=>{
-            let bg='var(--surface)', bd='var(--border)', tc='var(--t1)';
+            let bg='#fff', bd='var(--border)';
             if(q.answered){
-              if(opt.label===cur.item.label){ bg='#dcfce7'; bd='#22c55e'; }
-              else if(opt.label===q.chosen){ bg='#fee2e2'; bd='#ef4444'; }
+              if(opt.label===cur.item.label){ bg='#dcfce7'; bd='#16a34a'; }
+              else if(opt.label===q.chosen){ bg='#fee2e2'; bd='#dc2626'; }
             }
-            return `<button ${q.answered?'disabled':''} onclick="phonicsLetterQuizAnswer('${esc(opt.label).replace(/'/g,"\\'")}')" style="border:1.5px solid ${bd};background:${bg};color:${tc};border-radius:10px;padding:14px 8px;font-size:18px;font-weight:800;cursor:${q.answered?'default':'pointer'}">${esc(opt.label)}</button>`;
+            return `<button ${q.answered?'disabled':''} onclick="phonicsLetterQuizAnswer('${esc(opt.label).replace(/'/g,"\\'")}')" style="padding:12px 8px;border-radius:12px;border:2px solid ${bd};background:${bg};font-size:24px;font-weight:800;font-family:Georgia,serif;color:var(--t1);cursor:${q.answered?'default':'pointer'}">${esc(opt.label)}</button>`;
           }).join('')}
         </div>
-        ${q.answered?`<div style="margin-top:12px;font-size:13px;color:var(--t3)">정답: <b style="color:var(--t1)">${esc(cur.item.label)}</b> (${esc(cur.item.sound)}) · ${esc(cur.sample.en)}</div>`:''}
-        ${q.answered?`<button onclick="phonicsLetterQuizNext()" style="margin-top:12px;border:none;background:#1a56db;color:#fff;border-radius:10px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-weight:700">다음 문제 →</button>`:''}
+        ${q.answered?`<div style="margin-top:14px;font-size:13px;color:var(--t3)">정답: <b style="color:var(--t1)">${esc(cur.item.label)}</b> (${esc(cur.item.sound)}) · ${esc(cur.sample.en)}</div>`:''}
       </div>`;
+    if(q.answered){ setTimeout(()=>{ if(_phonicsStudyMode==='letter' && _phonicsLetterQuiz===q && q.answered) phonicsLetterQuizNext(); }, 1100); }
     return;
   }
 
@@ -66533,6 +66918,7 @@ function elBuildUI() {
       <div style="background:#fff;border:1.5px solid #ddd6fe;border-radius:10px;padding:13px">
         <div style="font-size:12px;font-weight:800;color:#4338ca;margin-bottom:8px">③ 포함할 분석 <span style="font-size:9.5px;font-weight:400;color:#94a3b8">(문장마다 적용)</span></div>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-ko" checked style="accent-color:#4338ca"> 📝 한글 해석 <span style="font-size:9px;color:#94a3b8">(AI)</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-summary" checked style="accent-color:#4338ca"> 💬 문장 요약(압축) <span style="font-size:9px;color:#94a3b8">(AI · 핵심만 짧게)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-struct" checked style="accent-color:#4338ca"> 🧩 문장 구조 분석 <span style="font-size:9px;color:#94a3b8">(문장에 지정)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-role" checked style="accent-color:#4338ca"> 🧠 논리·내용 역할 <span style="font-size:9px;color:#94a3b8">(AI)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-vocab" checked style="accent-color:#4338ca"> 📖 핵심 어휘 <span style="font-size:9px;color:#94a3b8">(단어 지정)</span></label>
@@ -79664,12 +80050,13 @@ window._faSentBookItems = null; // 문장집에서 가져온 {en,ko} 단위 (그
 
 // 표시 항목
 const _FA_SECTIONS = [
-  {key:'ko',     ko:'한글 해석',           c:'#0e7490', ai:true},
-  {key:'struct', ko:'문장 구조 분석(지정)', c:'#1d4ed8', ai:false},
-  {key:'role',   ko:'논리·내용 역할',       c:'#d97706', ai:true},
-  {key:'vocab',  ko:'핵심 어휘(단어 지정)',  c:'#059669', ai:false},
-  {key:'gpoint', ko:'문법 포인트(수동)',     c:'#7c3aed', ai:false},
-  {key:'exam',   ko:'출제 예상 포인트(수동)', c:'#dc2626', ai:false}
+  {key:'ko',      ko:'한글 해석',            c:'#0e7490', ai:true},
+  {key:'summary', ko:'문장 요약(압축)',       c:'#7A5C99', ai:true},
+  {key:'struct',  ko:'문장 구조 분석(지정)',  c:'#1d4ed8', ai:false},
+  {key:'role',    ko:'논리·내용 역할',        c:'#d97706', ai:true},
+  {key:'vocab',   ko:'핵심 어휘(단어 지정)',   c:'#059669', ai:false},
+  {key:'gpoint',  ko:'문법 포인트(수동)',      c:'#7c3aed', ai:false},
+  {key:'exam',    ko:'출제 예상 포인트(수동)', c:'#dc2626', ai:false}
 ];
 // 구조 라벨 팔레트
 // 구조지정 라벨 — 종류별로 묶어서 정리(문장성분 → 품사 → 절 → 구 → 특수구문)
@@ -79766,27 +80153,52 @@ async function faGenerate(){
     else { sents=_faSplitSentences(passage); }
     if(!sents.length){ if(st)st.textContent='문장을 찾지 못했습니다'; return; }
     const d={ title:(topic||'지문')+' Final 분석서', grade:grade, passage:passage, gist:'', structure_type:'', _html:{},
-      sentences:sents.map((en,idx)=>({en:en, ko:(bookKo?(bookKo[idx]||''):''), role:'', struct:[], vocab:[], gpoint:[], exam:[], _hl:[]})) };
+      sentences:sents.map((en,idx)=>({en:en, ko:(bookKo?(bookKo[idx]||''):''), summary:'', role:'', struct:[], vocab:[], gpoint:[], exam:[], _hl:[]})) };
     window._faData=d; window._faSections=dims;
     faRender();
     const meta=await _faCall('너는 한국 고등 영어 강사다. 아래 영어 지문의 구조 유형과 핵심 주제를 한국어로. JSON만.\n[지문]\n'+passage+'\n[출력] {"structure_type":"구조 유형(예: 주장-근거)","gist":"핵심 주제 한 줄"}', 1200);
     if(meta){ d.structure_type=meta.structure_type||''; d.gist=meta.gist||''; faRender(); }
     // 문장별 해석 + 역할 (AI)
-    const needKo=dims.includes('ko') && !bookKo, needRole=dims.includes('role');
-    if(needKo||needRole){
+    const needKo=dims.includes('ko') && !bookKo, needRole=dims.includes('role'), needSummary=dims.includes('summary');
+    if(needKo||needRole||needSummary){
       const N=5; const total=sents.length;
+      // 논리 역할은 "글 전체 흐름 속 위치"를 알아야 판단 가능 → 전문(全文)과 위치 정보를 항상 함께 전달
+      const fullCtx = needRole
+        ? ('[지문 전체 — 역할 판단용 참고, 이 부분은 분석 대상 아님]\n'
+           +sents.map((s,k)=>(k+1)+'. '+s).join('\n')+'\n'
+           +((d.structure_type||'')?('전체 구조: '+d.structure_type+'\n'):'')
+           +((d.gist||'')?('전체 요지: '+d.gist+'\n'):'')
+           +'총 '+total+'문장.\n\n')
+        : '';
       for(let i=0;i<total;i+=N){
         if(st) st.innerHTML='<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div> 문장 분석 중... ('+Math.min(i+N,total)+'/'+total+')';
         const batch=sents.slice(i,i+N);
         const prompt='너는 한국 고등 영어 분석서 전문가다. 아래 영어 문장들을 분석한다. JSON만. 한국어. 한자/일본어 금지.\n'
-          +'[문장]\n'+batch.map((s,k)=>(i+k+1)+'. '+s).join('\n')+'\n'
+          +fullCtx
+          +'[분석할 문장]\n'+batch.map((s,k)=>(i+k+1)+'번(전체 '+total+'문장 중). '+s).join('\n')+'\n'
           +'문장 순서대로 items 배열('+batch.length+'개). 각 객체 키:\n'
           +(needKo?'- ko: 자연스러운 한국어 문장 해석(통문장 번역).\n':'')
-          +(needRole?'- role: 이 문장이 글에서 하는 논리적 역할·내용 한 줄(한국어).\n':'')
+          +(needSummary?'- summary: 이 문장의 핵심만 남긴 "압축 요약". 목적은 길게 다시 쓰는 게 아니라 한눈에 훑기 위한 축약이다.\n'
+            +'  · 최대 20자(역접·대조를 담아야 하는 경우만 최대 28자), 되도록 12자 내외. ko(해석)보다 반드시 훨씬 짧아야 한다. ko와 길이가 비슷하면 실패다.\n'
+            +'  · 완전한 문장으로 쓰지 말 것. 명사구·개조식으로 끝낼 것. (예: "AI 열풍이 만든 전문가 착각", "과학자 의견 경청 필요")\n'
+            +'  · 수식어·예시·부연은 모두 버리고 주어와 핵심 술어만 남긴다. "~습니다/~이다" 같은 종결어미 금지.\n'
+            +'  · 원문이 역접·대조 구조(but/however/although/while/yet 등, 또는 "A는 ~지만 B는 ~")인 경우, 뒷부분만 담지 말고 양쪽을 모두 담을 것. 짧게 유지하되 대조를 살려 쉼표나 "~나/~지만"으로 두 축을 연결한다. (예: "AI는 강력하나 과장 광고가 낳은 신격화")\n'
+            +'  · 해석을 그대로 옮기거나 어순만 바꾸는 것 금지.\n'
+            :'')
+          +(needRole?'- role: 이 문장이 "글 전체 흐름 속에서" 하는 논리적 역할. 아래 카테고리 중 하나만 대괄호로. 문장 내용을 다시 설명하거나 풀어쓰지 말 것 — 카테고리 태그만.\n'
+            +'  카테고리: [도입] [주제] [원인] [결과] [상세/부연] [예시] [역접] [비교] [대조] [반론] [결론] [제안] [과정]\n'
+            +'  판단 규칙(중요):\n'
+            +'   · 반드시 위 [지문 전체]에서 이 문장의 번호 위치를 확인하고, 앞뒤 문장과의 관계로 판단할 것. 문장만 따로 떼어 보고 판단하지 말 것.\n'
+            +'   · [도입]은 글을 여는 첫머리에만 쓴다. 글 중반·후반 문장에 [도입]을 붙이지 말 것.\n'
+            +'   · [결론]·[제안]은 글을 닫는 마무리 부분에만 쓴다. 앞부분 문장에 붙이지 말 것.\n'
+            +'   · But/However/Instead 같은 연결어가 있어도, 그 문장이 글 전체에서 최종 주장을 매듭짓는 자리면 [역접]이 아니라 [결론] 또는 [제안]이 맞다. 연결어만 보고 기계적으로 [역접]을 붙이지 말 것.\n'
+            +'   · Neither/Nor/Not only~but also/Likewise/Similarly 처럼 앞 문장과 "같은 방향"으로 대상을 하나 더 보태는 문장은 [역접]이 아니다. 부정어 도치(Neither do X…)는 "X도 마찬가지로 아니다"라는 첨가이므로 [상세/부연]에 해당한다.\n'
+            +'   · [역접]은 앞 내용을 실제로 뒤집거나 반대 방향으로 꺾을 때만 쓴다. 앞 내용을 이어 받아 보강하면 [상세/부연], 근거를 대면 [예시]나 [원인]이다.\n'
+            :'')
           +'[출력 JSON만] {"items":[{...}]}';
         const res=await _faCall(prompt, 3500);
         const items=(res&&Array.isArray(res.items))?res.items:[];
-        batch.forEach((en,k)=>{ const it=items[k]||{}; const tgt=d.sentences[i+k]; if(it.ko!=null) tgt.ko=it.ko; if(it.role!=null) tgt.role=it.role; });
+        batch.forEach((en,k)=>{ const it=items[k]||{}; const tgt=d.sentences[i+k]; if(it.ko!=null) tgt.ko=it.ko; if(it.summary!=null) tgt.summary=it.summary; if(it.role!=null) tgt.role=it.role; });
         faRender();
       }
     }
@@ -80033,64 +80445,80 @@ function faDelExam(si, xi){ faSyncEditsFromDOM(); const s=window._faData.sentenc
 function _faSentenceHtml(s,i,dims){
   const G=window._faGMode;
   const sel=(G==='struct' && window._faSel && window._faSel.si===i)?window._faSel:null;
-  let body='';
-  // 한글 해석
-  if(dims.includes('ko')) body+='<div style="font-size:12.5px;color:#0e7490;line-height:1.55;margin-top:4px">'+_faEd('sentences.'+i+'.ko', s.ko||'', 'white-space:pre-wrap')+'</div>';
-  // 구조 라벨 팔레트 (구조지정 모드 + 이 문장에 선택 범위가 있을 때)
+  // ── 좌단: 역할+문장 → 구조팔레트 → 어휘 → 문법포인트 → 출제포인트 (출력물 .fas-en/.fas-tags와 동일 여백) ──
+  let left='';
+  left+='<div ondblclick="faEnterEnEdit('+i+')" title="더블클릭하면 문장 직접 수정" style="font-size:14.5px;font-weight:400;color:#1B1B1B;line-height:1.58">'
+    +(dims.includes('role')?'<span style="color:#4F6B52;font-weight:800;font-size:12px;margin-right:3px">'+_faEd('sentences.'+i+'.role', s.role||'', 'display:inline')+'</span>':'')
+    +_faRenderEn(s,i)+'</div>';
   if(G==='struct' && sel){
-    let pal='<div class="fa-noprint" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;background:#f8faff;border:1px solid #dbeafe;border-radius:8px;padding:7px">';
+    let pal='<div class="fa-noprint" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;margin-left:18px;background:#f8faff;border:1px solid #dbeafe;border-radius:8px;padding:7px">';
     _FA_STRUCT.forEach(L=>{ pal+='<button onclick="faAddStruct('+i+',\''+L.ko+'\')" style="font-size:10.5px;font-weight:700;color:#fff;background:'+L.c+';border:none;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">'+L.ko+'</button>'; });
     pal+='<button onclick="window._faSel=null;faRender()" style="font-size:10.5px;color:#64748b;background:#fff;border:1px solid #cbd5e1;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">취소</button></div>';
-    body+=pal;
+    left+=pal;
   }
-  // 논리 역할
-  if(dims.includes('role')) body+='<div style="font-size:11.5px;color:#92400e;line-height:1.5;margin-top:6px">'+_faChip('역할','#d97706')+_faEd('sentences.'+i+'.role', s.role||'', 'white-space:pre-wrap')+'</div>';
-  // 핵심 어휘
+  const tagsOpen='<div style="margin-top:5px;margin-left:18px">';
   if(dims.includes('vocab') && (s.vocab||[]).length){
-    body+='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">';
+    left+=tagsOpen;
     (s.vocab||[]).forEach((v,j)=>{ const vp='sentences.'+i+'.vocab.'+j;
-      let vh='<span style="font-size:11px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:2px 7px;color:#065f46">'
-        +'<b>'+_faEd(vp+'.word', v.word||'')+'</b> '+_faEd(vp+'.meaning', v.meaning||'', 'color:#047857');
-      if(((v.syn||'').trim())||v._showSyn) vh+=' <span style="color:#0369a1">≈ '+_faEd(vp+'.syn', v.syn||'','color:#0369a1','onkeydown="faVocabBack(event,'+i+','+j+',\'syn\')"')+'</span>';
-      else vh+=' <button class="fa-noprint" onclick="faAddVocabField('+i+','+j+',\'syn\')" style="font-size:9px;color:#0369a1;background:#fff;border:1px dashed #7dd3fc;border-radius:4px;padding:0 4px;cursor:pointer;font-family:inherit">＋유의어</button>';
-      if(((v.ant||'').trim())||v._showAnt) vh+=' <span style="color:#b91c1c">↔ '+_faEd(vp+'.ant', v.ant||'','color:#b91c1c','onkeydown="faVocabBack(event,'+i+','+j+',\'ant\')"')+'</span>';
-      else vh+=' <button class="fa-noprint" onclick="faAddVocabField('+i+','+j+',\'ant\')" style="font-size:9px;color:#b91c1c;background:#fff;border:1px dashed #fca5a5;border-radius:4px;padding:0 4px;cursor:pointer;font-family:inherit">＋반의어</button>';
-      vh+=' <span class="fa-noprint" onclick="faDelVocab('+i+','+j+')" style="cursor:pointer;color:#dc2626;font-weight:800">✕</span></span>';
-      body+=vh; });
-    body+='</div>';
+      let vh='<div style="font-size:11.5px;line-height:1.55;margin-bottom:3px;color:#8A6420">'
+        +'<b>'+_faEd(vp+'.word', v.word||'', 'font-weight:700;color:#8A6420')+'</b> '+_faEd(vp+'.meaning', v.meaning||'', 'color:#8A6420');
+      if(((v.syn||'').trim())||v._showSyn) vh+=' <span style="color:#6B7280">≈ '+_faEd(vp+'.syn', v.syn||'','color:#6B7280','onkeydown="faVocabBack(event,'+i+','+j+',\'syn\')"')+'</span>';
+      else vh+=' <button class="fa-noprint" onclick="faAddVocabField('+i+','+j+',\'syn\')" style="font-size:9px;color:#6B7280;background:#fff;border:1px dashed #c7ccd1;border-radius:4px;padding:0 4px;cursor:pointer;font-family:inherit">＋유의어</button>';
+      if(((v.ant||'').trim())||v._showAnt) vh+=' <span style="color:#6B7280">↔ '+_faEd(vp+'.ant', v.ant||'','color:#6B7280','onkeydown="faVocabBack(event,'+i+','+j+',\'ant\')"')+'</span>';
+      else vh+=' <button class="fa-noprint" onclick="faAddVocabField('+i+','+j+',\'ant\')" style="font-size:9px;color:#6B7280;background:#fff;border:1px dashed #c7ccd1;border-radius:4px;padding:0 4px;cursor:pointer;font-family:inherit">＋반의어</button>';
+      vh+=' <span class="fa-noprint" onclick="faDelVocab('+i+','+j+')" style="cursor:pointer;color:#dc2626;font-weight:800">✕</span></div>';
+      left+=vh; });
+    left+='</div>';
   }
-  // 문법 포인트 (수동) — 출제 포인트 위
   if(dims.includes('gpoint')){
-    body+='<div style="margin-top:6px">';
-    (s.gpoint||[]).forEach((g,gi)=>{ body+='<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:2px">'+_faChip('📐 문법','#7c3aed')
-      +'<span style="flex:1;font-size:11.5px;color:#6d28d9;line-height:1.5">'+_faEd('sentences.'+i+'.gpoint.'+gi, g||'', 'white-space:pre-wrap')+'</span>'
+    left+=tagsOpen;
+    (s.gpoint||[]).forEach((g,gi)=>{ left+='<div style="display:flex;gap:6px;align-items:flex-start;font-size:11.5px;line-height:1.55;margin-bottom:3px;color:#B8492F;font-weight:700">'
+      +'<span style="flex:1">'+_faEd('sentences.'+i+'.gpoint.'+gi, g||'', 'white-space:pre-wrap')+'</span>'
       +'<span class="fa-noprint" onclick="faDelGpoint('+i+','+gi+')" style="cursor:pointer;color:#dc2626;font-weight:800;font-size:11px">✕</span></div>'; });
-    body+='<button class="fa-noprint" onclick="faAddGpoint('+i+')" style="font-size:10px;font-weight:700;color:#7c3aed;background:#fff;border:1px dashed #c4b5fd;border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit;margin-top:2px">＋ 문법포인트</button></div>';
+    left+='<button class="fa-noprint" onclick="faAddGpoint('+i+')" style="font-size:10px;font-weight:700;color:#B8492F;background:#fff;border:1px dashed #dcb2a3;border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit">＋ 문법포인트</button></div>';
   }
-  // 출제 예상 포인트 (수동)
   if(dims.includes('exam')){
-    body+='<div style="margin-top:6px">';
-    (s.exam||[]).forEach((x,xi)=>{ body+='<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:2px">'+_faChip('🎯 출제','#dc2626')
-      +'<span style="flex:1;font-size:11.5px;color:#b91c1c;line-height:1.5">'+_faEd('sentences.'+i+'.exam.'+xi, x||'', 'white-space:pre-wrap')+'</span>'
+    left+=tagsOpen;
+    (s.exam||[]).forEach((x,xi)=>{ left+='<div style="display:flex;gap:6px;align-items:flex-start;font-size:11.5px;line-height:1.55;margin-bottom:3px;color:#b91c1c">'+_faChip('🎯 출제','#dc2626')
+      +'<span style="flex:1">'+_faEd('sentences.'+i+'.exam.'+xi, x||'', 'white-space:pre-wrap')+'</span>'
       +'<span class="fa-noprint" onclick="faDelExam('+i+','+xi+')" style="cursor:pointer;color:#dc2626;font-weight:800;font-size:11px">✕</span></div>'; });
-    body+='<button class="fa-noprint" onclick="faAddExam('+i+')" style="font-size:10px;font-weight:700;color:#dc2626;background:#fff;border:1px dashed #fca5a5;border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit;margin-top:2px">＋ 출제포인트</button></div>';
+    left+='<button class="fa-noprint" onclick="faAddExam('+i+')" style="font-size:10px;font-weight:700;color:#dc2626;background:#fff;border:1px dashed #fca5a5;border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit">＋ 출제포인트</button></div>';
   }
-  return '<div class="fa-row" style="border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fff">'
-    +'<div style="display:flex;gap:8px;align-items:flex-start"><span style="flex-shrink:0;font-size:10px;font-weight:800;color:#fff;background:#4338ca;border-radius:5px;padding:2px 7px;margin-top:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+(i+1)+'</span>'
-    +'<div ondblclick="faEnterEnEdit('+i+')" title="더블클릭하면 문장 직접 수정" style="flex:1;font-size:13.5px;font-weight:600;color:#0f172a;line-height:1.7">'+_faRenderEn(s,i)+'</div></div>'
-    +body+'</div>';
+  // ── 우단: 해석 → 요약 (출력물 .fas-kr/.fas-sum과 동일) ──
+  let right='';
+  if(dims.includes('ko')) right+='<div style="font-size:12.5px;color:#4E6478;line-height:1.5">'+_faEd('sentences.'+i+'.ko', s.ko||'', 'white-space:pre-wrap')+'</div>';
+  if(dims.includes('summary')) right+='<div style="font-size:11.5px;color:#7A5C99;line-height:1.5;margin-top:4px;font-style:italic"><span style="margin-right:4px;font-style:normal">→</span>'+_faEd('sentences.'+i+'.summary', s.summary||'', 'white-space:pre-wrap')+'</div>';
+  return '<div class="fa-row" style="border-bottom:1px dotted #DEDBD3;padding:8px 0;margin-bottom:0;display:grid;grid-template-columns:2fr 1fr;column-gap:18px">'
+    +'<div style="display:flex;gap:4px;align-items:flex-start;grid-column:1"><span style="flex-shrink:0;min-width:14px;font-size:12px;font-weight:800;color:#1B1B1B">'+(i+1)+'</span>'
+      +'<div style="flex:1;min-width:0">'+left+'</div></div>'
+    +'<div style="grid-column:2;border-left:1px solid #C9C5BA;padding-left:18px">'+right+'</div>'
+    +'</div>';
 }
 function _faChip(label,color){ return '<span style="font-size:9.5px;font-weight:800;color:'+color+';background:#fff;border:1px solid '+color+';border-radius:5px;padding:1px 6px;margin-right:6px;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+label+'</span>'; }
 function faRender(){
   const out=document.getElementById('fa-output'); if(!out||!window._faData) return;
   const d=window._faData; const dims=window._faSections||_FA_SECTIONS.map(s=>s.key);
-  let html='<div class="fa-doc">';
-  html+=elMasthead({t:'#4f46e5',tbd:'#c7d2fe',label:'Final 분석서',title:((d._html&&d._html.title)||_gfEsc(d.title||'Final 분석서')),titleClass:'fa-ed',titleAttr:'data-sync="title" contenteditable="true"',meta:((d.sentences||[]).length+'문장')});
-  html+='<div class="fa-row" style="border:1.5px solid #c7d2fe;border-radius:11px;background:#f8faff;padding:10px 14px;margin-bottom:12px">'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:'+((d.gist||'')!==''?'4px':'0')+'"><span style="font-size:12.5px;font-weight:800;color:#1e3a8a">📌 한눈에 보기</span>'
-    +((d.structure_type||'')!==''?('<span style="font-size:11px;font-weight:800;color:#1d4ed8;background:#dbeafe;border-radius:6px;padding:2px 9px;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+_faEd('structure_type', d.structure_type, 'color:#1d4ed8')+'</span>'):'')+'</div>'
-    +((d.gist||'')!==''?('<div style="font-size:13px;color:#0f172a"><b style="color:#1d4ed8">핵심 주제:</b> '+_faEd('gist', d.gist||'', 'white-space:pre-wrap')+'</div>'):'')+'</div>';
+  let html='<div class="fa-doc" style="font-family:\'Pretendard\',\'Apple SD Gothic Neo\',\'Malgun Gothic\',sans-serif;color:#1B1B1B">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.6px solid #1B1B1B;padding-bottom:7px;margin-bottom:10px">'
+    +'<div><div style="font-size:9.5px;letter-spacing:.18em;color:#767472;font-weight:700;margin-bottom:10px">FINAL 분석서</div>'
+    +'<h1 style="font-family:\'Noto Serif KR\',\'Nanum Myeongjo\',serif;font-size:20px;font-weight:700;margin:0;color:#1B1B1B">'+_faEd('title', (d._html&&d._html.title)||d.title||'Final 분석서', 'display:inline')+'</h1></div>'
+    +'<div style="display:flex;gap:16px;align-items:flex-end">'
+      +((d.structure_type||'')!==''?('<div style="text-align:right"><div style="font-size:8.5px;color:#767472;letter-spacing:.04em">유형</div><div style="font-size:13.5px;font-weight:800;color:#1B1B1B">'+_faEd('structure_type', d.structure_type, 'display:inline')+'</div></div>'):'')
+      +'<div style="text-align:right"><div style="font-size:8.5px;color:#767472;letter-spacing:.04em">문장수</div><div style="font-size:13.5px;font-weight:800;color:#1B1B1B">'+(d.sentences||[]).length+'</div></div>'
+    +'</div></div>';
+  html+='<div style="font-size:9.5px;color:#767472;margin:2px 0 9px;padding-bottom:6px;border-bottom:1px solid #C9C5BA">'
+    +'<b style="color:#B8492F;font-weight:800">밑줄</b> 문법구조&nbsp;&nbsp;<b style="color:#8A6420;font-weight:800">■</b> 어휘&nbsp;&nbsp;<b style="color:#4F6B52;font-weight:800">■</b> 논리·역할&nbsp;&nbsp;<b style="color:#7A5C99;font-weight:800">■</b> 요약</div>';
   (d.sentences||[]).forEach((s,i)=>{ html+=_faSentenceHtml(s,i,dims); });
+  // ── 푸터: 핵심 요지 + 지문에서 확인된 출제 포인트 (출력물과 동일) ──
+  let examItems='';
+  (d.sentences||[]).forEach((s,i)=>{ (s.exam||[]).forEach(x=>{ if((x||'').trim()) examItems+='<li><b style="color:#B8492F">'+(i+1)+'.</b> '+_gfEsc(x)+'</li>'; }); });
+  if(!examItems) examItems='<li>표시된 출제 예상 포인트가 없습니다</li>';
+  html+='<div style="display:grid;grid-template-columns:2fr 1fr;column-gap:18px;border-top:1.6px solid #1B1B1B;padding-top:9px;margin-top:11px">'
+    +'<div style="grid-column:1"><h4 style="font-size:10.5px;font-weight:800;color:#1B1B1B;margin:0 0 3px;letter-spacing:.03em">핵심 요지</h4>'
+      +'<div style="font-size:11px;line-height:1.5;color:#333">'+_faEd('gist', d.gist||'', 'white-space:pre-wrap')+'</div></div>'
+    +'<div style="grid-column:2;padding-left:19px"><h4 style="font-size:10.5px;font-weight:800;color:#1B1B1B;margin:0 0 3px;letter-spacing:.03em">지문에서 확인된 출제 포인트</h4>'
+      +'<ul style="font-size:11px;line-height:1.55;color:#333;margin:0;padding-left:15px">'+examItems+'</ul></div>'
+    +'</div>';
   html+='</div>';
   out.innerHTML=faRenderGBar()+html;
 }
@@ -80250,18 +80678,291 @@ function _faOnMouseUp(){
   },0);
 }
 if(!window._faHLInit){ window._faHLInit=true; document.addEventListener('mouseup', _faOnMouseUp); }
+// ══════════════ Final 분석서 출력 — 확정된 디자인 (좌: 논리라벨+문장+어휘+문법 / 우: 해석+요약) ══════════════
+function _fasEsc(x){ return _gfEsc(x); }
+function _fasRenderSentenceEn(s){
+  const toks=_wbTokenize(s.en||'');
+  const structs=(s.struct||[]).filter(a=>a.label).slice().sort((a,b)=>a.a-b.a);
+  let html='', spaceOk=false, structEnd=-1;
+  for(let t=0;t<toks.length;t++){
+    const tok=toks[t];
+    let pre = spaceOk ? ((/^[)\]\u2019\u201D",.!?;:]/.test(tok))?'':' ') : '';
+    html+=pre;
+    const stStart=structs.find(a=>a.a===t);
+    if(stStart){ html+='<span class="fas-gram">'; structEnd=stStart.b; }
+    html+=_fasEsc(tok);
+    if(t===structEnd){
+      const st=structs.find(a=>a.b===t);
+      html+='</span>'+(st&&st.label?'<sub class="fas-gtag">'+_fasEsc(st.label)+'</sub>':'');
+      structEnd=-1;
+    }
+    spaceOk=true;
+  }
+  return html;
+}
+function _fasRow(s, i){
+  const role = (s.role||'').trim();
+  const en=_fasRenderSentenceEn(s);
+  let tags='';
+  (s.vocab||[]).forEach(v=>{
+    if(!v||!(v.word||'').trim()) return;
+    let line='<span class="fas-wword">'+_fasEsc(v.word)+'</span> '+_fasEsc(v.meaning||'');
+    if((v.syn||'').trim()) line+=' <span class="fas-syn">≈ '+_fasEsc(v.syn)+'</span>';
+    if((v.ant||'').trim()) line+=' <span class="fas-ant">↔ '+_fasEsc(v.ant)+'</span>';
+    tags+='<div class="fas-tagline fas-w">'+line+'</div>';
+  });
+  (s.gpoint||[]).forEach(g=>{ if((g||'').trim()) tags+='<div class="fas-tagline fas-g">'+_fasEsc(g)+'</div>'; });
+  const summaryHTML = (s.summary||'').trim()
+    ? '<div class="fas-sum"><span class="fas-arrow">→</span>'+_fasEsc(s.summary)+'</div>' : '';
+  return '<div class="fas-row">'
+    +'<div class="fas-col-l"><div class="fas-en"><span class="fas-num">'+(i+1)+'</span>'+(role?'<span class="fas-role">'+_fasEsc(role)+'</span>':'')+en+'</div>'
+      +(tags?'<div class="fas-tags">'+tags+'</div>':'')
+    +'</div>'
+    +'<div class="fas-col-r"><div class="fas-kr">'+_fasEsc(s.ko||'')+'</div>'+summaryHTML+'</div>'
+    +'</div>';
+}
+function _fasFootHTML(d){
+  const examItems=[];
+  (d.sentences||[]).forEach((s,i)=>{ (s.exam||[]).forEach(x=>{ if((x||'').trim()) examItems.push('<li><b>'+(i+1)+'.</b> '+_fasEsc(x)+'</li>'); }); });
+  const foundHTML = examItems.length ? examItems.join('') : '<li>표시된 출제 예상 포인트가 없습니다</li>';
+  const gist=(d.gist||'').trim();
+  return '<div class="fas-foot">'
+    +'<div class="fas-foot-l"><h4>핵심 요지</h4><div class="fas-oneline">'+(gist?_fasEsc(gist):'요지를 입력해주세요')+'</div></div>'
+    +'<div class="fas-foot-r"><h4>지문에서 확인된 출제 포인트</h4><ul class="fas-foundlist">'+foundHTML+'</ul></div>'
+    +'</div>';
+}
+function _fasCss(){
+  return `
+  :root{ --ink:#1B1B1B; --sub:#767472; --gram:#B8492F; --word:#8A6420; --logic:#4F6B52;
+    --kr:#4E6478; --sum:#7A5C99; --syn:#6B7280; --line:#DEDBD3; --line2:#C9C5BA; }
+  *{box-sizing:border-box;}
+  #fa-print-overlay *{box-sizing:border-box;}
+  .fas-page{width:210mm;min-height:297mm;height:297mm;flex-shrink:0;overflow:hidden;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.08);margin-bottom:16px;
+    padding:var(--fasPad,14mm) calc(var(--fasPad,14mm) - 1mm);display:flex;flex-direction:column;transition:width .2s,min-height .2s;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);}
+  #fa-print-overlay.fas-landscape .fas-page{width:297mm;min-height:210mm;height:210mm;}
+  .fas-head{display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:1.6px solid var(--ink);padding-bottom:7px;margin-bottom:10px;}
+  .fas-kicker{font-size:9.5px;letter-spacing:.18em;color:var(--sub);font-weight:700;margin-bottom:10px;}
+  .fas-head h1{font-family:'Noto Serif KR','Nanum Myeongjo',serif;font-size:20px;font-weight:700;margin:0;color:var(--ink);}
+  .fas-meta{display:flex;gap:16px;align-items:flex-end;}
+  .fas-meta-item{text-align:right;}
+  .fas-meta-item .fas-lbl{font-size:8.5px;color:var(--sub);letter-spacing:.04em;}
+  .fas-meta-item .fas-val{font-size:13.5px;font-weight:800;color:var(--ink);}
+  .fas-legend{font-size:9.5px;color:var(--sub);margin:2px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--line2);}
+  .fas-legend b{font-weight:800;}
+  .fas-legend .g{color:var(--gram);} .fas-legend .w{color:var(--word);}
+  .fas-legend .l{color:var(--logic);} .fas-legend .s{color:var(--sum);}
+  .fas-rows{flex:1;}
+  .fas-row{display:grid;grid-template-columns:2fr 1fr;column-gap:18px;padding:var(--fasGap,8px) 0;border-bottom:1px dotted var(--line);}
+  .fas-row:last-child{border-bottom:none;}
+  .fas-col-l{grid-column:1;} .fas-col-r{grid-column:2;border-left:1px solid var(--line2);padding-left:18px;}
+  .fas-role{color:var(--logic);font-weight:800;font-size:calc(12px * var(--fasScale,1));margin-right:3px;}
+  .fas-num{display:inline-block;min-width:14px;color:var(--ink);font-weight:800;font-size:calc(12px * var(--fasScale,1));margin-right:4px;}
+  .fas-en{font-size:calc(14.5px * var(--fasScale,1));line-height:var(--fasLh,1.58);color:var(--ink);}
+  .fas-gram{border-bottom:2px solid var(--gram);padding-bottom:1px;}
+  .fas-gtag{font-size:calc(8.5px * var(--fasScale,1));color:var(--gram);font-weight:800;vertical-align:top;margin-left:1px;}
+  .fas-tags{margin-top:5px;margin-left:18px;}
+  .fas-tagline{font-size:calc(11.5px * var(--fasScale,1));line-height:calc(var(--fasLh,1.58) * 0.98);margin-bottom:3px;}
+  .fas-tagline:last-child{margin-bottom:0;}
+  .fas-tagline.fas-w{color:var(--word);} .fas-tagline.fas-g{color:var(--gram);}
+  .fas-wword{font-weight:700;color:var(--word);}
+  .fas-syn,.fas-ant{color:var(--syn);}
+  .fas-kr{font-size:calc(12.5px * var(--fasScale,1));color:var(--kr);line-height:calc(var(--fasLh,1.58) * 0.95);}
+  .fas-sum{margin-top:4px;font-size:calc(11.5px * var(--fasScale,1));color:var(--sum);line-height:calc(var(--fasLh,1.58) * 0.95);font-style:italic;}
+  .fas-sum .fas-arrow{margin-right:4px;font-style:normal;}
+  #fa-print-overlay.fas-sum-off .fas-sum{display:none;}
+  .fas-foot{display:grid;grid-template-columns:2fr 1fr;column-gap:18px;border-top:1.6px solid var(--ink);padding-top:9px;margin-top:11px;}
+  .fas-foot-l{grid-column:1;} .fas-foot-r{grid-column:2;padding-left:19px;}
+  .fas-foot h4{font-size:10.5px;font-weight:800;color:var(--ink);margin:0 0 3px;text-transform:uppercase;letter-spacing:.03em;}
+  .fas-oneline{font-size:11px;line-height:1.5;color:#333;}
+  .fas-foundlist{font-size:11px;line-height:1.55;color:#333;margin:0;padding-left:15px;}
+  .fas-foundlist li{margin-bottom:1px;} .fas-foundlist b{color:var(--gram);}
+  #fa-print-overlay{position:fixed;inset:0;z-index:99999;background:#0d1421;display:flex;flex-direction:column;}
+  #faspr-tb{flex-shrink:0;background:#1e293b;display:flex;align-items:center;gap:10px;padding:9px 16px;flex-wrap:wrap;}
+  #faspr-tb label{display:flex;align-items:center;gap:6px;color:#e2e8f0;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;}
+  #faspr-tb input[type=checkbox]{width:15px;height:15px;accent-color:var(--sum);cursor:pointer;}
+  .faspr-btn{padding:6px 13px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;}
+  .faspr-btn:hover{background:#475569;}
+  .faspr-btn.primary{background:#1e4db7;}
+  .faspr-btn.primary:hover{background:#1d4ed8;}
+  .faspr-btn.close{background:#dc2626;}
+  .faspr-btn.close:hover{background:#b91c1c;}
+  .faspr-sep{width:1px;height:20px;background:#475569;}
+  .faspr-ctl{display:flex;align-items:center;gap:5px;color:#cbd5e1;font-size:11.5px;font-weight:700;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;}
+  .faspr-ctl input[type=range]{width:76px;accent-color:#60a5fa;cursor:pointer;}
+  .faspr-ctl b{color:#f1f5f9;min-width:36px;font-size:11px;}
+  #faspr-scroll{flex:1;overflow:auto;padding:22px 8px;display:flex;flex-direction:column;align-items:center;background:#EDEBE4;}
+  @media print{
+    @page{size:A4 portrait;margin:0;}
+    body > *{display:none !important;}
+    #fa-print-overlay{display:flex !important;position:static !important;background:transparent !important;}
+    #faspr-tb{display:none !important;}
+    #faspr-scroll{padding:0 !important;overflow:visible !important;background:#fff !important;display:block !important;}
+    .fas-page{box-shadow:none !important;width:auto !important;display:block !important;margin:0 !important;overflow:hidden;break-after:page;page-break-after:always;}
+    .fas-page:last-child{break-after:auto;page-break-after:auto;}
+    .fas-rows{display:block !important;}
+    .fas-row{break-inside:avoid;page-break-inside:avoid;}
+    .fas-foot{break-inside:avoid;page-break-inside:avoid;}
+  }
+  `;
+}
 function faPrint(){
   const out=document.getElementById('fa-output'); if(!out||!window._faData){ showToast('먼저 생성하세요','error'); return; }
   window._faMode=null; window._faSel=null;
   faSyncEditsFromDOM(); window._faEnEdit=null; window._faGMode=null; faRender();
-  const doc=out.querySelector('.fa-doc'); if(!doc){ showToast('출력할 내용이 없습니다','error'); return; }
-  const clone=doc.cloneNode(true); clone.querySelectorAll('.fa-noprint').forEach(e=>e.remove());
-  let body='';
-  Array.from(clone.children).forEach(ch=>{ body+='<div style="margin-bottom:5px">'+ch.outerHTML+'</div>'; });
-  if(!body){ showToast('출력할 내용이 없습니다','error'); return; }
-  const content='<div class="wb-section-card wb-plain"><div class="wb-section-body" style="padding:0">'+body+'</div></div>';
-  if(!window._wbPr){ window._wbPr={ fs:11, lh:1.5, mg:10, sg:8, showHeader:true }; }
-  wbPrintExam({ content:content, title:(window._faData.title||'Final 분석서'), headerLabel:'ION ENGLISH 시험대비 FINAL' });
+  const d=window._faData;
+  if(!(d.sentences&&d.sentences.length)){ showToast('출력할 내용이 없습니다','error'); return; }
+
+  ['fa-print-overlay','fa-print-css','fa-print-style'].forEach(id=>{ const el=document.getElementById(id); if(el) el.remove(); });
+
+  const title=_fasEsc(d.title||'Final 분석서');
+  window._fasParts = {
+    head: '<div class="fas-head"><div><div class="fas-kicker">FINAL 분석서</div><h1>'+title+'</h1></div>'
+      +'<div class="fas-meta">'
+        +(d.structure_type?'<div class="fas-meta-item"><div class="fas-lbl">유형</div><div class="fas-val">'+_fasEsc(d.structure_type)+'</div></div>':'')
+        +'<div class="fas-meta-item"><div class="fas-lbl">문장수</div><div class="fas-val">'+d.sentences.length+'</div></div>'
+      +'</div></div>'
+      +'<div class="fas-legend"><b class="g">밑줄</b> 문법구조&nbsp;&nbsp;<b class="w">■</b> 어휘&nbsp;&nbsp;<b class="l">■</b> 논리·역할&nbsp;&nbsp;<b class="s">■</b> 요약</div>',
+    rows: d.sentences.map((s,i)=>_fasRow(s,i)),
+    foot: _fasFootHTML(d)
+  };
+
+  const css=document.createElement('style');
+  css.id='fa-print-css';
+  css.textContent=_fasCss();
+  document.head.appendChild(css);
+
+  const overlay=document.createElement('div');
+  overlay.id='fa-print-overlay';
+  overlay.innerHTML=''
+    +'<div id="faspr-tb">'
+      +'<label><input type="checkbox" id="faSumToggle" checked onchange="faPrToggleSummary(this.checked)"> 문장 요약 표시</label>'
+      +'<button class="faspr-btn" id="faOrientBtn" onclick="faPrToggleOrient()">⇄ 가로형(A4)</button>'
+      +'<span class="faspr-sep"></span>'
+      +'<span class="faspr-ctl">글자 <input type="range" id="faPrFs" min="80" max="130" step="5" value="100" oninput="faPrApply()"><b id="faPrFsV">100%</b></span>'
+      +'<span class="faspr-ctl">행간 <input type="range" id="faPrLh" min="120" max="200" step="5" value="158" oninput="faPrApply()"><b id="faPrLhV">1.58</b></span>'
+      +'<span class="faspr-ctl">여백 <input type="range" id="faPrMg" min="5" max="25" step="1" value="14" oninput="faPrApply()"><b id="faPrMgV">14mm</b></span>'
+      +'<span class="faspr-ctl">줄간격 <input type="range" id="faPrGap" min="2" max="20" step="1" value="8" oninput="faPrApply()"><b id="faPrGapV">8px</b></span>'
+      +'<button class="faspr-btn" onclick="faPrReset()">초기화</button>'
+      +'<span class="faspr-ctl" id="faPrPages" style="color:#94a3b8"></span>'
+      +'<div style="flex:1"></div>'
+      +'<button class="faspr-btn primary" onclick="faPrPrint()">🖨 인쇄 / PDF저장</button>'
+      +'<button class="faspr-btn close" onclick="faPrClose()">닫기 ✕</button>'
+    +'</div>'
+    +'<div id="faspr-scroll"></div>';
+  document.body.appendChild(overlay);
+
+  // 실제 A4 한 장에 들어가는 높이를 측정해 행 단위로 페이지를 분할한다 (인쇄 결과와 미리보기를 일치시키기 위함)
+  window.faPrPaginate=function(){
+    const ov=document.getElementById('fa-print-overlay'); if(!ov||!window._fasParts) return;
+    const scroll=document.getElementById('faspr-scroll'); if(!scroll) return;
+    const P=window._fasParts;
+    const landscape=ov.classList.contains('fas-landscape');
+    const probe=document.createElement('div');
+    probe.style.cssText='position:absolute;visibility:hidden;height:100mm;width:1px';
+    ov.appendChild(probe);
+    const mmToPx=probe.getBoundingClientRect().height/100;
+    probe.remove();
+    const padMm=parseFloat(getComputedStyle(ov).getPropertyValue('--fasPad'))||14;
+    const pageH=(landscape?210:297)*mmToPx;
+    const avail=pageH-(padMm*2*mmToPx);
+
+    // 측정용 임시 페이지
+    const meas=document.createElement('div');
+    meas.className='fas-page';
+    meas.style.cssText='position:absolute;left:-99999px;top:0;min-height:auto;box-shadow:none;background-image:none';
+    meas.innerHTML=P.head+'<div class="fas-rows">'+P.rows.join('')+'</div>'+P.foot;
+    scroll.appendChild(meas);
+    const headH=Array.from(meas.children).filter(c=>!c.classList.contains('fas-rows')&&!c.classList.contains('fas-foot'))
+      .reduce((a,c)=>a+c.getBoundingClientRect().height,0);
+    const rowEls=Array.from(meas.querySelector('.fas-rows').children);
+    const rowHs=rowEls.map(r=>r.getBoundingClientRect().height);
+    const footH=(meas.querySelector('.fas-foot')||{getBoundingClientRect:()=>({height:0})}).getBoundingClientRect().height;
+    meas.remove();
+
+    const pages=[]; let cur=[]; let used=headH;
+    rowHs.forEach((h,i)=>{
+      if(cur.length && used+h>avail){ pages.push(cur); cur=[]; used=0; }
+      cur.push(i); used+=h;
+    });
+    if(cur.length) pages.push(cur);
+    // 푸터가 마지막 페이지에 안 들어가면 새 페이지로
+    let footOwn=false;
+    if(pages.length){
+      const lastUsed=(pages.length===1?headH:0)+pages[pages.length-1].reduce((a,i)=>a+rowHs[i],0);
+      if(lastUsed+footH>avail) footOwn=true;
+    } else { pages.push([]); }
+
+    let html='';
+    pages.forEach((idxs,pi)=>{
+      const isLast=(pi===pages.length-1);
+      html+='<div class="fas-page">'
+        +(pi===0?P.head:'')
+        +'<div class="fas-rows">'+idxs.map(i=>P.rows[i]).join('')+'</div>'
+        +((isLast&&!footOwn)?P.foot:'')
+        +'</div>';
+    });
+    if(footOwn) html+='<div class="fas-page"><div class="fas-rows"></div>'+P.foot+'</div>';
+    scroll.innerHTML=html;
+    const pv=document.getElementById('faPrPages');
+    if(pv) pv.textContent='총 '+(pages.length+(footOwn?1:0))+'쪽';
+  };
+
+  window.faPrToggleSummary=function(on){ document.getElementById('fa-print-overlay').classList.toggle('fas-sum-off', !on); faPrPaginate(); };
+  window.faPrApply=function(){
+    const el=document.getElementById('fa-print-overlay'); if(!el) return;
+    const fs=+document.getElementById('faPrFs').value;
+    const lh=+document.getElementById('faPrLh').value;
+    const mg=+document.getElementById('faPrMg').value;
+    const gp=+document.getElementById('faPrGap').value;
+    el.style.setProperty('--fasScale', (fs/100));
+    el.style.setProperty('--fasLh', (lh/100));
+    el.style.setProperty('--fasPad', mg+'mm');
+    el.style.setProperty('--fasGap', gp+'px');
+    document.getElementById('faPrFsV').textContent=fs+'%';
+    document.getElementById('faPrLhV').textContent=(lh/100).toFixed(2);
+    document.getElementById('faPrMgV').textContent=mg+'mm';
+    document.getElementById('faPrGapV').textContent=gp+'px';
+    faPrPaginate();
+  };
+  window.faPrReset=function(){
+    document.getElementById('faPrFs').value=100;
+    document.getElementById('faPrLh').value=158;
+    document.getElementById('faPrMg').value=14;
+    document.getElementById('faPrGap').value=8;
+    faPrApply();
+  };
+  faPrApply();
+  window.faPrToggleOrient=function(){
+    const el=document.getElementById('fa-print-overlay');
+    const on=el.classList.toggle('fas-landscape');
+    document.getElementById('faOrientBtn').textContent = on ? '⇄ 세로형(A4)' : '⇄ 가로형(A4)';
+    faPrPaginate();
+  };
+  window.faPrClose=function(){
+    ['fa-print-overlay','fa-print-css','fa-print-style'].forEach(id=>{ const el=document.getElementById(id); if(el) el.remove(); });
+  };
+  window.faPrPrint=function(){
+    const ov=document.getElementById('fa-print-overlay');
+    const land=ov&&ov.classList.contains('fas-landscape');
+    const st=document.createElement('style');
+    st.id='fa-print-style';
+    st.textContent='@media print{'
+      +'@page{size:A4 '+(land?'landscape':'portrait')+';margin:0;}'
+      +'body > *{display:none !important;}'
+      +'#fa-print-overlay{display:flex !important;position:static !important;background:transparent !important;}'
+      +'#faspr-tb{display:none !important;}'
+      +'#faspr-scroll{padding:0 !important;overflow:visible !important;background:#fff !important;display:block !important;}'
+      +'#fa-print-overlay .fas-page{box-shadow:none !important;width:auto !important;display:block !important;background-image:none !important;margin:0 !important;break-after:page;page-break-after:always;overflow:hidden;}'
+      +'#fa-print-overlay .fas-page:last-child{break-after:auto;page-break-after:auto;}'
+      +'#fa-print-overlay .fas-rows{display:block !important;}'
+      +'#fa-print-overlay .fas-row{break-inside:avoid;page-break-inside:avoid;}'
+      +'#fa-print-overlay .fas-foot{break-inside:avoid;page-break-inside:avoid;}'
+      +'}';
+    document.head.appendChild(st);
+    window.print();
+    setTimeout(()=>{ const s=document.getElementById('fa-print-style'); if(s) s.remove(); }, 300);
+  };
 }
 async function faSaveSet(){
   const d=window._faData;
