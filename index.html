@@ -7285,7 +7285,7 @@ async function _callAI(messages, maxTokens, forcedAI) {
       if(s3 >= 0 && s4end > s3) trimmed = trimmed.slice(0, s3) + trimmed.slice(s4end);
       return {...m, content: trimmed};
     });
-    const _geminiModels = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash'];
+    const _geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'];
     try {
       const trimmedMsgs = _trimPrompt(messages);
       const _allGKeys = _getGeminiKeys();
@@ -7310,7 +7310,7 @@ async function _callAI(messages, maxTokens, forcedAI) {
         };
         let _keyFailed = false;
       for (const _gm of _geminiModels) {
-        let res = await _geminiCallModel(_gm, trimmedMsgs, Math.min(maxTokens, 4096));
+        let res = await _geminiCallModel(_gm, trimmedMsgs, Math.min(maxTokens, 8192));
         if (res.status === 429 || res.status === 503) {
           if (!window._geminiKeyBlocked) window._geminiKeyBlocked = {};
           window._geminiKeyBlocked[_kIdx] = Date.now() + 60000;
@@ -7328,8 +7328,8 @@ async function _callAI(messages, maxTokens, forcedAI) {
           console.warn('[Gemini]', _gm, '한도 초과 → Gemini 전체 스킵'); lastErr='gemini_ratelimit'; break;
         }
         lastErr = d.error?.message || 'Gemini 오류';
-        console.warn('[Gemini]', _gm, lastErr);
-        break;
+        console.warn('[Gemini]', _gm, lastErr, '→ 다음 모델 시도');
+        continue;
       }
         if (!_keyFailed) { _geminiDone = true; break; }
       } // 키 루프 끝
@@ -17296,6 +17296,14 @@ function setSlimeMood(mood, duration = 2000) {
   }
 }
 window.addEventListener('popstate', function(e) {
+  // 0. 학습/퀴즈 오버레이 — 안드로이드 뒤로가기로 나갈 때 DOM을 원위치로 복원해야
+  //    fc-body/quiz-body가 유실되지 않는다. (복원 없이 제거되면 다음 진입 시 실패)
+  const studyOv = document.getElementById('study-overlay');
+  if (studyOv) {
+    try { if (typeof stopFocusGuard === 'function') stopFocusGuard(); } catch(_e) {}
+    _closeStudyOverlay();
+    return;
+  }
   // 1. 슬라임 팝업 닫기
   const slimePopups = ['popup-roadmap', 'popup-achievement'];
   for (const pid of slimePopups) {
@@ -41987,8 +41995,33 @@ function _flushHover() {
   });
 }
 
+// 학습/퀴즈 본문 컨테이너 유실 복구 (안드로이드 뒤로가기 대응)
+function _ensureStudyBodies() {
+  [['fc-body','pg-flashcard','🃏','단어장을 선택하면 학습이 시작됩니다'],
+   ['quiz-body','pg-quiz','📝','단어장을 선택하고 퀴즈를 시작하세요']].forEach(function(cfg){
+    var id=cfg[0], pgId=cfg[1], icon=cfg[2], msg=cfg[3];
+    var el=document.getElementById(id);
+    var pg=document.getElementById(pgId);
+    if (el) {
+      // 살아있지만 제거된 오버레이 잔해 안에 갇힌 경우 → 원래 페이지로 복귀
+      if (pg && !document.body.contains(el)) { pg.appendChild(el); }
+      else if (pg && !pg.contains(el) && !document.getElementById('study-overlay')) { pg.appendChild(el); }
+      return;
+    }
+    if (!pg) return;
+    el=document.createElement('div');
+    el.id=id;
+    el.innerHTML='<div class="empty"><div class="empty-icon">'+icon+'</div><div class="empty-title">'+msg+'</div></div>';
+    pg.appendChild(el);
+    console.warn('[복구] '+id+' 컨테이너가 유실되어 재생성했습니다.');
+  });
+}
+
 function _openStudyOverlay(type, bookId) {
   _flushHover();
+  // 안드로이드 뒤로가기 제스처로 오버레이가 통째로 제거되면 fc-body/quiz-body가
+  // DOM에서 사라진 채 남는다. 열기 전에 유실 여부를 확인해 원래 페이지에 복구한다.
+  _ensureStudyBodies();
   const b = DB.books.find(b => b.id === bookId);
   const slime = getSlimeData();
   const col = getSlimeColor(slime.colorId);
@@ -42022,28 +42055,31 @@ function _openStudyOverlay(type, bookId) {
     const sel = document.getElementById('fc-sel'); if (sel) sel.value = bookId;
     Promise.resolve().then(startFC).then(() => {
       if (!_studyMoveIn()) _studyFallback('단어 학습을 불러오지 못했습니다');
-    }).catch(err => { console.error('startFC(overlay):', err); _studyFallback('단어 학습을 불러오지 못했습니다'); });
+    }).catch(err => { console.error('startFC(overlay):', err); _studyFallback('단어 학습 오류: ' + ((err && err.message) || String(err))); });
   } else {
     window._quizBookId = bookId;
     const sel = document.getElementById('quiz-sel'); if (sel) sel.value = bookId;
     if (!_quizMode) _quizMode = 'choice';
     if (!_quizDir)  _quizDir  = 'en2ko';
     (async () => {
-      try { await startQuiz(); } catch(err){ console.error('startQuiz(overlay):', err); }
-      if (!_studyMoveIn()) _studyFallback('퀴즈를 불러오지 못했습니다');
+      let _qErr = '';
+      try { await startQuiz(); } catch(err){ console.error('startQuiz(overlay):', err); _qErr = (err && err.message) || String(err); }
+      if (!_studyMoveIn()) _studyFallback(_qErr ? ('퀴즈 오류: ' + _qErr) : '퀴즈를 불러오지 못했습니다');
     })();
   }
 }
 
 function _closeStudyOverlay() {
   const ov = document.getElementById('study-overlay');
-  // fc-body, quiz-body를 원래 page로 복원
+  // fc-body, quiz-body를 원래 page로 복원 (오버레이 제거 전에 반드시 수행)
   ['fc-body','quiz-body'].forEach(id => {
     const el = document.getElementById(id);
     const pg = document.getElementById(id === 'fc-body' ? 'pg-flashcard' : 'pg-quiz');
     if (el && pg && !pg.contains(el)) pg.appendChild(el);
   });
   if (ov) ov.remove();
+  // 복원 실패(요소 유실) 시 재생성하여 다음 진입을 보장
+  try { _ensureStudyBodies(); } catch(_e) {}
 }
 
 // 오버레이 닫힐 때 DOM 복원 (기존 호환)
@@ -42058,7 +42094,7 @@ async function startFC() {
   const id=(_fcSel&&_fcSel.value)||window._fcBookId||'';
   if(!id){ if(_fcBody) _fcBody.innerHTML=emptyHTML('단어장을 선택하세요'); return; }
   const book=getBookForUser(id);
-  if(!book)return;
+  if(!book){ if(_fcBody) _fcBody.innerHTML=emptyHTML('단어장을 찾을 수 없습니다'); return; }
 
   // words lazy load
   await loadBookWords(id);
@@ -42659,9 +42695,14 @@ async function startQuiz(){
   window._mspXPGain    = 0;
   var _qSel=document.getElementById('quiz-sel');
   const id=(_qSel&&_qSel.value)||window._quizBookId||'';
-  if(!id){showToast('단어장을 선택하세요.','error');return;}
+  const _qFail=function(msg){
+    const body=document.getElementById('quiz-body');
+    if(body) body.innerHTML='<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">'+msg+'</div></div>';
+    showToast(msg,'error');
+  };
+  if(!id){ _qFail('단어장을 선택하세요.'); return; }
   const book=getBookForUser(id);
-  if(!book){showToast('단어장을 찾을 수 없습니다.','error');return;}
+  if(!book){ _qFail('단어장을 찾을 수 없습니다.'); return; }
   // 오버레이에서 진입이 아닐 때(pg-quiz 직접)만 DOM 값으로 전역 갱신
   const fromOverlay = !!document.getElementById('study-overlay');
   if (!fromOverlay) {
@@ -42680,10 +42721,10 @@ async function startQuiz(){
     const checked = new Set(JSON.parse(_lsGet('wl_check_' + id)||'[]'));
     if (checked.size > 0) {
       pool = pool.filter(w => checked.has(w.id||w.en));
-      if (!pool.length) { showToast('미암기 단어가 없습니다. 먼저 단어 보기에서 미암기 표시를 해주세요.', 'error'); return; }
+      if (!pool.length) { _qFail('미암기 단어가 없습니다. 먼저 단어 보기에서 미암기 표시를 해주세요.'); return; }
       showToast(`미암기 ${pool.length}개 단어로 퀴즈 시작!`, 'success');
     } else {
-      showToast('미암기 표시된 단어가 없습니다.', 'error'); return;
+      _qFail('미암기 표시된 단어가 없습니다.'); return;
     }
   }
 
@@ -65330,7 +65371,7 @@ function elBuildUI() {
             <div class="elmk-pane" data-i="2">
               <button class="elmk-mi" onclick="elMenuGo(elNewThinkingSet)"><span class="elmk-tx"><b>리딩 씽킹</b><small>사고력 리딩 훈련</small></span></button>
               <button class="elmk-mi" onclick="elMenuGo(elNewGrammarThinkingSet)"><span class="elmk-tx"><b>문법 씽킹</b><small>사고력 문법 훈련</small></span></button>
-              <button class="elmk-mi" onclick="elMenuGo(elNewReadThinkSet)"><span class="elmk-tx"><b>논리독해 훈련</b><small>지문 사고력 훈련지</small></span></button><button class="elmk-mi" onclick="elMenuGo(elNewGrammarDrillSet)"><span class="elmk-tx"><b>문법 Drill</b><small>개념별 반복학습 학습지</small></span></button>
+              <button class="elmk-mi" onclick="elMenuGo(elNewReadThinkSet)"><span class="elmk-tx"><b>논리독해 훈련</b><small>지문 사고력 훈련지</small></span></button><button class="elmk-mi" onclick="elMenuGo(elNewABCSet)"><span class="elmk-tx"><b>ABC 리딩 훈련</b><small>Anchor·Bridge·Categorization</small></span></button><button class="elmk-mi" onclick="elMenuGo(elNewGrammarDrillSet)"><span class="elmk-tx"><b>문법 Drill</b><small>개념별 반복학습 학습지</small></span></button>
               <button class="elmk-mi" onclick="elMenuGo(gnNewSet)"><span class="elmk-tx"><b>문법 필기노트</b><small>개념 · 빈칸 필기 정리</small></span></button>
               <button class="elmk-mi" onclick="elMenuGo(elShowConvertView)"><span class="elmk-tx"><b>문제 DB화</b><small>원본 문제 변환 · 저장</small></span></button>
               <button class="elmk-mi" onclick="elMenuGo(elpOpen)"><span class="elmk-tx"><b>일반세트 Pro</b><small>정밀 출제</small></span><i class="elmk-beta">BETA</i></button>
@@ -66892,6 +66933,7 @@ function elBuildUI() {
         <button data-fahl="#bbf7d0" onclick="faSetHLMode('#bbf7d0')" title="초록" style="width:18px;height:18px;border-radius:4px;border:1px solid #cbd5e1;background:#bbf7d0;cursor:pointer;padding:0"></button>
         <button data-fahl="#bfdbfe" onclick="faSetHLMode('#bfdbfe')" title="파랑" style="width:18px;height:18px;border-radius:4px;border:1px solid #cbd5e1;background:#bfdbfe;cursor:pointer;padding:0"></button>
         <button data-fahl="#fbcfe8" onclick="faSetHLMode('#fbcfe8')" title="분홍" style="width:18px;height:18px;border-radius:4px;border:1px solid #cbd5e1;background:#fbcfe8;cursor:pointer;padding:0"></button>
+        <button data-fahl="#e3ece4" onclick="faSetHLMode('#e3ece4')" title="논리·역할 (연하게)" style="width:18px;height:18px;border-radius:4px;border:1px solid #9fb8a3;background:#e3ece4;cursor:pointer;padding:0"></button>
         <button data-fahl="erase" onclick="faSetHLMode('erase')" title="지우개 — 켠 뒤 드래그하면 지워짐" style="height:18px;border-radius:4px;border:1px solid #cbd5e1;background:#fff;color:#64748b;cursor:pointer;padding:0 5px;font-size:10px;font-weight:700">지움</button>
       </div>
       <button id="fa-save-btn" onclick="faSaveSet()" style="font-size:13px;font-weight:700;padding:7px 14px;border-radius:8px;background:#4338ca;color:#fff;border:none;cursor:pointer">💾 저장</button>
@@ -66920,6 +66962,7 @@ function elBuildUI() {
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-ko" checked style="accent-color:#4338ca"> 📝 한글 해석 <span style="font-size:9px;color:#94a3b8">(AI)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-summary" checked style="accent-color:#4338ca"> 💬 문장 요약(압축) <span style="font-size:9px;color:#94a3b8">(AI · 핵심만 짧게)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-struct" checked style="accent-color:#4338ca"> 🧩 문장 구조 분석 <span style="font-size:9px;color:#94a3b8">(문장에 지정)</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-syntax" checked style="accent-color:#4338ca"> 📐 구문분석 <span style="font-size:9px;color:#94a3b8">(AI 자동 + 📐구문분석 모드에서 수동 지정)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-role" checked style="accent-color:#4338ca"> 🧠 논리·내용 역할 <span style="font-size:9px;color:#94a3b8">(AI)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="fa-s-vocab" checked style="accent-color:#4338ca"> 📖 핵심 어휘 <span style="font-size:9px;color:#94a3b8">(단어 지정)</span></label>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;cursor:pointer;margin:-2px 0 5px 22px"><input type="checkbox" id="fa-vocab-synant" checked style="accent-color:#059669"> ↳ 동의어·반의어 자동 <span style="font-size:9px;color:#94a3b8">(끄면 뜻만)</span></label>
@@ -67513,6 +67556,7 @@ function elRenderGrid() {
     thinking:        {c:'#8b5cf6', bg:'#f5f3ff', l:'리딩 씽킹'},
     grammar_thinking:{c:'#8b5cf6', bg:'#f5f3ff', l:'문법 씽킹'},
     read_think:{c:'#b8492f', bg:'#faf2ef', l:'논리독해 훈련'},
+    abc_reading:     {c:'#a8562e', bg:'#fdf3ec', l:'ABC 리딩 훈련'},
     workbook:        {c:'#16a34a', bg:'#f0fdf4', l:'워크북'},
     grammar_final:   {c:'#2563eb', bg:'#eff6ff', l:'문법 Final Check'},
     grammar_note:    {c:'#d97706', bg:'#fffbeb', l:'문법 필기노트'},
@@ -67708,7 +67752,7 @@ async function elOpenSet(id) {
   const ni=document.getElementById('el-setname');
   if(ni&&s) ni.value=s.title||'';
   // 쌍둥이 세트 여부에 따라 우측 패널 전환
-  elRenderRightPanel(s?.source_type==='twin', s?.source_type==='thinking', s?.source_type==='grammar_thinking', s?.source_type==='convert', s?.source_type==='read_think', s?.source_type==='grammar_drill');
+  elRenderRightPanel(s?.source_type==='twin', s?.source_type==='thinking', s?.source_type==='grammar_thinking', s?.source_type==='convert', s?.source_type==='read_think', s?.source_type==='grammar_drill', s?.source_type==='abc_reading');
   // 같은 세트가 이미 열려있고 문항이 메모리에 있으면 재로드 생략
   if(EL.activeSetId===id && EL.questions.length>0){ elRenderSentBooks(); elRenderThinkingSBList(); elRenderGrCardList(); elRenderQ(); return; }
   EL.activeSetId=id; EL.questions=[]; EL.editingIdx=-1;
@@ -67740,7 +67784,7 @@ async function elOpenSet(id) {
   elRenderSentBooks(); elRenderThinkingSBList(); elRenderGrCardList(); elRenderQ();
 }
 
-function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, isReadThink, isGrammarDrill){
+function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, isReadThink, isGrammarDrill, isABC){
   const rp = document.getElementById('el-right-panel');
   const dp = document.getElementById('el-default-right-panel');
   const tp = document.getElementById('el-twin-right-panel');
@@ -67749,6 +67793,7 @@ function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, is
   const cp = document.getElementById('el-convert-right-panel');
   const rtp = _rtEnsureRightPanel();
   const gdp = _gdEnsureRightPanel();
+  const abcp = _abcEnsureRightPanel();
   if(!rp) return;
 
   // 좌측 소스 입력 박스 관련 요소들
@@ -67779,7 +67824,7 @@ function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, is
   if(_gdt){ _gdt.style.display = isGrammarDrill ? 'flex' : 'none';
     var _c=document.getElementById('gd-count');
     if(_c){ var n=((EL.questions||[]).filter(function(q){return q.type==='grammar_drill_sheet';})).length; _c.textContent=n?(n+'개 생성됨'):''; } }
-  if (isGrammarThinking || isReadThink || isGrammarDrill) {
+  if (isGrammarThinking || isReadThink || isGrammarDrill || isABC) {
     if(ws1) ws1.style.display = 'none';
     if(ws3) ws3.style.display = 'none';
     // 소스 입력·생성 행·추가 버튼 숨김 (기존 호환)
@@ -67811,6 +67856,12 @@ function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, is
         + '<div style="font-size:12px;color:#7a7b7f;background:#fff;border-radius:8px;padding:8px 12px;border:1px solid #dedcd5;line-height:1.6">'
         + '1️⃣ 문법 개념 입력(여러 개 가능)<br>2️⃣ 회차·문항 수, 문제 유형 선택<br>3️⃣ ✏️ 생성 클릭</div>';
       grBanner.style.cssText = 'background:#faf9f6;border:1px solid #dedcd5;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;margin-bottom:4px';
+    } else if(isABC){
+      grBanner.innerHTML = '<div style="font-size:14px;font-weight:800;color:#a8562e;display:flex;align-items:center;gap:7px">🔤 ABC 리딩 훈련 세트</div>'
+        + '<div style="font-size:13px;color:#7a7b7f;line-height:1.7">오른쪽 패널에<br><b>영어 지문을 붙여넣고</b><br><b>🔤 ABC 훈련지 생성</b>을 누르세요.</div>'
+        + '<div style="font-size:12px;color:#7a7b7f;background:#fff;border-radius:8px;padding:8px 12px;border:1px solid #dedcd5;line-height:1.6">'
+        + '1️⃣ 영어 지문 붙여넣기<br>2️⃣ 학년 입력(선택)<br>3️⃣ 🔤 생성 클릭</div>';
+      grBanner.style.cssText = 'background:#fdf7f2;border:1px solid #dedcd5;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;margin-bottom:4px';
     } else if(_rtIsRT){
       grBanner.innerHTML = '<div style="font-size:14px;font-weight:800;color:#b8492f;display:flex;align-items:center;gap:7px">🔎 논리독해 훈련 세트</div>'
         + '<div style="font-size:13px;color:#7a7b7f;line-height:1.7">오른쪽 패널에<br><b>영어 지문을 붙여넣고</b><br><b>🔎 논리독해 훈련지 생성</b>을 누르세요.</div>'
@@ -67898,6 +67949,7 @@ function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, is
   if(cp) cp.style.display='none';
   if(rtp) rtp.style.display='none';
   if(gdp) gdp.style.display='none';
+  if(abcp) abcp.style.display='none';
 
   if(isGrammarDrill) {
     rp.style.display='';
@@ -67907,6 +67959,10 @@ function elRenderRightPanel(isTwin, isThinking, isGrammarThinking, isConvert, is
     rp.style.display='';
     if(rtp){ rtp.style.display='flex'; rtp.style.flexDirection='column'; rtp.style.gap='10px'; }
     setTimeout(function(){ try{ _rtPopulateSentBooks(); }catch(e){} }, 50);
+  } else if(isABC) {
+    rp.style.display='';
+    if(abcp){ abcp.style.display='flex'; abcp.style.flexDirection='column'; abcp.style.gap='10px'; }
+    setTimeout(function(){ try{ _abcPopulateSentBooks(); }catch(e){} }, 50);
   } else if(isGrammarThinking) {
     if(gp){ gp.style.display='flex'; gp.style.flexDirection='column'; gp.style.gap='10px'; }
   } else if(isThinking) {
@@ -70203,6 +70259,7 @@ function elEncodeExpl(q){
   if(!q) return '';
   if(q.drill) return '__drill__:'+JSON.stringify(q.drill);
   if(q.readthink) return '__readthink__:'+JSON.stringify(q.readthink);
+  if(q.abc) return '__abc__:'+JSON.stringify(q.abc);
   if(q.chapter) return '__chapter__:'+JSON.stringify(q.chapter);
   if(q.thinking_data) return '__thinking__:'+JSON.stringify(q.thinking_data);
   const meta={};
@@ -70225,6 +70282,9 @@ function elDecodeExpl(d, base){
     base.explanation='';
   } else if(e.startsWith('__readthink__:')){
     try{ base.readthink=JSON.parse(e.slice(14)); }catch(x){}
+    base.explanation='';
+  } else if(e.startsWith('__abc__:')){
+    try{ base.abc=JSON.parse(e.slice(8)); }catch(x){}
     base.explanation='';
   } else if(e.startsWith('__chapter__:')){
     try{ base.chapter=JSON.parse(e.slice(12)); }catch(x){}
@@ -71405,7 +71465,7 @@ function elSanitizeEssay(q){
 async function elPush(item){
   item = elSanitizeEssay(item);
   /* 최종 관문: 채점 불가 서술형은 세트에 넣지 않는다 (모든 생성 경로 공통) */
-  const _isChapter = item && (item.type==='gr_thinking_chapter' || !!item.chapter || item.type==='read_think_sheet' || !!item.readthink || item.type==='grammar_drill_sheet' || !!item.drill || (item.type||'').startsWith('thinking_'));
+  const _isChapter = item && (item.type==='gr_thinking_chapter' || !!item.chapter || item.type==='read_think_sheet' || !!item.readthink || item.type==='grammar_drill_sheet' || !!item.drill || item.type==='abc_reading_sheet' || !!item.abc || (item.type||'').startsWith('thinking_'));
   if(item && item.answer===-1 && !_isChapter && typeof elpEssayGate==='function'){
     try{ elpEssayGate(item, {name:(EL_TYPES[item.type]&&EL_TYPES[item.type].label)||item.type||'서술형'}); }
     catch(ge){
@@ -72088,6 +72148,7 @@ function elGrTkToggleEdit(idx) {
 
 function elGrThinkingBodyHTML_teacher(q) {
   if((q.type||'')==='read_think_sheet') return elRtHTML(q.readthink||{});
+  if((q.type||'')==='abc_reading_sheet') return elAbcHTML(q.abc||{});
   if((q.type||'')==='grammar_drill_sheet') return elGdHTML(q.drill||{});
   if((q.type||'')==='gr_thinking_chapter') return elGrChapterHTML(q.chapter||{});
   var tk = q.thinking_data || {};
@@ -72265,6 +72326,7 @@ function elGrThinkingBodyHTML_teacher(q) {
 // ── 학생용 문법 씽킹 렌더 ─────────────────────────────────
 function seGrThinkingBodyHTML(q) {
   if((q.type||'')==='read_think_sheet') return elRtHTML(q.readthink||{});
+  if((q.type||'')==='abc_reading_sheet') return elAbcHTML(q.abc||{});
   if((q.type||'')==='grammar_drill_sheet') return elGdHTML(q.drill||{});
   if((q.type||'')==='gr_thinking_chapter') return elGrChapterHTML(q.chapter||{});
   var tk = q.thinking_data || {};
@@ -73558,6 +73620,9 @@ function elQCard(q,idx,hidePassage){
   if (q.type === 'read_think_sheet') {
     return elRtCard(q, idx);
   }
+  if (q.type === 'abc_reading_sheet') {
+    return elAbcCard(q, idx);
+  }
   // 📐 문법 씽킹 — 챕터형(새 디자인)
   if (q.type === 'gr_thinking_chapter') {
     return elGrChapterCard(q, idx);
@@ -74027,6 +74092,7 @@ async function elRegen(idx){
     else if(qType.startsWith('gr_thinking_')){
       if(qType==='gr_thinking_chapter'){ throw new Error('챕터형 문법 씽킹은 재생성 대신 새로 생성해 주세요'); }
       if(qType==='read_think_sheet'){ throw new Error('논리독해 훈련지는 재생성 대신 새로 생성해 주세요'); }
+      if(qType==='abc_reading_sheet'){ throw new Error('ABC 리딩 훈련지는 재생성 대신 새로 생성해 주세요'); }
       const subtype = qType.replace('gr_thinking_','');
       // 현재 선택된 grammar 카드 데이터를 먼저 시도, 없으면 q.grammar_title로 프롬프트 구성
       let grammarInput = '';
@@ -80053,6 +80119,7 @@ const _FA_SECTIONS = [
   {key:'ko',      ko:'한글 해석',            c:'#0e7490', ai:true},
   {key:'summary', ko:'문장 요약(압축)',       c:'#7A5C99', ai:true},
   {key:'struct',  ko:'문장 구조 분석(지정)',  c:'#1d4ed8', ai:false},
+  {key:'syntax',  ko:'구문분석(AI+수동 지정)', c:'#B8492F', ai:true},
   {key:'role',    ko:'논리·내용 역할',        c:'#d97706', ai:true},
   {key:'vocab',   ko:'핵심 어휘(단어 지정)',   c:'#059669', ai:false},
   {key:'gpoint',  ko:'문법 포인트(수동)',      c:'#7c3aed', ai:false},
@@ -80062,6 +80129,65 @@ const _FA_SECTIONS = [
 // 구조지정 라벨 — 종류별로 묶어서 정리(문장성분 → 품사 → 절 → 구 → 특수구문)
 // 밑줄 색은 이미 라벨별로 구분되므로 라벨 배지 색은 단일 색으로 통일
 const _FA_STRUCT_COLOR='#4338ca';
+const _FA_SYNTAX_COLOR='#B8492F'; // 문법색과 통일
+const _FA_SYNTAX_TYPES=[
+  {type:'adv',  ko:'/ 부사구·부사절'},
+  {type:'noun', ko:'[ ] 명사구·명사절'},
+  {type:'adj',  ko:'< > 형용사구·관계사절'},
+  {type:'mv',   ko:'본동사'},
+  {type:'para', ko:'①② 병렬구조'},
+  {type:'omit', ko:'(Ø) 생략'}
+];
+function _faSyntaxLabel(type){ const m=_FA_SYNTAX_TYPES.find(x=>x.type===type); return m?m.ko:type; }
+function _faSyntaxCircled(n){ const c='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳'; return c[(n-1)%20]||('('+n+')'); }
+// ── 구문분석 기호 직접 타이핑 지원: 원문에 섞어 친 /[]<>()Ø①② 기호를 파싱해 순수 문장+구조데이터로 분리 ──
+function _faParseTypedSyntax(raw){
+  let clean=''; const keptIdx=[];
+  const stack=[]; const marks=[];
+  const circled='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+  let i=0;
+  while(i<raw.length){
+    const ch=raw[i];
+    if(ch==='/'){ marks.push({type:'adv', atLen:clean.length}); i++; continue; }
+    if(ch==='['){ stack.push({type:'noun', startLen:clean.length}); i++; continue; }
+    if(ch==='<'){ stack.push({type:'adj', startLen:clean.length}); i++; continue; }
+    if(ch==='('){
+      if((raw[i+1]==='Ø'||raw[i+1]==='0') && raw[i+2]===')'){ marks.push({type:'omit', atLen:clean.length}); i+=3; continue; }
+      stack.push({type:'prep', startLen:clean.length}); i++; continue;
+    }
+    if(ch===']'||ch==='>'||ch===')'){
+      const want = ch===']'?'noun':(ch==='>'?'adj':'prep');
+      for(let k=stack.length-1;k>=0;k--){ if(stack[k].type===want){ const open=stack.splice(k,1)[0]; marks.push({type:want, startLen:open.startLen, endLen:clean.length}); break; } }
+      i++; continue;
+    }
+    const ci=circled.indexOf(ch);
+    if(ci>=0){ marks.push({type:'para', atLen:clean.length, n:ci+1}); i++; continue; }
+    clean+=ch; keptIdx.push(i); i++;
+  }
+  return { clean, marks, keptIdx };
+}
+function _faCharOffsetToTokStarts(clean, toks){
+  const starts=[]; let pos=0;
+  toks.forEach(t=>{ const idx=clean.indexOf(t,pos); const use=idx<0?pos:idx; starts.push(use); pos=use+t.length; });
+  return starts;
+}
+function _faTypedMarksToSyntax(clean, marks){
+  const toks=_wbTokenize(clean);
+  if(!toks.length) return [];
+  const starts=_faCharOffsetToTokStarts(clean, toks);
+  const idxAtOrAfter=(off)=>{ for(let i=0;i<starts.length;i++){ if(starts[i]>=off) return i; } return starts.length-1; };
+  const idxBefore=(off)=>{ let idx=0; for(let i=0;i<starts.length;i++){ if(starts[i]<off) idx=i; else break; } return idx; };
+  const out=[];
+  (marks||[]).forEach(m=>{
+    if(m.type==='adv'||m.type==='omit'){ const idx=idxAtOrAfter(m.atLen); out.push({a:idx,b:idx,type:m.type}); return; }
+    if(m.type==='para'){ const idx=idxAtOrAfter(m.atLen); out.push({a:idx,b:idx,type:'para',n:m.n}); return; }
+    if(m.startLen==null||m.endLen==null) return;
+    const a=idxAtOrAfter(m.startLen), b=idxBefore(m.endLen);
+    if(b>=a) out.push({a,b,type:m.type});
+  });
+  out.sort((x,y)=>x.a-y.a);
+  return out;
+}
 const _FA_STRUCT=[
   // 문장성분
   '주어','동사','목적어','보어','수식어',
@@ -80153,7 +80279,7 @@ async function faGenerate(){
     else { sents=_faSplitSentences(passage); }
     if(!sents.length){ if(st)st.textContent='문장을 찾지 못했습니다'; return; }
     const d={ title:(topic||'지문')+' Final 분석서', grade:grade, passage:passage, gist:'', structure_type:'', _html:{},
-      sentences:sents.map((en,idx)=>({en:en, ko:(bookKo?(bookKo[idx]||''):''), summary:'', role:'', struct:[], vocab:[], gpoint:[], exam:[], _hl:[]})) };
+      sentences:sents.map((en,idx)=>({en:en, ko:(bookKo?(bookKo[idx]||''):''), summary:'', role:'', struct:[], syntax:[], vocab:[], gpoint:[], exam:[], _hl:[]})) };
     window._faData=d; window._faSections=dims;
     faRender();
     const meta=await _faCall('너는 한국 고등 영어 강사다. 아래 영어 지문의 구조 유형과 핵심 주제를 한국어로. JSON만.\n[지문]\n'+passage+'\n[출력] {"structure_type":"구조 유형(예: 주장-근거)","gist":"핵심 주제 한 줄"}', 1200);
@@ -80202,8 +80328,115 @@ async function faGenerate(){
         faRender();
       }
     }
-    if(st) st.textContent='✅ 분석서 완성 ('+sents.length+'문장'+(bookKo?', 해석=문장집':'')+') — 상단 [✏️문장수정·🧩구조지정·📖단어지정] 모드로 작업하세요';
+    if(dims.includes('syntax')){ await faGenerateSyntax(true); }
+    if(st) st.textContent='✅ 분석서 완성 ('+sents.length+'문장'+(bookKo?', 해석=문장집':'')+') — 상단 [✏️문장수정·🧩구조지정·📐구문분석·📖단어지정] 모드로 작업하세요';
   }catch(e){ if(st)st.textContent='오류: '+(e.message||''); showToast('생성 오류: '+(e.message||''),'error'); }
+}
+function _faFindPhraseRange(toks, phrase, fromIdx){
+  const norm=x=>(x||'').toLowerCase().replace(/[.,!?;:'"]+$/,'').replace(/^['"]+/,'');
+  const raw=_wbTokenize(phrase||'').filter(t=>/[A-Za-z0-9]/.test(t));
+  if(!raw.length) return null;
+  const tryMatch=(pt, start)=>{
+    if(!pt.length) return null;
+    for(let i=start;i<=toks.length-pt.length;i++){
+      let ok=true;
+      for(let k=0;k<pt.length;k++){ if(norm(toks[i+k])!==norm(pt[k])){ ok=false; break; } }
+      if(ok) return {a:i, b:i+pt.length-1};
+    }
+    return null;
+  };
+  const variants=[raw, raw.length>1&&raw.slice(0,-1), raw.length>1&&raw.slice(1), raw.length>2&&raw.slice(1,-1)].filter(Boolean);
+  const start=fromIdx||0;
+  // 정확 매칭(원문 그대로)을 항상 최우선으로: 커서 이후에서 먼저, 못 찾으면 문장 처음부터.
+  // (끝/앞 단어를 뺀 '근사 매칭'은 정확 매칭이 어디서도 안 될 때만 최후 수단으로 사용)
+  let r=tryMatch(raw, start);
+  if(r) return r;
+  if(start>0){ r=tryMatch(raw, 0); if(r) return r; }
+  for(const v of variants){ const rr=tryMatch(v, start); if(rr) return rr; }
+  if(start>0){ for(const v of variants){ const rr=tryMatch(v, 0); if(rr) return rr; } }
+  return null;
+}
+function _faSyntaxFromAI(en, items){
+  const toks=_wbTokenize(en||'');
+  const out=[]; let paraN=0; let cursor=0;
+  (items||[]).forEach(it=>{
+    if(!it || !it.type || !it.phrase) return;
+    const type=it.type;
+    if(type==='mv'||type==='prep') return; // 본동사·전치사구는 AI 자동 분석에서 제외 — 수동/타이핑만 허용
+    const r=_faFindPhraseRange(toks, it.phrase, cursor);
+    if(!r) return;
+    cursor=Math.max(cursor, r.b+1);
+    if(type==='omit'){ out.push({a:r.a, b:r.a, type:'omit'}); return; }
+    if(type==='para'){ paraN++; out.push({a:r.a, b:r.b, type:'para', n:paraN}); return; }
+    if(['adv','noun','adj','prep'].includes(type)){
+      // 중첩은 허용, 서로 걸쳐서 교차하는 구간만 제거
+      for(let k=out.length-1;k>=0;k--){
+        const o=out[k]; if(!['adv','noun','adj','prep'].includes(o.type)) continue;
+        const disjoint=(r.b<o.a)||(r.a>o.b);
+        const nested=(r.a>=o.a&&r.b<=o.b)||(o.a>=r.a&&o.b<=r.b);
+        if(!disjoint && !nested) out.splice(k,1);
+      }
+      out.push({a:r.a, b:r.b, type:type});
+    }
+  });
+  out.sort((x,y)=>x.a-y.a);
+  return out;
+}
+function _faSyntaxPrompt(en){
+  return '너는 한국 고등 영어 구문분석 전문가다. 아래 영어 문장 "하나"를 끊어읽기(구문분석) 단위로 나눈다.\n'
+    +'설명이나 생각 과정 없이 JSON 객체 하나만 출력할 것.\n\n'
+    +'[예시]\n'
+    +'문장: Because he was very tired after the long trip, he decided to go to bed early.\n'
+    +'출력: {"marks":[{"type":"adv","phrase":"Because he was very tired after the long trip"},{"type":"noun","phrase":"to go to bed early"}]}\n\n'
+    +'문장: The book that I bought yesterday is on the table.\n'
+    +'출력: {"marks":[{"type":"adj","phrase":"that I bought yesterday"}]}\n\n'
+    +'문장: The problems their mistakes have often caused are serious.\n'
+    +'출력: {"marks":[{"type":"omit","phrase":"their"},{"type":"adj","phrase":"their mistakes have often caused"}]}\n'
+    +'(설명: problems 뒤에 목적격 관계대명사 that/which가 생략됨 — 생략 지점 바로 뒤 단어 "their"를 omit으로, 생략된 절 전체는 별도로 adj로도 표시)\n\n'
+    +'문장: The company released a new product that changed the way people communicate with each other.\n'
+    +'출력: {"marks":[{"type":"adj","phrase":"that changed the way people communicate with each other"}]}\n\n'
+    +'[분석할 문장]\n'+en+'\n\n'
+    +'type은 다음 중 하나만 사용(본동사와 전치사구는 표시하지 않는다 — 별도로 수동 처리):\n'
+    +' adv  — 부사구·부사절 (분사구문, to부정사 부사적 용법 포함)\n'
+    +' noun — 명사구·명사절 (동명사, to부정사 명사적 용법 포함)\n'
+    +' adj  — 형용사구·관계사절 (현재분사구, 과거분사구, to부정사 형용사적 용법 포함)\n'
+    +' para — 병렬로 연결된 요소 (2개 이상 등위 연결될 때만, 없으면 넣지 말 것)\n'
+    +' omit — 관계대명사·접속사 등 생략이 일어난 자리 (phrase는 생략 지점 바로 뒤에 오는 실제 단어 1개)\n\n'
+    +'규칙:\n'
+    +' · mv(본동사)와 prep(전치사구) 타입은 절대 출력하지 말 것 — 그 부분은 사람이 직접 표시한다.\n'
+    +' · phrase는 반드시 위 문장에 실제로 등장하는 부분 문자열을 그대로(철자·대소문자 그대로, 따옴표 없이) 넣을 것. 의역·축약·수정 금지.\n'
+    +' · adv/noun/adj 구간은 서로 겹치면 안 된다 — 겹칠 때는 겉의 가장 큰 단위 하나만 표시. 단, 겹치지 않는 구는 모두 표시할 것.\n'
+    +' · marks는 문장에 나오는 순서대로 나열.\n'
+    +' · 단문이라 구/절이 전혀 없으면 marks를 빈 배열 []로 둔다.\n'
+    +' · 부사구·부사절은 문장 맨 앞에 있든 뒤에 있든 모두 adv로 표시할 것(화면에 / 기호를 붙일지는 프로그램이 알아서 판단하므로 신경 쓰지 말 것).\n'
+    +' · 중요: that/which/who/whom/whose가 명사를 수식하는 관계사절은 문장 어디에 있든(문두·문중·문장 맨 끝, 길이가 길어도) 절대 빠뜨리지 말고 반드시 adj로 표시할 것. 특히 문장 뒷부분(마지막 절)에 나오는 관계사절을 건너뛰는 실수가 잦으니, 문장을 끝까지 훑어서 놓친 관계사절이 없는지 마지막에 다시 확인할 것.\n'
+    +' · that이 명사절 접속사(~라는 것)로 쓰였는지, 관계대명사(~하는)로 쓰였는지 구분: 앞에 수식받는 명사가 있으면 관계사절(adj), 없으면 명사절(noun).\n\n'
+    +'[출력] {"marks":[{"type":"...","phrase":"..."}]}';
+}
+async function faGenerateSyntax(silent){
+  const d=window._faData; if(!d||!d.sentences||!d.sentences.length){ showToast('먼저 분석서를 생성하세요','error'); return; }
+  faSyncEditsFromDOM();
+  const st=document.getElementById('fa-status');
+  const total=d.sentences.length;
+  let failCount=0;
+  try{
+    for(let i=0;i<total;i++){
+      if(st) st.innerHTML='<div class="ai-loader"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div> 구문분석 중... ('+(i+1)+'/'+total+')';
+      const en=d.sentences[i].en;
+      const res=await _faCall(_faSyntaxPrompt(en), 2000);
+      const marks=(res&&Array.isArray(res.marks))?res.marks:null;
+      if(!marks){ failCount++; continue; }
+      d.sentences[i].syntax=_faSyntaxFromAI(en, marks);
+      faRender();
+    }
+    if(failCount>0){
+      if(st) st.textContent='⚠️ 구문분석 일부 실패 ('+failCount+'/'+total+'문장) — 🤖 AI 자동 구문분석 버튼으로 다시 시도해보세요';
+      showToast('구문분석 '+failCount+'개 문장이 실패했습니다. 다시 시도해주세요','error');
+    } else {
+      if(st) st.textContent='✅ 구문분석 완료 — 팔레트로 직접 수정·추가도 가능합니다';
+      if(!silent) showToast('구문분석 자동 생성 완료','success');
+    }
+  }catch(e){ if(st)st.textContent='오류: '+(e.message||''); showToast('구문분석 생성 오류: '+(e.message||''),'error'); }
 }
 
 // 영어 문장 토큰 렌더 (구조 표시 + 지정 모드 클릭)
@@ -80216,11 +80449,31 @@ function _faRenderEn(s, si){
   }
   const toks=_wbTokenize(s.en||'');
   const anns=(s.struct||[]);
-  const mode=(G==='struct'||G==='vocab')?G:null;
-  const sel=(G==='struct' && window._faSel && window._faSel.si===si)?window._faSel:null;
+  const syns=(s.syntax||[]);
+  const mode=(G==='struct'||G==='vocab'||G==='syntax')?G:null;
+  const sel=((G==='struct'||G==='syntax') && window._faSel && window._faSel.si===si)?window._faSel:null;
   const selLo=sel?Math.min(sel.a,sel.b):-1, selHi=sel?Math.max(sel.a,sel.b):-1;
   const drag=(window._faDrag && window._faDrag.si===si)?window._faDrag:null;
   const dragLo=drag?Math.min(drag.a,drag.b):-1, dragHi=drag?Math.max(drag.a,drag.b):-1;
+  // 구문분석 기호 사전 계산: 토큰 앞/뒤에 삽입할 기호, 본동사 밑줄 대상
+  const GC=_FA_SYNTAX_COLOR;
+  const synPre={}, synPost={};
+  const _brCh={noun:['[',']'], adj:['<','>'], prep:['(',')']};
+  syns.forEach(an=>{
+    if(an.type==='omit'){ (synPre[an.a]=synPre[an.a]||[]).push('<span style="color:'+GC+';font-weight:800;font-size:11px;margin-right:2px">(Ø)</span>'); return; }
+    if(an.type==='mv') return; // 별도(밑줄) 처리
+    if(an.type==='para'){ (synPre[an.a]=synPre[an.a]||[]).push('<sup style="color:'+GC+';font-weight:800;font-size:10px">'+_faSyntaxCircled(an.n||1)+'</sup>'); return; }
+    if(an.type==='adv'){ if(an.a>0) (synPre[an.a]=synPre[an.a]||[]).push('<span style="color:'+GC+';font-weight:800">/</span>'); return; }
+  });
+  // 중첩 표기가 [ ... < ... > ] 순서로 올바르게 열리고 닫히도록 정렬
+  const brs=syns.filter(an=>_brCh[an.type]);
+  brs.slice().sort((x,y)=> (x.a-y.a) || (y.b-x.b)).forEach(an=>{   // 시작이 같으면 바깥(넓은 것)이 먼저 열림
+    (synPre[an.a]=synPre[an.a]||[]).push('<span style="color:'+GC+';font-weight:800">'+_brCh[an.type][0]+'</span>');
+  });
+  brs.slice().sort((x,y)=> (x.b-y.b) || (y.a-x.a)).forEach(an=>{   // 끝이 같으면 안쪽(좁은 것)이 먼저 닫힘
+    (synPost[an.b]=synPost[an.b]||[]).push('<span style="color:'+GC+';font-weight:800">'+_brCh[an.type][1]+'</span>');
+  });
+  const mvs=syns.filter(a=>a.type==='mv');
   let html=''; let spaceOk=false; let curEnd=-1;
   for(let t=0;t<toks.length;t++){
     const tok=toks[t];
@@ -80230,14 +80483,18 @@ function _faRenderEn(s, si){
     const startAnn=anns.find(an=>an.a===t);
     if(startAnn){ html+=pre; pre=''; html+='<span style="border-bottom:2.5px solid '+_faStructAnnCol(startAnn)+';padding-bottom:1px">'; curEnd=Math.max(curEnd,startAnn.b); }
     else html+=pre;
+    if(synPre[t]) html+=synPre[t].join('');
     const selOn = sel && t>=selLo && t<=selHi;
     const dragOn = drag && t>=dragLo && t<=dragHi;
     const hlCol=_faTokHL(s,t);
+    const mvHere=mvs.some(m=>t>=m.a && t<=m.b);
     const tokBg = dragOn ? 'background:#bfdbfe;border-radius:3px;' : (selOn ? 'background:#fde68a;border-radius:3px;' : (hlCol ? ('background:'+hlCol+';border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;') : ''));
+    const mvStyle = mvHere ? 'border-bottom:2px solid '+GC+';background:rgba(184,73,47,0.07);border-radius:2px;' : '';
     html+='<span class="fa-tok'+(mode?' fa-clk':'')+'" data-fatok="'+si+'-'+t+'"'+(mode?(
         ' onmousedown="_faTokDown(event,'+si+','+t+')" onmouseenter="_faTokEnter('+si+','+t+')" onmouseup="_faTokUp(event,'+si+','+t+')" onclick="_faTokClick(event,'+si+','+t+')"'
       ):'')
-      +' style="'+tokBg+(mode?'cursor:pointer;user-select:none;':'')+'">'+_gfEsc(tok)+'</span>';
+      +' style="'+tokBg+mvStyle+(mode?'cursor:pointer;user-select:none;':'')+'">'+_gfEsc(tok)+'</span>';
+    if(synPost[t]) html+=synPost[t].join('');
     spaceOk=true;
     if(curEnd===t){ html+='</span>';
       const ei=anns.findIndex(an=>an.b===t);
@@ -80268,6 +80525,7 @@ function faSetGMode(mode){
 function _faGHint(G){
   if(G==='enedit') return '모든 문장을 직접 수정 — 기호 / // [ ] < > 입력 후 다른 곳을 클릭하거나 모드를 끄세요';
   if(G==='struct') return '단어를 클릭/드래그하면 바로 밑줄만 그어져요(빠른 구조 표시) → 그 부분을 다시 클릭하면 라벨(개념) 선택 팔레트가 열려요';
+  if(G==='syntax') return '단어를 클릭/드래그해서 범위를 고르면 / [ ] < > ( ) 본동사·병렬·생략 팔레트가 열려요';
   if(G==='vocab') return '단어를 클릭하면 단어 1개, 드래그하면 구·절 단위로 어휘가 추가돼요';
   return '모드를 켜면 모든 문장에 적용됩니다 (한 번 더 누르면 끔)';
 }
@@ -80281,6 +80539,8 @@ function faRenderGBar(){
   bar+='<span style="font-size:11.5px;font-weight:800;color:#475569;margin-right:2px">✍️ 작업 모드</span>';
   bar+=_faGBtn('enedit','✏️ 문장수정','#4338ca');
   bar+=_faGBtn('struct','🧩 구조지정','#1d4ed8');
+  bar+=_faGBtn('syntax','📐 구문분석','#B8492F');
+  if(G==='syntax') bar+='<button onclick="faGenerateSyntax()" style="font-size:11.5px;font-weight:800;border-radius:8px;padding:5px 13px;cursor:pointer;font-family:inherit;border:1.5px solid #B8492F;background:#B8492F;color:#fff">🤖 AI 자동 구문분석</button>';
   bar+=_faGBtn('vocab','📖 단어지정','#059669');
   bar+='<span style="flex:1 1 100%;font-size:10.5px;color:#94a3b8;margin-top:1px">'+_faGHint(G)+'</span>';
   bar+='</div>';
@@ -80292,6 +80552,13 @@ function faEnterEnEdit(si){ const G=window._faGMode; if(G==='struct'||G==='vocab
 function _faExitEnEditOutside(e){
   if(!window._faGMode) return;
   if(e.target.closest && e.target.closest('[data-fa-gbtn]')) return; // 모드 버튼은 버튼이 처리
+  if(window._faGMode==='enedit'){
+    // 문장수정 모드는 문장 전체가 편집칸이라, "출력영역 안"이라는 기준으로는 절대 안 꺼짐 —
+    // 지금 편집 중인 문장 칸(data-faen) 밖을 클릭하면(같은 패널 안이라도) 바로 저장하고 모드 종료
+    if(e.target.closest && e.target.closest('[data-faen]')) return;
+    faSyncEditsFromDOM(); window._faGMode=null; window._faSel=null; window._faDrag=null; window._faDragMoved=false; faRender();
+    return;
+  }
   const out=document.getElementById('fa-output'); if(!out) return;
   if(out.contains(e.target)) return;                                  // 출력영역 내부 클릭 — 유지
   faSyncEditsFromDOM(); window._faGMode=null; window._faSel=null; window._faDrag=null; window._faDragMoved=false; faRender();
@@ -80302,7 +80569,7 @@ function faToggleStructLabel(si, ei){ faSyncEditsFromDOM(); const s=window._faDa
 window._faDrag = null;        // {si, a(start), b(current)}
 window._faDragMoved = false;  // 실제로 다른 토큰까지 움직였는지(클릭과 구분)
 function _faTokDown(e, si, t){
-  const G=window._faGMode; const mode=(G==='struct'||G==='vocab')?G:null; if(!mode) return;
+  const G=window._faGMode; const mode=(G==='struct'||G==='vocab'||G==='syntax')?G:null; if(!mode) return;
   e.preventDefault();
   window._faDrag={si:si, a:t, b:t}; window._faDragMoved=false;
   if(!window._faDragUpInit){ window._faDragUpInit=true; document.addEventListener('mouseup', _faGlobalMouseUp); }
@@ -80326,11 +80593,13 @@ function _faTokUp(e, si, t){
   const G=window._faGMode;
   if(G==='vocab'){ _faAddVocabRange(si, a, b); }
   else if(G==='struct'){ _faStructPick(si, a, b); }
+  else if(G==='syntax'){ _faSyntaxPick(si, a, b); }
 }
 function _faTokClick(e, si, t){
   if(window._faDragMoved){ window._faDragMoved=false; return; } // 드래그 직후 발생하는 click 이벤트는 무시
-  const G=window._faGMode; const mode=(G==='struct'||G==='vocab')?G:null; if(!mode) return;
+  const G=window._faGMode; const mode=(G==='struct'||G==='vocab'||G==='syntax')?G:null; if(!mode) return;
   if(mode==='vocab'){ _faAddVocabRange(si, t, t); return; }
+  if(mode==='syntax'){ _faSyntaxPick(si, t, t); return; }
   _faStructPick(si, t, t);
 }
 // 구조지정 핵심 로직: 이미 라벨이 달린 구간을 클릭/드래그하면 그 라벨 편집 팔레트를 열고,
@@ -80379,6 +80648,40 @@ function faAddStruct(si, label){
   window._faSel=null; faRender();
 }
 function faDelStruct(si, ei){ faSyncEditsFromDOM(); const s=window._faData.sentences[si]; if(s&&s.struct){ s.struct.splice(ei,1); faRender(); } window._faSel=null; }
+// ── 구문분석: / [ ] < > ( ) 본동사·병렬·생략 ──
+function _faSyntaxPick(si, a, b){
+  faSyncEditsFromDOM();
+  window._faSel={si:si, a:Math.min(a,b), b:Math.max(a,b)};
+  faRender();
+}
+function faAddSyntax(si, type){
+  faSyncEditsFromDOM();
+  const sel=window._faSel; if(!sel||sel.si!==si) return;
+  const a=Math.min(sel.a,sel.b), b=Math.max(sel.a,sel.b);
+  const s=window._faData.sentences[si]; s.syntax=s.syntax||[];
+  if(type==='omit'){
+    s.syntax.push({a:a, b:a, type:'omit'});
+  } else if(type==='para'){
+    const n=s.syntax.filter(x=>x.type==='para').length+1;
+    s.syntax.push({a:a, b:b, type:'para', n:n});
+  } else if(type==='mv'){
+    s.syntax.push({a:a, b:b, type:'mv'});
+  } else {
+    // adv/noun/adj/prep — 중첩([ ... < ... > ])은 허용하고, 서로 걸쳐서 교차하는(crossing) 구간만 제거한다
+    const isBr=t=>['adv','noun','adj','prep'].includes(t);
+    s.syntax=s.syntax.filter(an=>{
+      if(!isBr(an.type)) return true;
+      const disjoint = (b<an.a) || (a>an.b);
+      const newInsideOld = (a>=an.a && b<=an.b);
+      const oldInsideNew = (an.a>=a && an.b<=b);
+      return disjoint || newInsideOld || oldInsideNew; // 교차만 제거
+    });
+    s.syntax.push({a:a, b:b, type:type});
+  }
+  s.syntax.sort((x,y)=>x.a-y.a);
+  window._faSel=null; faRender();
+}
+function faDelSyntax(si, idx){ faSyncEditsFromDOM(); const s=window._faData.sentences[si]; if(s&&s.syntax){ s.syntax.splice(idx,1); faRender(); } window._faSel=null; }
 function _faWantSynAnt(){ const c=document.getElementById('fa-vocab-synant'); return c?c.checked:true; }
 // si: 문장 인덱스, a/b: 토큰 인덱스 범위(구/절 단위 단어지정 지원, a===b면 단어 1개)
 function _faAddVocabRange(si, a, b){
@@ -80444,7 +80747,7 @@ function faDelExam(si, xi){ faSyncEditsFromDOM(); const s=window._faData.sentenc
 
 function _faSentenceHtml(s,i,dims){
   const G=window._faGMode;
-  const sel=(G==='struct' && window._faSel && window._faSel.si===i)?window._faSel:null;
+  const sel=((G==='struct'||G==='syntax') && window._faSel && window._faSel.si===i)?window._faSel:null;
   // ── 좌단: 역할+문장 → 구조팔레트 → 어휘 → 문법포인트 → 출제포인트 (출력물 .fas-en/.fas-tags와 동일 여백) ──
   let left='';
   left+='<div ondblclick="faEnterEnEdit('+i+')" title="더블클릭하면 문장 직접 수정" style="font-size:14.5px;font-weight:400;color:#1B1B1B;line-height:1.58">'
@@ -80455,6 +80758,20 @@ function _faSentenceHtml(s,i,dims){
     _FA_STRUCT.forEach(L=>{ pal+='<button onclick="faAddStruct('+i+',\''+L.ko+'\')" style="font-size:10.5px;font-weight:700;color:#fff;background:'+L.c+';border:none;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">'+L.ko+'</button>'; });
     pal+='<button onclick="window._faSel=null;faRender()" style="font-size:10.5px;color:#64748b;background:#fff;border:1px solid #cbd5e1;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">취소</button></div>';
     left+=pal;
+  }
+  if(G==='syntax' && sel){
+    let pal='<div class="fa-noprint" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;margin-left:18px;background:#fdf6f3;border:1px solid #e8cec3;border-radius:8px;padding:7px">';
+    _FA_SYNTAX_TYPES.forEach(L=>{ pal+='<button onclick="faAddSyntax('+i+',\''+L.type+'\')" style="font-size:10.5px;font-weight:700;color:#fff;background:'+_FA_SYNTAX_COLOR+';border:none;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">'+L.ko+'</button>'; });
+    pal+='<button onclick="window._faSel=null;faRender()" style="font-size:10.5px;color:#64748b;background:#fff;border:1px solid #cbd5e1;border-radius:5px;padding:2px 9px;cursor:pointer;font-family:inherit">취소</button></div>';
+    left+=pal;
+  }
+  if(dims.includes('syntax') && (s.syntax||[]).length){
+    left+='<div class="fa-noprint" style="margin-top:4px;margin-left:18px;display:flex;flex-wrap:wrap;gap:5px">';
+    (s.syntax||[]).forEach((sy,yi)=>{
+      left+='<span style="font-size:10px;color:'+_FA_SYNTAX_COLOR+';background:#fdf6f3;border:1px solid #e8cec3;border-radius:5px;padding:1px 6px">'+_faSyntaxLabel(sy.type)
+        +' <span onclick="faDelSyntax('+i+','+yi+')" style="cursor:pointer;color:#dc2626;font-weight:800;margin-left:2px">✕</span></span>';
+    });
+    left+='</div>';
   }
   const tagsOpen='<div style="margin-top:5px;margin-left:18px">';
   if(dims.includes('vocab') && (s.vocab||[]).length){
@@ -80507,7 +80824,7 @@ function faRender(){
       +'<div style="text-align:right"><div style="font-size:8.5px;color:#767472;letter-spacing:.04em">문장수</div><div style="font-size:13.5px;font-weight:800;color:#1B1B1B">'+(d.sentences||[]).length+'</div></div>'
     +'</div></div>';
   html+='<div style="font-size:9.5px;color:#767472;margin:2px 0 9px;padding-bottom:6px;border-bottom:1px solid #C9C5BA">'
-    +'<b style="color:#B8492F;font-weight:800">밑줄</b> 문법구조&nbsp;&nbsp;<b style="color:#8A6420;font-weight:800">■</b> 어휘&nbsp;&nbsp;<b style="color:#4F6B52;font-weight:800">■</b> 논리·역할&nbsp;&nbsp;<b style="color:#7A5C99;font-weight:800">■</b> 요약</div>';
+    +'<b style="color:#B8492F;font-weight:800">밑줄</b> 문법구조&nbsp;&nbsp;<b style="color:#B8492F;font-weight:800">/[ ]&lt;&gt;( )</b> 구문분석&nbsp;&nbsp;<b style="color:#8A6420;font-weight:800">■</b> 어휘&nbsp;&nbsp;<b style="color:#4F6B52;font-weight:800">■</b> 논리·역할&nbsp;&nbsp;<b style="color:#7A5C99;font-weight:800">■</b> 요약</div>';
   (d.sentences||[]).forEach((s,i)=>{ html+=_faSentenceHtml(s,i,dims); });
   // ── 푸터: 핵심 요지 + 지문에서 확인된 출제 포인트 (출력물과 동일) ──
   let examItems='';
@@ -80534,12 +80851,14 @@ function faSyncEditsFromDOM(){
   // 직접 수정한 영어 문장 반영 (+ 구조 지정 범위 LCS 재정렬, + 형광펜(_hl) 토큰 범위 재계산)
   out.querySelectorAll('[data-faen]').forEach(el=>{
     const si=+el.getAttribute('data-faen'); const s=d.sentences&&d.sentences[si]; if(!s) return;
-    const ct=_faCollectText(el);                       // {text, colors[]} — 칠해진 글자 정보 포함
-    const txt=(ct.text||'').replace(/\s+/g,' ').trim();
+    const ct=_faCollectText(el);                       // {text, colors[]} — 칠해진 글자 정보 포함(기호 포함 원문 기준)
+    const parsed=_faParseTypedSyntax(ct.text||'');      // 원문에 섞어 친 /[]<>()Ø①② 기호를 뽑아 순수 문장 + 구조데이터로 분리
+    const txt=(parsed.clean||'').replace(/\s+/g,' ').trim();
+    const oldMv=(s.syntax||[]).filter(a=>a.type==='mv'); // 밑줄(본동사)은 기호로 안 그려지므로 별도 보존
     if(txt && txt!==s.en){
+      const oldToks=_wbTokenize(s.en||''); const newToks=_wbTokenize(txt);
+      const map=_faTokenLcsMap(oldToks, newToks); // oldIdx -> newIdx (매칭 안되면 -1)
       if(Array.isArray(s.struct) && s.struct.length){
-        const oldToks=_wbTokenize(s.en||''); const newToks=_wbTokenize(txt);
-        const map=_faTokenLcsMap(oldToks, newToks); // oldIdx -> newIdx (매칭 안되면 -1)
         const remapped=[];
         s.struct.forEach(an=>{
           const na=map[an.a], nb=map[an.b];
@@ -80548,10 +80867,23 @@ function faSyncEditsFromDOM(){
         });
         s.struct=remapped.sort((x,y)=>x.a-y.a);
       }
+      const mvRemapped=[];
+      oldMv.forEach(an=>{
+        const na=map[an.a], nb=map[an.b];
+        if(na==null||nb==null||na<0||nb<0) return;
+        mvRemapped.push(Object.assign({},an,{a:na,b:nb}));
+      });
+      const typedMarks=_faTypedMarksToSyntax(parsed.clean, parsed.marks);
+      s.syntax=mvRemapped.concat(typedMarks).sort((x,y)=>x.a-y.a);
       s.en=txt;
+    } else if(txt===s.en){
+      // 문장 자체는 그대로지만 기호만 고쳤을 수 있으므로 구문분석 데이터는 다시 반영
+      const typedMarks=_faTypedMarksToSyntax(parsed.clean, parsed.marks);
+      s.syntax=oldMv.concat(typedMarks).sort((x,y)=>x.a-y.a);
     }
-    // 문장수정 모드에서 칠한 형광펜을 토큰 인덱스 범위로 변환해 보존(저장·인쇄·재렌더 유지)
-    s._hl=_faColorsToTokRanges(ct.text, ct.colors);
+    // 문장수정 모드에서 칠한 형광펜을 토큰 인덱스 범위로 변환해 보존(저장·인쇄·재렌더 유지) — 기호 문자는 제외한 순수 문장 기준
+    const cleanColors=parsed.keptIdx.map(i=>ct.colors[i]);
+    s._hl=_faColorsToTokRanges(parsed.clean, cleanColors);
   });
 }
 // 옛 토큰 배열과 새 토큰 배열을 LCS로 매칭해 oldIdx -> newIdx 맵을 만든다 (문장수정 시 구조지정 범위 보존용)
@@ -80580,6 +80912,20 @@ function _faTokHL(s, t){
 // 문장수정(enedit) 모드용 — 기존 형광펜을 칠해진 채로 편집 가능하게 렌더
 function _faEnEditHTML(s){
   const toks=_wbTokenize(s&&s.en||''); if(!toks.length) return _gfEsc(s&&s.en||'');
+  const GC=_FA_SYNTAX_COLOR;
+  const syns=(s&&s.syntax)||[];
+  const synPre={}, synPost={};
+  syns.forEach(an=>{
+    if(an.type==='omit'){ (synPre[an.a]=synPre[an.a]||[]).push('(Ø)'); return; }
+    if(an.type==='mv') return; // 밑줄은 타이핑 표기 대상 아님 — 팔레트로만 지정
+    if(an.type==='para'){ (synPre[an.a]=synPre[an.a]||[]).push(_faSyntaxCircled(an.n||1)); return; }
+    if(an.type==='adv'){ if(an.a>0) (synPre[an.a]=synPre[an.a]||[]).push('/'); return; }
+  });
+  const brCh={noun:['[',']'], adj:['<','>'], prep:['(',')']};
+  const brs=syns.filter(an=>brCh[an.type]);
+  brs.slice().sort((x,y)=>(x.a-y.a)||(y.b-x.b)).forEach(an=>{ (synPre[an.a]=synPre[an.a]||[]).push(brCh[an.type][0]); });
+  brs.slice().sort((x,y)=>(x.b-y.b)||(y.a-x.a)).forEach(an=>{ (synPost[an.b]=synPost[an.b]||[]).push(brCh[an.type][1]); });
+  const symSpan=(txt)=>'<span contenteditable="false" style="color:'+GC+';font-weight:800">'+txt+'</span>';
   let html=''; let spaceOk=false; let runColor=''; let runOpen=false;
   for(let t=0;t<toks.length;t++){
     const tok=toks[t]; const col=_faTokHL(s,t);
@@ -80589,9 +80935,13 @@ function _faEnEditHTML(s){
       html+=pre;
       if(col){ html+='<span class="gf-hl" style="background:'+col+';-webkit-print-color-adjust:exact;print-color-adjust:exact">'; runOpen=true; }
       runColor=col;
+      if(synPre[t]) html+=symSpan(synPre[t].join(''));
       html+=_gfEsc(tok);
+      if(synPost[t]) html+=symSpan(synPost[t].join(''));
     } else {
-      html+=pre+_gfEsc(tok); // 같은 색 런이 이어짐(사이 공백도 색 안에 포함)
+      if(synPre[t]) html+=symSpan(synPre[t].join(''));
+      html+=pre+_gfEsc(tok);
+      if(synPost[t]) html+=symSpan(synPost[t].join(''));
     }
     spaceOk=true;
   }
@@ -80683,14 +81033,40 @@ function _fasEsc(x){ return _gfEsc(x); }
 function _fasRenderSentenceEn(s){
   const toks=_wbTokenize(s.en||'');
   const structs=(s.struct||[]).filter(a=>a.label).slice().sort((a,b)=>a.a-b.a);
+  const syns=(s.syntax||[]);
+  const synPre={}, synPost={};
+  const _brCh={noun:['[',']'], adj:['<','>'], prep:['(',')']};
+  syns.forEach(an=>{
+    if(an.type==='omit'){ (synPre[an.a]=synPre[an.a]||[]).push('<span class="fas-syntax">(Ø)</span>'); return; }
+    if(an.type==='mv') return;
+    if(an.type==='para'){ (synPre[an.a]=synPre[an.a]||[]).push('<sup class="fas-syntax">'+_faSyntaxCircled(an.n||1)+'</sup>'); return; }
+    if(an.type==='adv'){ if(an.a>0) (synPre[an.a]=synPre[an.a]||[]).push('<span class="fas-syntax">/</span>'); return; }
+  });
+  const brs=syns.filter(an=>_brCh[an.type]);
+  brs.slice().sort((x,y)=> (x.a-y.a) || (y.b-x.b)).forEach(an=>{   // 시작이 같으면 바깥이 먼저 열림
+    (synPre[an.a]=synPre[an.a]||[]).push('<span class="fas-syntax">'+_brCh[an.type][0]+'</span>');
+  });
+  brs.slice().sort((x,y)=> (x.b-y.b) || (y.a-x.a)).forEach(an=>{   // 끝이 같으면 안쪽이 먼저 닫힘
+    (synPost[an.b]=synPost[an.b]||[]).push('<span class="fas-syntax">'+_brCh[an.type][1]+'</span>');
+  });
+  const mvs=syns.filter(a=>a.type==='mv');
+  const hls=(s._hl||[]).filter(r=>r&&r.color);
+  const hlAt=t=>{ const r=hls.find(r=>t>=r.a&&t<=r.b); return r?r.color:''; };
   let html='', spaceOk=false, structEnd=-1;
   for(let t=0;t<toks.length;t++){
     const tok=toks[t];
     let pre = spaceOk ? ((/^[)\]\u2019\u201D",.!?;:]/.test(tok))?'':' ') : '';
+    if(pre){ const hp=t>0?hlAt(t-1):'', hc=hlAt(t); if(hc && hp===hc){ pre='<span style="background:'+hc+';-webkit-print-color-adjust:exact;print-color-adjust:exact">'+pre+'</span>'; } }
     html+=pre;
     const stStart=structs.find(a=>a.a===t);
     if(stStart){ html+='<span class="fas-gram">'; structEnd=stStart.b; }
-    html+=_fasEsc(tok);
+    if(synPre[t]) html+=synPre[t].join('');
+    const mvHere=mvs.some(m=>t>=m.a && t<=m.b);
+    const hlCol=hlAt(t);
+    const tokOpen=(mvHere?'<span class="fas-mv">':'')+(hlCol?'<span style="background:'+hlCol+';border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact">':'');
+    const tokClose=(hlCol?'</span>':'')+(mvHere?'</span>':'');
+    html+=tokOpen+_fasEsc(tok)+tokClose;
+    if(synPost[t]) html+=synPost[t].join('');
     if(t===structEnd){
       const st=structs.find(a=>a.b===t);
       html+='</span>'+(st&&st.label?'<sub class="fas-gtag">'+_fasEsc(st.label)+'</sub>':'');
@@ -80715,7 +81091,8 @@ function _fasRow(s, i){
   const summaryHTML = (s.summary||'').trim()
     ? '<div class="fas-sum"><span class="fas-arrow">→</span>'+_fasEsc(s.summary)+'</div>' : '';
   return '<div class="fas-row">'
-    +'<div class="fas-col-l"><div class="fas-en"><span class="fas-num">'+(i+1)+'</span>'+(role?'<span class="fas-role">'+_fasEsc(role)+'</span>':'')+en+'</div>'
+    +'<div class="fas-col-l"><div class="fas-en-wrap"><span class="fas-num">'+(i+1)+'</span>'
+      +'<div class="fas-en">'+(role?'<span class="fas-role">'+_fasEsc(role)+'</span>':'')+en+'</div></div>'
       +(tags?'<div class="fas-tags">'+tags+'</div>':'')
     +'</div>'
     +'<div class="fas-col-r"><div class="fas-kr">'+_fasEsc(s.ko||'')+'</div>'+summaryHTML+'</div>'
@@ -80757,10 +81134,13 @@ function _fasCss(){
   .fas-row:last-child{border-bottom:none;}
   .fas-col-l{grid-column:1;} .fas-col-r{grid-column:2;border-left:1px solid var(--line2);padding-left:18px;}
   .fas-role{color:var(--logic);font-weight:800;font-size:calc(12px * var(--fasScale,1));margin-right:3px;}
-  .fas-num{display:inline-block;min-width:14px;color:var(--ink);font-weight:800;font-size:calc(12px * var(--fasScale,1));margin-right:4px;}
-  .fas-en{font-size:calc(14.5px * var(--fasScale,1));line-height:var(--fasLh,1.58);color:var(--ink);}
+  .fas-en-wrap{display:flex;gap:4px;align-items:flex-start;}
+  .fas-num{flex-shrink:0;min-width:14px;color:var(--ink);font-weight:800;font-size:calc(12px * var(--fasScale,1));}
+  .fas-en{flex:1;min-width:0;font-size:calc(14.5px * var(--fasScale,1));line-height:var(--fasLh,1.58);color:var(--ink);}
   .fas-gram{border-bottom:2px solid var(--gram);padding-bottom:1px;}
   .fas-gtag{font-size:calc(8.5px * var(--fasScale,1));color:var(--gram);font-weight:800;vertical-align:top;margin-left:1px;}
+  .fas-syntax{color:var(--gram);font-weight:800;}
+  .fas-mv{border-bottom:2px solid var(--gram);background:rgba(184,73,47,0.07);border-radius:2px;}
   .fas-tags{margin-top:5px;margin-left:18px;}
   .fas-tagline{font-size:calc(11.5px * var(--fasScale,1));line-height:calc(var(--fasLh,1.58) * 0.98);margin-bottom:3px;}
   .fas-tagline:last-child{margin-bottom:0;}
@@ -80822,7 +81202,7 @@ function faPrint(){
         +(d.structure_type?'<div class="fas-meta-item"><div class="fas-lbl">유형</div><div class="fas-val">'+_fasEsc(d.structure_type)+'</div></div>':'')
         +'<div class="fas-meta-item"><div class="fas-lbl">문장수</div><div class="fas-val">'+d.sentences.length+'</div></div>'
       +'</div></div>'
-      +'<div class="fas-legend"><b class="g">밑줄</b> 문법구조&nbsp;&nbsp;<b class="w">■</b> 어휘&nbsp;&nbsp;<b class="l">■</b> 논리·역할&nbsp;&nbsp;<b class="s">■</b> 요약</div>',
+      +'<div class="fas-legend"><b class="g">밑줄</b> 문법구조&nbsp;&nbsp;<b class="g">/[ ]&lt;&gt;( )</b> 구문분석&nbsp;&nbsp;<b class="w">■</b> 어휘&nbsp;&nbsp;<b class="l">■</b> 논리·역할&nbsp;&nbsp;<b class="s">■</b> 요약</div>',
     rows: d.sentences.map((s,i)=>_fasRow(s,i)),
     foot: _fasFootHTML(d)
   };
@@ -83121,6 +83501,538 @@ window._rtResetLayout = function(){
   window._rtApplyLayout(true);
 };
 // ══════════════ /논리독해 훈련 씽크세트 ══════════════
+
+// ══════════════ ABC 리딩 훈련 세트 (abc) ══════════════
+// 지문을 붙여넣으면 AI가 Sentence ABC → Chunking ABC → 전체 주제 3단계 훈련지로 분석·생성
+async function elNewABCSet(){
+  const title = prompt('세트 이름:', 'ABC 리딩 훈련지');
+  if (title === null) return;
+  try{
+    const {data,error} = await sb.from('exam_sets').insert({
+      teacher_id: currentUser.id, title: title || 'ABC 리딩 훈련지',
+      source_type: 'abc_reading', item_count: 0
+    }).select().single();
+    if(error) throw error;
+    EL.sets.unshift(data); elOpenSet(data.id);
+  }catch(e){
+    const s={id:'local_'+Date.now(),title:title||'ABC 리딩 훈련지',source_type:'abc_reading',item_count:0,created_at:new Date().toISOString()};
+    EL.sets.unshift(s); elOpenSet(s.id);
+  }
+}
+
+function _abcEnsureRightPanel(){
+  var id='el-abc-right-panel';
+  var el=document.getElementById(id);
+  if(el) return el;
+  var rp=document.getElementById('el-right-panel'); if(!rp) return null;
+  el=document.createElement('div'); el.id=id;
+  el.style.cssText='display:none;flex-direction:column;gap:10px';
+  el.innerHTML='<div style="background:#fdf7f2;border:1px solid #dedcd5;border-radius:12px;padding:14px">'
+    +'<div style="font-size:13px;font-weight:800;color:#a8562e;margin-bottom:8px">🔤 ABC 리딩 훈련</div>'
+    +'<div style="font-size:12px;color:#7a7b7f;line-height:1.6;margin-bottom:10px">영어 지문을 붙여넣으면 AI가 Anchor·Bridge·Categorization 3단계 훈련지를 만듭니다.</div>'
+    +'<textarea id="el-abc-source" placeholder="영어 지문을 붙여넣으세요." style="width:100%;height:170px;font-size:12.5px;padding:10px;border:1px solid #dedcd5;border-radius:8px;resize:vertical;outline:none;font-family:inherit;box-sizing:border-box"></textarea>'
+    +'<input id="el-abc-grade" placeholder="학년(선택) 예) 중3" style="width:100%;margin-top:8px;font-size:12.5px;padding:8px 10px;border:1px solid #dedcd5;border-radius:8px;outline:none;box-sizing:border-box">'
+    +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #dedcd5">'
+    +'<div style="font-size:11.5px;font-weight:700;color:#7a7b7f;margin-bottom:6px">📖 문장집에서 불러오기</div>'
+    +'<select id="el-abc-sentbook" onchange="_abcLoadFromSentBook()" style="width:100%;font-size:12.5px;padding:8px 10px;border:1px solid #dedcd5;border-radius:8px;outline:none;box-sizing:border-box;font-family:inherit;background:#fff"><option value="">-- 문장집 선택 --</option></select>'
+    +'</div>'
+    +'</div>'
+    +'<button id="el-abc-genbtn" onclick="elGenerateABC()" style="width:100%;padding:11px;border-radius:9px;border:none;background:#a8562e;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔤 ABC 훈련지 생성</button>'
+    +'<button onclick="elPrintABC()" style="width:100%;padding:9px;border-radius:9px;border:1px solid #dedcd5;background:#fff;color:#17181a;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">🖨 훈련지 인쇄</button>'
+    +'<div id="el-abc-status" style="font-size:11.5px;color:#7a7b7f;min-height:16px"></div>';
+  rp.appendChild(el);
+  return el;
+}
+function _abcPopulateSentBooks(){
+  var sel=document.getElementById('el-abc-sentbook'); if(!sel) return;
+  var books=(typeof DB_sentBooks!=='undefined'?DB_sentBooks:[])||[];
+  var cur=sel.value;
+  sel.innerHTML='<option value="">-- 문장집 선택 --</option>';
+  books.forEach(function(b){
+    var opt=document.createElement('option'); opt.value=b.id;
+    var items=((typeof DB_sentItems!=='undefined'?DB_sentItems:{})||{})[b.id]||[];
+    opt.textContent=b.name+' ('+(items.length||b.item_count||0)+'문장)';
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value=cur;
+}
+async function _abcLoadFromSentBook(){
+  var sel=document.getElementById('el-abc-sentbook'); if(!sel) return;
+  var bookId=sel.value; if(!bookId) return;
+  var items=((typeof DB_sentItems!=='undefined'?DB_sentItems:{})||{})[bookId]||[];
+  if(!items.length){
+    try{
+      var r=await sb.from('sentence_items').select('en,ko,sort_order').eq('book_id',bookId).order('sort_order');
+      items=r.data||[];
+      if(items.length){ if(!window.DB_sentItems) window.DB_sentItems={}; DB_sentItems[bookId]=items; }
+    }catch(e){ showToast('문장집 로드 실패','error'); return; }
+  }
+  if(!items.length){ showToast('문장이 없는 문장집입니다','error'); return; }
+  var passage=items.map(function(it){ return (it.en||it.sentence||'').trim(); }).filter(Boolean).join(' ');
+  var ta=document.getElementById('el-abc-source'); if(ta) ta.value=passage;
+  var st=document.getElementById('el-abc-status');
+  if(st) st.textContent='📖 문장집 불러옴 ('+items.length+'문장) — 생성을 눌러주세요';
+}
+
+// ── 헬퍼 ──
+function _abcEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _abcF(k){ return k==='long'?'<span class="abc-fill long"></span>':(k==='full'?'<span class="abc-fill full"></span>':'<span class="abc-fill"></span>'); }
+function _abcChoice(options, correctVal){
+  return '<span class="abc-choice">'+options.map(function(o){
+    var isC = correctVal!=null && String(o)===String(correctVal);
+    return '<span class="abc-copt'+(isC?' abc-copt-c':'')+'">'+_abcEsc(o)+'</span>';
+  }).join('<span class="abc-csep">/</span>')+'</span>';
+}
+
+function _abcFA(text, kind){
+  const cls = kind? (' '+kind) : '';
+  return '<span class="abc-fillans'+cls+'"><span class="t">'+_abcEsc(text||'')+'</span></span>';
+}
+function _abcSub(text, block){
+  if(!text) return '';
+  return '<span class="abc-ansub'+(block?' block':'')+'">'+_abcEsc(text)+'</span>';
+}
+function _abcEnsureCSS(){
+  if(document.getElementById('abc-css')) return;
+  const st=document.createElement('style'); st.id='abc-css';
+  st.textContent=`
+.abc-root{--ink:#17181a;--soft:#7a7b7f;--faint:#b7b6b1;--line:#dedcd5;--acc:#a8562e;--tint:#fdf3ec;
+  font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;color:var(--ink);line-height:1.6;font-size:13px;background:#fff;
+  max-width:820px;margin:0 auto;padding:30px 34px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.abc-root *{box-sizing:border-box}
+.abc-hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--ink);padding-bottom:10px;margin-bottom:18px}
+.abc-brand{font-weight:700;font-size:12px;letter-spacing:3px;text-transform:uppercase}
+.abc-brand span{color:var(--acc)}
+.abc-doct{font-size:11px;color:var(--soft)}
+.abc-name{font-size:11px;color:var(--soft)}
+.abc-name i{display:inline-block;width:78px;border-bottom:1px solid var(--faint);margin:0 6px;font-style:normal}
+.abc-titlerow{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid var(--ink);margin-bottom:18px}
+.abc-kicker{font-size:10.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:5px}
+.abc-title{font-size:21px;font-weight:800;letter-spacing:-.3px;margin:0;outline:none}
+.abc-meta{font-size:11px;color:var(--soft);white-space:nowrap}
+.abc-goal{border:1px solid var(--ink);padding:14px 16px;margin-bottom:18px}
+.abc-eyebrow{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--soft);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.abc-eyebrow:after{content:"";flex:1;height:1px;background:var(--line)}
+.abc-goal ol{margin:0;padding-left:18px}
+.abc-goal li{margin-bottom:7px;font-size:12.5px}
+.abc-legend{border:1px solid #b8492f;padding:13px 16px;margin-bottom:18px}
+.abc-legend .abc-eyebrow{color:#b8492f}
+.abc-legend .abc-eyebrow:after{background:rgba(184,73,47,.25)}
+.abc-legend-formula{font-size:13px;font-weight:700;text-align:center;margin-bottom:9px;letter-spacing:.2px}
+.abc-legend-formula b{color:#b8492f}
+.abc-legend ul{margin:0;padding:0;list-style:none;display:flex;gap:14px;flex-wrap:wrap}
+.abc-legend li{font-size:11px;line-height:1.5;flex:1;min-width:200px}
+.abc-legend li b{color:#b8492f}
+.abc-passage{border:1px solid #dedcd5;background:#f6f4ef;padding:13px 15px;margin-bottom:18px;font-size:12.5px;line-height:1.9;break-inside:avoid}
+.abc-passage .n{color:#b7b6b1;font-weight:700;font-size:10.5px;margin-right:6px}
+.abc-step{display:flex;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
+.abc-marker{width:58px;flex-shrink:0}
+.abc-marker .n{font-size:24px;font-weight:800;color:var(--acc);line-height:1;margin-bottom:6px}
+.abc-marker .tg{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);font-weight:700}
+.abc-marker .kr{font-size:11.5px;font-weight:700;margin-top:3px}
+.abc-body{flex:1;min-width:0}
+.abc-instr{font-size:12px;color:var(--soft);margin-bottom:11px}
+.abc-q{margin:8px 0;font-size:12.5px}
+.abc-item{padding:10px 0;border-bottom:1px solid var(--line);font-size:12.5px;break-inside:avoid;page-break-inside:avoid}
+.abc-item:last-child{border-bottom:none}
+.abc-no{font-weight:800;margin-right:7px;color:var(--acc)}
+.abc-en{font-weight:500}
+.abc-row{margin-top:7px;padding-left:22px;font-size:11.5px;color:var(--soft);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.abc-row .abc-fill{flex:1;min-width:80px}
+.abc-tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.5px;color:var(--acc);border:1px solid var(--acc);border-radius:3px;padding:0 6px;flex-shrink:0}
+.abc-choice{display:inline-flex;align-items:center;gap:5px;font-size:12px}
+.abc-copt{border:1px solid var(--line);border-radius:20px;padding:1px 10px;color:var(--soft);font-weight:700}
+.abc-csep{color:var(--faint);font-size:10px}
+.abc-show .abc-copt-c{background:var(--tint);border-color:var(--acc);color:var(--acc)}
+.abc-chunk{border:1px solid #dedcd5;background:#fff;padding:12px 14px;margin-bottom:8px;break-inside:avoid}
+.abc-chead{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+.abc-ctag{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc);border-radius:2px;padding:1px 7px}
+.abc-crange{font-size:11px;color:var(--soft)}
+.abc-csent{font-size:11.5px;color:var(--ink);line-height:1.6;margin-bottom:8px;padding:8px 10px;background:#f6f4ef;border-radius:6px}
+.abc-arrow{text-align:center;font-size:11px;color:var(--soft);margin:4px 0}
+.abc-arrow b{color:var(--acc)}
+.abc-chk{list-style:none;margin:8px 0 0;padding:0}
+.abc-chk li{padding:4px 0;font-size:12.5px;display:flex;gap:9px;align-items:flex-start}
+.abc-chk .cb{flex:0 0 auto;width:15px;height:15px;border:1px solid var(--ink);border-radius:3px;margin-top:2px}
+.abc-tab{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 8px}
+.abc-tab th{text-align:left;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--soft);font-weight:700;padding:0 10px 8px;border-bottom:1px solid var(--ink)}
+.abc-tab td{padding:9px 10px;border-bottom:1px solid var(--line)}
+.abc-fill{display:inline-block;border-bottom:1px solid var(--faint);min-width:60px;height:14px;vertical-align:baseline}
+.abc-fill.long{min-width:170px}
+.abc-fill.wide{display:block;min-width:0;width:100%;height:16px;margin-top:2px}
+.abc-fill.full{display:block;border-bottom:1px solid var(--faint);height:20px;margin:8px 0}
+.abc-fillans{display:inline-block;border-bottom:1px solid var(--faint);min-width:80px;vertical-align:baseline;line-height:14px}
+.abc-fillans .t{opacity:0;font-weight:700;color:var(--acc);font-size:12px;transition:opacity .1s}
+.abc-fillans.long{min-width:170px}
+.abc-fillans.wide{display:block;width:100%;border-bottom:1px solid var(--faint);margin-top:2px;line-height:20px}
+.abc-fillans.full{display:block;width:100%;border-bottom:1px solid var(--faint);margin:8px 0;line-height:20px}
+.abc-show .abc-fillans{border-bottom-color:var(--acc)}
+.abc-show .abc-fillans .t{opacity:1}
+.abc-ansub{opacity:0;font-size:10.5px;color:var(--acc);margin-left:5px;transition:opacity .1s}
+.abc-ansub.block{display:block;margin:5px 0 0;padding-left:22px}
+.abc-show .abc-ansub{opacity:1}
+.abc-ans{color:var(--acc);font-weight:700;font-size:11.5px;opacity:0;height:0;overflow:hidden;display:block;margin-top:4px}
+.abc-show .abc-ans[contenteditable="true"]:hover{background:rgba(168,86,46,.07);border-radius:2px}
+.abc-show .abc-ans[contenteditable="true"]:focus{box-shadow:0 0 0 1.5px var(--acc);border-radius:2px}
+.abc-show .abc-ans{opacity:1;height:auto}
+.abc-foot{text-align:center;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin-top:24px;padding-top:12px;border-top:1px solid var(--line)}
+.abc-root [contenteditable="true"]{outline:none;border-radius:2px}
+.abc-root [contenteditable="true"]:hover{background:rgba(168,86,46,.06)}
+.abc-root [contenteditable="true"]:focus{box-shadow:0 0 0 1.5px var(--acc)}
+@media print{.abc-noprint{display:none!important}}
+`;
+  document.head.appendChild(st);
+}
+
+function elAbcHTML(w){
+  _abcEnsureCSS(); w=w||{};
+  const esc=_abcEsc, F=_abcF, CH=_abcChoice;
+  const ed=(path,val,cls)=>'<span class="abc-ed'+(cls?' '+cls:'')+'" data-abc="'+path+'" contenteditable="true">'+esc(val)+'</span>';
+  const step=(no,tag,kr,inner)=> inner? ('<div class="abc-step"><div class="abc-marker"><div class="n">'+no+'</div><div class="tg">'+tag+'</div><div class="kr">'+kr+'</div></div><div class="abc-body">'+inner+'</div></div>') : '';
+
+  let head='<div class="abc-hd"><div class="abc-brand">ION <span>ENGLISH</span></div>'
+    +'<div class="abc-doct">ABC 리딩 훈련</div>'
+    +'<div class="abc-name">이름 <i></i></div></div>';
+  head+='<div class="abc-titlerow"><div><div class="abc-kicker">ABC 리딩 훈련</div>'
+    +'<h1 class="abc-title" data-abc="title" contenteditable="true">'+esc(w.title||'ABC 리딩 훈련지')+'</h1></div>'
+    +'<div class="abc-meta">'+((w.passage||[]).length||0)+'문장</div></div>';
+
+  const goals=(w.goals&&w.goals.length)?('<div class="abc-goal"><div class="abc-eyebrow">오늘의 목표</div><ol>'
+    +w.goals.map((g,i)=>'<li>'+ed('goals.'+i,g)+'</li>').join('')+'</ol></div>'):'';
+
+  const legend='<div class="abc-legend"><div class="abc-eyebrow">ABC 리딩 공식</div>'
+    +'<div class="abc-legend-formula">[<b>A</b> 소재/구정보] → <b>B</b>(+ / ↔ / → / ≈) → [New 신정보] ⟹ <b>C</b>(G / S)</div>'
+    +'<ul>'
+    +'<li><b>A · Anchor</b> — 지금 누구/무엇 얘기야? 문장의 소재/구정보를 붙잡는다.</li>'
+    +'<li><b>B · Bridge</b> — 앞이랑 같은 편(+)이야, 반대(↔)야, 원인·결과(→)야, 재진술(≈)이야?</li>'
+    +'<li><b>C · Categorization</b> — 이거 주제(G, 뼈대)야, 예시·근거(S, 살)야?</li>'
+    +'</ul></div>';
+
+  const passage=(w.passage&&w.passage.length)?('<div class="abc-passage">'
+    +w.passage.map((p,i)=>'<span><span class="n">'+(i+1)+'</span>'+ed('passage.'+i,(p&&p.en)||p||'')+'</span> ').join('')
+    +'</div>'):'';
+
+  // 01 Vocab
+  const vocabRows=(w.key_vocab||[]).map(v=>'<tr><td><span class="abc-en" contenteditable="true" style="outline:none">'+esc(v.word||'')+'</span></td><td>'+_abcFA(v.ko||'','long')+'</td></tr>').join('');
+  const s1=vocabRows?step('01','Vocab','핵심 어휘',
+    '<div class="abc-instr">문맥에서 뜻을 추론해 쓰세요.</div>'
+    +'<table class="abc-tab"><tr><th>어휘</th><th>문맥상 의미</th></tr>'+vocabRows+'</table>'):'';
+
+  // 02 Sentence ABC — 문장별 A/B/New/C
+  const BOPTS=['+','↔','→','≈'];
+  const COPTS=['G','S'];
+  const sents=(w.sentences||[]).map((se,i)=>{
+    const anchorTxt=(se.anchor_en||'')+(se.anchor_ko?(' — '+se.anchor_ko):'');
+    const newTxt=(se.new_en||'')+(se.new_ko?(' — '+se.new_ko):'');
+    const cReasonTxt=(se.cat_reason||'')+(se.role?(' · 역할: '+se.role):'');
+    return '<div class="abc-item"><span class="abc-no">'+(i+1)+'</span><span class="abc-en">'+esc(se.en||'')+'</span>'
+      +'<div class="abc-row"><span class="abc-tag">A</span>소재/구정보:'+_abcFA(anchorTxt,'long')+'</div>'
+      +'<div class="abc-row"><span class="abc-tag">B</span>논리 연결:'+CH(BOPTS, se.bridge)+_abcSub(se.bridge_signal?('신호: '+se.bridge_signal):'')+'</div>'
+      +'<div class="abc-row"><span class="abc-tag">N</span>New(신정보):'+_abcFA(newTxt,'long')+'</div>'
+      +'<div class="abc-row"><span class="abc-tag">C</span>체급:'+CH(COPTS, se.cat)+_abcSub(cReasonTxt)+'</div>'
+      +'</div>';
+  }).join('');
+  const s2=sents?step('02','Sentence ABC','문장별 분석',
+    '<div class="abc-instr">문장마다 <b>A(소재)</b>를 잡고 <b>B(+/↔/→/≈)</b>로 넘어가, <b>New(신정보)</b>가 <b>C(G/S)</b> 중 어디인지 판별하세요.</div>'+sents):'';
+
+  // 03 Chunking ABC — 덩어리 묶기
+  const COPTS3=['G','S',"G'"];
+  const BTOPTS=['직렬','병렬','대립'];
+  const chunkList=(w.chunks||[]);
+  const chunks=chunkList.map((c,i)=>{
+    const rangeLbl=c.range_label||((c.sent_no||[]).length?(c.sent_no[0]+'~'+c.sent_no[c.sent_no.length-1]):('Chunk '+(i+1)));
+    const sentTxt=(c.sent_no||[]).map(function(n){
+      const se=(w.sentences||[])[n-1]||(w.passage||[])[n-1];
+      const en=(se&&(se.en))||'';
+      return en?(n+'. '+en):'';
+    }).filter(Boolean).join(' ');
+    const arrow=(i<chunkList.length-1)?('<div class="abc-arrow">▼</div>'):'';
+    return '<div class="abc-chunk"><div class="abc-chead"><span class="abc-ctag">Chunk '+String(i+1).padStart(2,'0')+'</span><span class="abc-crange">문장 '+esc(rangeLbl)+'</span></div>'
+      +(sentTxt?('<div class="abc-csent">'+esc(sentTxt)+'</div>'):'')
+      +'<div class="abc-row"><span class="abc-tag">A</span>Macro Anchor(이 덩어리의 소재·판):'+_abcFA(c.macro_anchor_ko||'','wide')+'</div>'
+      +'<div class="abc-row"><span class="abc-tag">B</span>Bridge Chain:'+CH(BTOPTS, c.bridge_type)+_abcSub(c.bridge_signal?('신호: '+c.bridge_signal):'')+'</div>'
+      +'<div class="abc-row"><span class="abc-tag">C</span>체급:'+CH(COPTS3, c.cat)+'</div>'
+      +_abcSub(c.summary?('요약: '+c.summary):'', true)
+      +'</div>'+arrow;
+  }).join('');
+  const s3=chunks?step('03','Chunking ABC','덩어리로 묶기',
+    '<div class="abc-instr">앞에서 분석한 문장들을 <b>의미 덩어리(Chunk)</b>로 묶어, 덩어리별 <b>Macro Anchor</b>·<b>Bridge Chain</b>(직렬/병렬/대립)·<b>체급</b>을 채우세요.</div>'+chunks):'';
+
+  // 04 Topic — 전체 주제 완성
+  const T=w.topic||{};
+  const subjTxt=(T.subject_en||'')+(T.subject_ko?(' — '+T.subject_ko):'');
+  const scopeTxt=(T.scope||'')+(T.scope_note?(' — '+T.scope_note):'');
+  const explicitTxt=T.explicit===false?'없다(암시적)':(T.topic_sentence_no?('있다 — '+T.topic_sentence_no+'번 문장'):'');
+  const s4=(T.subject_en||T.main_idea)?step('04','Topic','전체 주제 완성',
+    '<div class="abc-instr">지문 전체를 관통하는 <b>메인 소재(A)</b>와 <b>최종 결론(G\')</b>을 정리하세요.</div>'
+    +'<div class="abc-q">① 메인 소재(A) — 영어 원문으로: '+_abcFA(subjTxt,'long')+'</div>'
+    +'<div class="abc-q" style="padding-left:14px">이 소재를 <b>좁게</b> 다루나요, <b>넓게</b> 다루나요? 근거는? '+_abcFA(scopeTxt,'long')+'</div>'
+    +'<div class="abc-q">② 전개 방식 — 지금까지의 Bridge Chain(직렬/병렬/대립)을 종합하면 이 글은 어떤 흐름인가요? '+_abcFA(T.dev_pattern||'','long')+'</div>'
+    +'<div class="abc-q" style="margin-top:10px">③ 주제문이 <b>글에 직접 쓰여 있나요?</b> '+_abcFA(explicitTxt,'long')+'</div>'
+    +'<div class="abc-q" style="margin-top:10px">④ 최종 결론(G\') — 지문 전체를 관통하는 한 문장: '+_abcFA(T.main_idea||'','full')+'</div>'):'';
+
+  // 05 Check
+  const chk=(w.checklist||[]).map((c,i)=>'<li><span class="cb"></span>'+ed('checklist.'+i,c)+'</li>').join('');
+  const fixedChk='<li><span class="cb"></span>문장마다 <b>A(소재)</b>를 놓치지 않고 따라갔나요?</li>'
+    +'<li><span class="cb"></span><b>B(+/↔/→/≈)</b>를 고른 이유를 설명할 수 있나요?</li>'
+    +'<li><span class="cb"></span><b>C(G/S)</b>가 헷갈렸던 문장이 있다면 어디였나요?</li>';
+  const s5=step('05','Check','자가 점검',
+    '<ul class="abc-chk">'+fixedChk+(chk?chk:'')+'</ul>'
+    +'<div class="abc-q" style="margin-top:12px">가장 헷갈렸던 A/B/C 판단과 그 이유를 적어보세요.</div>'+F('full')+F('full'));
+
+  const body=s1+s2+s3+s4+s5;
+  return '<div class="abc-root">'+head+goals+legend+passage+(body||'<div class="abc-instr">내용이 비어 있습니다. 다시 생성해 주세요.</div>')
+    +'<div class="abc-foot">ION ENGLISH · ABC 리딩 훈련</div></div>';
+}
+
+function elAbcCard(q, idx){
+  const w=q.abc||{}; const rootId='abc-'+idx;
+  const toggle="var r=document.getElementById('"+rootId+"');r.classList.toggle('abc-show');this.textContent=r.classList.contains('abc-show')?'정답 숨기기':'정답 보기';";
+  const del="if(confirm('이 훈련지를 삭제할까요?')){EL.questions.splice("+idx+",1);elRenderQ();}";
+  return '<div class="elqcard" id="el-card-'+idx+'" data-idx="'+idx+'" style="background:#ECEAE3;padding:22px">'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
+    +   '<span style="background:#a8562e;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px">ABC 리딩 훈련</span>'
+    +   '<b style="font-size:13px;color:#17181a">'+_abcEsc(w.title||q.question||'')+'</b>'
+    +   '<span style="flex:1"></span>'
+    +   '<button onclick="'+toggle.replace(/"/g,'&quot;')+'" style="font-size:12px;font-weight:700;padding:6px 13px;border-radius:8px;border:1.5px solid #a8562e;background:#fff;color:#a8562e;cursor:pointer;font-family:inherit">정답 보기</button>'
+    +   '<button onclick="'+del.replace(/"/g,'&quot;')+'" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit">삭제</button>'
+    + '</div>'
+    + '<div id="'+rootId+'">'+elAbcHTML(w)+'</div>'
+    + '</div>';
+}
+
+// ── AI 생성 ──
+function _abcParse(raw){
+  if(!raw) return null;
+  const m=String(raw).match(/\{[\s\S]*\}/); if(!m) return null;
+  let o=null;
+  try{ o=JSON.parse(m[0]); }catch(e){ try{ o=JSON.parse(_repairJSON(m[0])); }catch(e2){} }
+  return o;
+}
+function _abcIsComplete(o){
+  if(!o||typeof o!=='object') return '빈 객체';
+  const miss=[];
+  if(!(o.passage&&o.passage.length)) miss.push('지문');
+  if(!(o.sentences&&o.sentences.length)) miss.push('문장별 분석');
+  if(!(o.chunks&&o.chunks.length)) miss.push('덩어리 묶기');
+  if(!(o.topic&&(o.topic.subject_en||o.topic.main_idea))) miss.push('전체 주제');
+  return miss.length? miss.join(', ') : true;
+}
+async function elGenerateABC(){
+  var _stCur=(EL.sets.find(function(x){return x.id===EL.activeSetId;})||{}).source_type;
+  if(_stCur && _stCur!=='abc_reading'){ showToast('현재 세트는 ABC 리딩 훈련 세트가 아니에요. ABC 리딩 훈련 세트를 열고 생성하세요.','error'); return; }
+  const btn=document.getElementById('el-abc-genbtn');
+  const status=document.getElementById('el-abc-status');
+  const src=(document.getElementById('el-abc-source')||{}).value||'';
+  const grade=((document.getElementById('el-abc-grade')||{}).value||'').trim();
+  if(!src.trim()){ showToast('영어 지문을 붙여넣으세요','error'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ 생성 중...'; }
+  if(status) status.textContent='지문 분석 중...';
+  const sysMsg='너는 한국 중·고등 영어 독해 전문 교사다. ABC 리딩법(Anchor-Bridge-Categorization)으로 학생이 지문의 논리 구조를 스스로 발견하도록 훈련지를 만든다. JSON만 출력한다.';
+  const prompt='아래 영어 지문으로 "ABC 리딩 훈련지"를 만든다.'+(grade?(' 대상 학년: '+grade):'')+'\n\n[지문]\n'+src.slice(0,6000)+'\n\n'
+    +'[ABC 리딩법 정의] A(Anchor)=문장의 소재/구정보(Given) — 재진술·지시어처럼 앞에서 이어받은 것일 수도, 지문 전체의 큰 소재로 돌아가는 것일 수도 있다. B(Bridge)=Given에서 New로 넘어가는 논리 관계, 아래 4개 기호 중 하나: '
+    +'+ (순접·추가·부연 — Also, Furthermore, In addition), ↔ (역접·대조 — However, But, on the other hand), → (인과 — Therefore, So, as a result), ≈ (재진술 — that is, in other words). '
+    +'New(신정보)=문장 후반부에서 새로 던지는 내용. C(Categorization)=New가 G(General, 포괄적 주장·결론)인지 S(Specific, 구체적 예시·근거·수치)인지 판별. '
+    +'역접(↔) 뒤라고 무조건 G가 아니다 — 통념을 깨는 필자의 진짜 주장이면 G, 주제 안에서의 세부 반전·예외면 S다.\n\n'
+    +'[규칙] 지문의 모든 문장을 순서대로 passage 에 원문 그대로 넣는다. 문장을 삭제·병합·요약하지 마라.\n'
+    +'sentences 는 passage 와 같은 순서·같은 길이의 배열이다. 문장마다 다음을 채운다:\n'
+    +'  · anchor_en: 그 문장의 구정보(A) — 지문에 실제로 쓰인 영어 표현 그대로(대명사면 대명사, 명사구면 명사구)\n'
+    +'  · anchor_ko: anchor_en 의 한국어 뜻\n'
+    +'  · bridge: + / ↔ / → / ≈ 중 하나. bridge_signal: 그 판단의 근거가 된 지문 속 연결어나 단서(없으면 "")\n'
+    +'  · new_en: 그 문장의 신정보 — 지문에 실제로 쓰인 영어 표현 그대로. new_ko: 한국어 뜻\n'
+    +'  · cat: G 또는 S. cat_reason: 왜 G/S 인지 한국어 8단어 이내 이유\n'
+    +'  · role: 이 문장의 논리적 기능(도입/통념/반박/문제제기/원인/근거/예시/대조/결과/결론/대안 중 하나, 없으면 "")\n'
+    +'[분량 제한 — 반드시 지킨다] anchor_en/new_en 은 지문에서 그대로 복사한 2~6단어의 짧은 구(전체 문장 금지). anchor_ko/new_ko 는 5단어 이내. cat_reason 은 8단어 이내. summary/scope_note 는 12단어 이내. main_idea 는 20단어 이내 한 문장. 모든 필드에서 지문 문장을 통째로 복사하지 않는다.\n'
+    +'[chunks] 문장들을 논리 전개에 따라 2~5개 의미 덩어리로 묶는다. 신호어(But/So 등)나 소재 전환, 역할 변화 지점에서 끊는다.\n'
+    +'  각 chunk 는 sent_no(그 덩어리에 속한 문장 번호 배열, 1부터 시작), range_label(예: "1~2"), '
+    +'macro_anchor_ko(이 덩어리 전체가 다루는 소재·판을 한국어로), bridge_type(직렬/병렬/대립 중 하나 — 직렬=앞 덩어리의 결과가 이 덩어리의 출발점, 병렬=같은 소재에 속성 추가, 대립=역접으로 판이 뒤집힘), '
+    +'bridge_signal(그 근거가 된 연결어, 없으면 ""), cat(G 또는 S 또는 "G\'" — 지문 전체 결론에 해당하면 G\'), summary(이 덩어리의 역할을 한국어 한 줄로) 를 채운다.\n'
+    +'  마지막 chunk 의 cat 은 지문의 최종 결론이면 반드시 "G\'" 로 한다.\n'
+    +'[topic] subject_en(지문에서 가장 자주 반복되는 핵심 명사구, 영어 원문 그대로), subject_ko(한국어 뜻), '
+    +'scope(소재를 좁게 다루는지 넓게 다루는지 "좁음" 또는 "넓음"), scope_note(그 근거 한 줄), '
+    +'dev_pattern(chunks 의 bridge_type 흐름을 종합한 지문 전체 전개방식, 한국어 한 줄), '
+    +'main_idea(지문 전체를 관통하는 최종 결론을 한국어 한 문장으로), '
+    +'explicit(주제문이 지문에 직접 쓰여 있으면 true, 여러 문장을 종합해야 하면 false), '
+    +'topic_sentence_no(explicit=true 일 때 그 문장 번호) 를 채운다.\n'
+    +'[출력 JSON만]\n'
+    +'{"title":"훈련지 제목(한국어)","goals":["목표 3개(한국어, 학생 주어)"],'
+    +'"passage":[{"en":"문장1"},{"en":"문장2"}],'
+    +'"sentences":[{"en":"문장 원문","anchor_en":"","anchor_ko":"","bridge":"+","bridge_signal":"","new_en":"","new_ko":"","cat":"G","cat_reason":"","role":""}],'
+    +'"chunks":[{"sent_no":[1,2],"range_label":"1~2","macro_anchor_ko":"","bridge_type":"직렬","bridge_signal":"","cat":"G","summary":""}],'
+    +'"topic":{"subject_en":"","subject_ko":"","scope":"좁음","scope_note":"","dev_pattern":"","main_idea":"","explicit":true,"topic_sentence_no":1},'
+    +'"key_vocab":[{"word":"","ko":""}],'
+    +'"checklist":["점검 항목 3개(한국어)"]}\n'
+    +'개수: goals 3, chunks 2~5, key_vocab 4~6, checklist 3.\n'
+    +'[중요] 마크다운 코드펜스(```) 없이 순수 JSON 텍스트만 출력한다. 모든 키를 채운 완전한 JSON 을 끝까지 출력한다. 위의 분량 제한을 지켜 응답이 잘리지 않게 한다.';
+  let made=null, lastErr='';
+  try{
+    for(let t=0;t<3;t++){
+      if(status&&t>0) status.textContent='재시도 '+(t+1)+'/3 ...';
+      let raw='', threw=false;
+      try{ raw=await _callAI_teacher([{role:'system',content:sysMsg},{role:'user',content:prompt}],12000,null,90000); }catch(e){ lastErr=(e&&e.message)||'네트워크'; threw=true; }
+      if(threw){ console.warn('[elGenerateABC] _callAI_teacher threw:', lastErr); await new Promise(r=>setTimeout(r,2000)); continue; }
+      if(!raw||!raw.trim()){ lastErr='AI 빈 응답(예외 없음 — 모든 제공자 실패)'; console.warn('[elGenerateABC] raw empty, no exception thrown'); await new Promise(r=>setTimeout(r,2000)); continue; }
+      const o=_abcParse(raw);
+      if(!o){ lastErr='JSON 파싱 실패 — 원문 앞 200자: '+String(raw).slice(0,200); console.warn('[elGenerateABC] parse fail, raw:', raw); await new Promise(r=>setTimeout(r,2000)); continue; }
+      const ok=_abcIsComplete(o);
+      if(ok===true){ made=o; break; }
+      lastErr='내용 부족: '+ok;
+      if(t===2) made=o;
+      await new Promise(r=>setTimeout(r,2000));
+    }
+    if(!made) throw new Error(lastErr||'생성 실패');
+    const q={type:'abc_reading_sheet',question:(made.title||'ABC 리딩 훈련지'),passage_display:'',passage:'',
+      abc:made,options:[],answer:-1,explanation:'',difficulty:3};
+    await elPush(q);
+    elRenderQ();
+    if(status) status.textContent='✅ 생성 완료';
+    showToast('ABC 리딩 훈련지 생성 완료','success');
+  }catch(e){
+    console.error('elGenerateABC:',e);
+    if(status) status.textContent='오류: '+((e&&e.message)||e);
+    showToast('생성 실패 — '+((e&&e.message)||''),'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🔤 ABC 훈련지 생성'; }
+  }
+}
+
+// ── 인쇄 ──
+window.elPrintABC = function(){
+  const sheets=(EL.questions||[]).filter(q=>q.type==='abc_reading_sheet');
+  if(!sheets.length){ showToast('생성된 훈련지가 없습니다','error'); return; }
+  _abcEnsureCSS();
+  const setObj=(EL.sets||[]).find(s=>s.id===EL.activeSetId);
+  const name=setObj?setObj.title:'ABC 리딩 훈련지';
+  ['abc-print-overlay','abc-print-css'].forEach(id=>{ const e=document.getElementById(id); if(e) e.remove(); });
+  const css=document.createElement('style'); css.id='abc-print-css';
+  css.textContent='#abc-print-overlay{position:fixed;inset:0;z-index:99999;background:#5b6470;overflow-y:auto;font-family:\'Pretendard\',sans-serif}'
+    +'#abc-print-bar{position:sticky;top:0;z-index:5;background:#17181a;display:flex;gap:8px;align-items:center;padding:9px 14px}'
+    +'#abc-print-bar .t{color:#d6d4cc;font-size:12px;margin-right:auto}'
+    +'#abc-print-bar button{font-size:13px;font-weight:700;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;background:#2b2c2f;color:#e8e6df}'
+    +'#abc-print-bar button.pri{background:#a8562e;color:#fff}'
+    +'#abc-print-pages{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 10px 60px}'
+    +'.abc-page{width:210mm;height:297mm;box-sizing:border-box;background:#fff;box-shadow:0 3px 16px rgba(0,0,0,.4);padding:var(--abcp-pad,14mm);overflow:hidden;position:relative;page-break-after:always}'
+    +'.abc-page:last-child{page-break-after:auto}'
+    +'.abc-page .abc-root{max-width:none;margin:0;padding:0;line-height:var(--abcp-lh,1.6)}'
+    +'.abc-page .abc-step{padding:var(--abcp-steppad,14px) 0}'
+    +'.abc-pgno{position:absolute;bottom:7mm;left:0;right:0;text-align:center;font-size:10px;color:#b7b6b1;letter-spacing:.1em}'
+    +'@media print{body>*:not(#abc-print-overlay){display:none!important}#abc-print-overlay{position:static;background:#fff;overflow:visible}#abc-print-bar{display:none!important}#abc-print-pages{padding:0;gap:0}.abc-page{box-shadow:none;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:0}}';
+  document.head.appendChild(css);
+  const body=sheets.map(q=>elAbcHTML(q.abc||{})).join('');
+  const ov=document.createElement('div'); ov.id='abc-print-overlay';
+  ov.innerHTML='<div id="abc-print-bar"><span class="t">ABC 리딩 훈련 인쇄 미리보기</span>'
+    +'<div id="abc-print-ctl" style="display:flex;gap:12px;align-items:center;margin-right:12px;flex-wrap:wrap">'
+    +'<span style="color:#8b8f98;font-size:10px;letter-spacing:.05em">레이아웃</span>'
+    +'<label style="color:#d6d4cc;font-size:11px;display:flex;align-items:center;gap:5px">여백<input type="range" min="6" max="26" step="1" value="14" oninput="_abcOnCtl(&#39;pad&#39;,this.value,&#39;abcl-pad&#39;)" style="width:72px"><span id="abcl-pad" style="color:#e8e6df;width:32px">14mm</span></label>'
+    +'<label style="color:#d6d4cc;font-size:11px;display:flex;align-items:center;gap:5px">행간<input type="range" min="1.2" max="2.2" step="0.05" value="1.6" oninput="_abcOnCtl(&#39;lh&#39;,this.value,&#39;abcl-lh&#39;)" style="width:72px"><span id="abcl-lh" style="color:#e8e6df;width:26px">1.60</span></label>'
+    +'<label style="color:#d6d4cc;font-size:11px;display:flex;align-items:center;gap:5px">유형 간격<input type="range" min="4" max="30" step="1" value="14" oninput="_abcOnCtl(&#39;step&#39;,this.value,&#39;abcl-step&#39;)" style="width:72px"><span id="abcl-step" style="color:#e8e6df;width:30px">14px</span></label>'
+    +'<button onclick="_abcResetLayout()" style="font-size:11px;color:#b7b6b1;background:#2b2c2f;border:none;border-radius:6px;padding:5px 9px;cursor:pointer;font-family:inherit">초기화</button>'
+    +'</div>'
+    +'<button onclick="var o=document.getElementById(&quot;abc-print-overlay&quot;);o.classList.toggle(&quot;abc-show&quot;);this.textContent=o.classList.contains(&quot;abc-show&quot;)?&quot;정답 숨기기&quot;:&quot;정답 보기&quot;;window._abcApplyLayout(true);">정답 보기</button>'
+    +'<button class="pri" onclick="window.print()">🖨 인쇄</button>'
+    +'<button onclick="var o=document.getElementById(&quot;abc-print-overlay&quot;);if(o)o.remove()">✕ 닫기</button></div>'
+    +'<div id="abc-print-pages"><div class="abc-page">'+body+'</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelectorAll('.abc-noprint').forEach(function(el){ el.remove(); });
+  ov.querySelectorAll('#abc-print-pages [contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
+  window._abcPrintSrcHTML = document.getElementById('abc-print-pages').innerHTML;
+  window._abcLayout = {pad:14, lh:1.6, step:14};
+  window._abcApplyLayout(false);
+  _abcPaginate();
+};
+function _abcPaginate(){
+  const wrap=document.getElementById('abc-print-pages'); if(!wrap) return;
+  const first=wrap.querySelector('.abc-page'); if(!first) return;
+  const units=[];
+  Array.prototype.forEach.call(first.querySelectorAll('.abc-root'), function(rootEl, ci){
+    Array.prototype.forEach.call(rootEl.children, function(node){
+      if(node.classList && node.classList.contains('abc-step')){
+        const marker=node.querySelector('.abc-marker');
+        const body=node.querySelector('.abc-body');
+        const mHTML=marker?marker.outerHTML:'';
+        const sid='abcstep-'+ci+'-'+units.length;
+        const kids=body?Array.prototype.slice.call(body.children):[];
+        if(!kids.length){ units.push({ci:ci, step:false, node:node}); return; }
+        kids.forEach(function(bc,bi){ units.push({ci:ci, step:true, sid:sid, mHTML:mHTML, first:bi===0, node:bc}); });
+      } else {
+        units.push({ci:ci, step:false, node:node});
+      }
+    });
+  });
+  if(!units.length) return;
+  const orig=first.cloneNode(true);
+  try{
+    wrap.innerHTML='';
+    let page=null, root=null, curCi=-1, stepBody=null, stepSid=null;
+    function newPage(){ page=document.createElement('div'); page.className='abc-page';
+      root=document.createElement('div'); root.className='abc-root'; page.appendChild(root); wrap.appendChild(page);
+      curCi=-1; stepBody=null; stepSid=null; return root; }
+    function avail(){ const cs=window.getComputedStyle(page); return page.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0)-16; }
+    function used(){ let h=0; Array.prototype.forEach.call(root.children, function(k){ var cs=null; try{cs=window.getComputedStyle(k);}catch(e){} h+=k.offsetHeight+(cs?((parseFloat(cs.marginTop)||0)+(parseFloat(cs.marginBottom)||0)):0); }); return h; }
+    function openStep(u, cont){
+      const step=document.createElement('div'); step.className='abc-step'; step.setAttribute('data-sid',u.sid);
+      if(cont){ const sp=document.createElement('div'); sp.className='abc-marker'; sp.style.visibility='hidden'; step.appendChild(sp); }
+      else { const tmp=document.createElement('div'); tmp.innerHTML=u.mHTML; if(tmp.firstChild) step.appendChild(tmp.firstChild); }
+      const bd=document.createElement('div'); bd.className='abc-body'; step.appendChild(bd);
+      root.appendChild(step); stepBody=bd; stepSid=u.sid; return bd;
+    }
+    newPage();
+    units.forEach(function(u){
+      if(curCi!==-1 && u.ci!==curCi){ newPage(); }
+      curCi=u.ci;
+      if(u.step){
+        let started=false;
+        if(stepSid!==u.sid){ openStep(u, !u.first); started=true; }
+        const clone=u.node.cloneNode(true);
+        stepBody.appendChild(clone);
+        if(used()>avail() && (root.children.length>1 || stepBody.children.length>1)){
+          stepBody.removeChild(clone);
+          if(started && stepBody.children.length===0){ const st=stepBody.parentNode; if(st&&st.parentNode) st.parentNode.removeChild(st); }
+          newPage(); curCi=u.ci;
+          openStep(u, !u.first);
+          stepBody.appendChild(clone);
+        }
+      } else {
+        stepBody=null; stepSid=null;
+        const clone=u.node.cloneNode(true);
+        root.appendChild(clone);
+        if(used()>avail() && root.children.length>1){
+          root.removeChild(clone); newPage(); curCi=u.ci; root.appendChild(clone);
+        }
+      }
+    });
+  }catch(e){
+    wrap.innerHTML=''; wrap.appendChild(orig);
+  }
+  const pages=wrap.querySelectorAll('.abc-page');
+  Array.prototype.forEach.call(pages, function(p,i){
+    const n=document.createElement('div'); n.className='abc-pgno'; n.textContent=(i+1)+' / '+pages.length; p.appendChild(n);
+  });
+}
+window._abcLayout = window._abcLayout || {pad:14, lh:1.6, step:14};
+window._abcApplyLayout = function(reflow){
+  var w=document.getElementById('abc-print-pages'); if(!w) return;
+  var L=window._abcLayout||{pad:14,lh:1.6,step:14};
+  w.style.setProperty('--abcp-pad', L.pad+'mm');
+  w.style.setProperty('--abcp-lh', String(L.lh));
+  w.style.setProperty('--abcp-steppad', L.step+'px');
+  if(reflow && window._abcPrintSrcHTML!=null){ w.innerHTML=window._abcPrintSrcHTML; _abcPaginate(); }
+};
+window._abcOnCtl = function(kind, val, lblId){
+  val=parseFloat(val); if(isNaN(val)) return;
+  if(kind==='pad') window._abcLayout.pad=val; else if(kind==='lh') window._abcLayout.lh=val; else if(kind==='step') window._abcLayout.step=val;
+  var el=document.getElementById(lblId); if(el) el.textContent=(kind==='lh')?val.toFixed(2):(val+(kind==='pad'?'mm':'px'));
+  clearTimeout(window._abcCtlT); window._abcCtlT=setTimeout(function(){ window._abcApplyLayout(true); }, 150);
+};
+window._abcResetLayout = function(){
+  window._abcLayout={pad:14, lh:1.6, step:14};
+  var bar=document.getElementById('abc-print-bar');
+  if(bar){ var r=bar.querySelectorAll('input[type=range]'); if(r[0])r[0].value=14; if(r[1])r[1].value=1.6; if(r[2])r[2].value=14; }
+  var e; e=document.getElementById('abcl-pad'); if(e)e.textContent='14mm'; e=document.getElementById('abcl-lh'); if(e)e.textContent='1.60'; e=document.getElementById('abcl-step'); if(e)e.textContent='14px';
+  window._abcApplyLayout(true);
+};
+// ══════════════ /ABC 리딩 훈련 세트 ══════════════
+
 
 // ══════════════ 논리·흐름 Final Check (lf) ══════════════
 window._lfData = null;
