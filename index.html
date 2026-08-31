@@ -28790,7 +28790,6 @@ function renderSentStudyCard() {
     const displayWords = words.map((w, i) => blankIdxs.has(i)
       ? `<input data-answer="${w.replace(/[.,!?]/g,'').toLowerCase()}" type="text" class="pw-visible" placeholder=""
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-          readonly onfocus="this.removeAttribute('readonly')"
           style="width:${Math.min(Math.max(50,w.length*14),window.innerWidth<=600?Math.min(w.length*13,160):w.length*16)}px;border:none;border-bottom:3px solid ${col.b};
           background:transparent;color:#1a2d4a;font-size:clamp(17px,5vw,22px);font-weight:700;
           font-family:'Fraunces',serif;text-align:center;outline:none;padding:2px 4px;
@@ -37154,6 +37153,67 @@ async function lcpCreateBook() {
 
 // AI 분석 (붙여넣기)
 _lcpParsedWords = [];
+// "단어 <공백/탭> 뜻" 형태로 이미 정리된 목록을 AI 없이 그대로 파싱한다.
+// AI를 거치면 뜻이 임의로 재작성되므로, 가능하면 항상 이 경로를 우선 사용한다.
+// 뜻 안의 뜻갈래 번호 제거: "1. 건축 양식 2. 건축학" → "건축 양식, 건축학"
+// 괄호 안 한자·숫자(미(美), (1)번 설명 등)는 건드리지 않는다.
+function _lcpStripSenseNums(ko) {
+  let s = String(ko == null ? '' : ko).trim();
+  if (!s) return '';
+  // 품사 표기 제거: [명] [동] [형] [부] [n.] [v.] 등 — 대괄호 안이 짧은 표기일 때만
+  // 맨 앞의 표기는 그냥 제거하고, 중간의 표기는 뜻 구분자였으므로 쉼표로 바꾼다
+  //   "[명] 물 [동] (화초 등에) 물을 주다" → "물, (화초 등에) 물을 주다"
+  s = s.replace(/^\s*\[[^\]]{1,6}\]\s*/, '');
+  s = s.replace(/\s*\[[^\]]{1,6}\]\s*/g, ', ');
+  s = s.replace(/\s*,\s*,+/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+  if (!s) return '';
+  // 번호 패턴이 실제로 2개 이상 있을 때만 정리 (오탐 방지)
+  const hits = s.match(/(?:^|[\s;,])\d+\s*[.)]\s*/g);
+  if (!hits || hits.length < 2) {
+    // 맨 앞 번호 하나만 있는 경우는 제거 ("1. 사과" → "사과")
+    return s.replace(/^\s*\d+\s*[.)]\s*/, '').trim();
+  }
+  // 각 번호를 구분자로 바꾼 뒤 조각을 합친다
+  s = s.replace(/(^|[\s;,])\d+\s*[.)]\s*/g, '\u0001');
+  const parts = s.split('\u0001').map(x => x.replace(/^[\s,;]+|[\s,;]+$/g, '')).filter(Boolean);
+  return parts.join(', ');
+}
+
+function _lcpLocalParse(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const out = [];
+  let bad = 0;
+  for (let raw of lines) {
+    let line = raw.trim();
+    if (!line) continue;
+    // 줄 앞 번호/불릿 제거: "1." "2)" "3" "-" "·"
+    line = line.replace(/^\s*(?:\d+\s*[.)\]]|[-·•*])\s*/, '').trim();
+    if (!line) continue;
+    // 영어부와 한국어부 분리
+    // 한글 위치 기준으로 자르면 "[명]", "(전기·가스…)" 처럼 한글을 품은 기호에서 깨진다.
+    // 따라서 "영어 단어들이 이어지는 앞부분"이 끝나는 지점을 찾아 자른다.
+    //   영어 토큰 = 알파벳(또는 -ing 처럼 하이픈)으로 시작하는 덩어리
+    const mEn = line.match(/^\s*[A-Za-z][A-Za-z'’-]*(?:\s+-?[A-Za-z][A-Za-z'’-]*)*/);
+    if (!mEn) { bad++; continue; }
+    let en = mEn[0].trim();
+    let ko = line.slice(mEn[0].length).trim().replace(/\s+/g, ' ');
+    // 영어부 꼬리의 구분자 제거 (":", "—", "…" 등) — 단어 내부 하이픈은 보존
+    en = en.replace(/[\s:–—.·]+$/, '').trim();
+    // 뜻 앞머리의 구분자 제거 (":", "-", "—", 탭 등). "~", "(", "[" 는 뜻의 일부이므로 보존
+    ko = ko.replace(/^[\s:–—]+/, '').trim();
+    // 뜻갈래 번호 제거 ("1. 건축 양식 2. 건축학" → "건축 양식, 건축학")
+    ko = _lcpStripSenseNums(ko);
+    // 뜻이 비어 있으면(=영어만 있는 줄) 실패로 세지 말고 뜻 없는 항목으로 둔다
+    if (!en || !/[A-Za-z]/.test(en)) { bad++; continue; }
+    if (!ko) { bad++; continue; }
+    out.push({ en, ko, example: '' });
+  }
+  // 유효 줄이 충분하고 실패가 적을 때만 로컬 파싱 결과를 신뢰
+  const total = out.length + bad;
+  if (out.length >= 2 && total > 0 && (out.length / total) >= 0.7) return out;
+  return null;
+}
+
 async function lcpParseAndPreview() {
   const content = document.getElementById('lcp-ai-content')?.value.trim();
   if (!content) { showToast('내용을 붙여넣어 주세요.', 'error'); return; }
@@ -37161,18 +37221,94 @@ async function lcpParseAndPreview() {
   btn.disabled = true; btn.textContent = '분석 중...';
   document.getElementById('lcp-ai-status').textContent = '✨ AI가 단어를 분석하는 중...';
   try {
-    const res = await callGroq(`다음 텍스트에서 영어 단어 목록을 추출하고 JSON 배열로만 응답하세요.
-각 항목: {"en":"단어","ko":"한국어뜻","example":"예문(없으면 빈 문자열)"}
+    // ① 이미 "단어 뜻" 형태로 정리된 목록이면 AI를 쓰지 않고 그대로 파싱한다.
+    //    (AI를 태우면 뜻이 임의로 재작성되고 번호가 붙는 문제가 생긴다)
+    const local = _lcpLocalParse(content);
+    if (local) {
+      _lcpParsedWords = local;
+      document.getElementById('lcp-ai-preview').style.display = '';
+      document.getElementById('lcp-ai-preview-body').innerHTML = _lcpParsedWords.map(w =>
+        `<div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--t1);flex:0 0 130px">${esc(w.en)}</span>
+          <span style="font-size:14px;color:var(--t2);flex:0 0 110px">${esc(w.ko||'')}</span>
+          <span style="font-size:13px;color:var(--t3);flex:1;font-style:italic">${esc(w.example||'')}</span>
+        </div>`).join('');
+      document.getElementById('lcp-create-ai-btn').style.display = '';
+      document.getElementById('lcp-ai-status').textContent = `✅ ${_lcpParsedWords.length}개 단어 감지됨 (붙여넣은 뜻 그대로 사용)`;
+      btn.disabled = false; btn.textContent = 'AI 분석';
+      return;
+    }
+    // ② 뜻이 없거나 형식이 자유로운 텍스트만 AI로 보낸다.
+    const res = await callGroq(`아래 텍스트는 사용자가 이미 정리해 둔 단어장입니다. 이것을 JSON 배열로 "변환"만 하세요.
+
+[가장 중요한 규칙]
+- 텍스트에 한국어 뜻이 이미 적혀 있으면 그 뜻을 **글자 그대로 복사**하세요. 절대 새로 만들거나 바꾸거나 다듬지 마세요.
+  예) "artist   화가, 예술가" → {"en":"artist","ko":"화가, 예술가"}  (O)
+      "artist   화가, 예술가" → {"en":"artist","ko":"그림 그리는 사람"} (X · 임의 변경 금지)
+- 품사 표기가 있으면 뜻에 그대로 포함하세요. 예) "towel [명] 수건, 타월" → {"en":"towel","ko":"[명] 수건, 타월"}
+- 뜻이 아예 없는 단어만 당신이 한국어 뜻을 채워 넣으세요.
+- 단어(en) 앞의 번호(1. 2) 3 등)와 불릿(-, ·)은 제거하세요. 단어 철자만 남깁니다.
+- 텍스트에 있는 단어를 임의로 빼거나 추가하지 마세요. 순서도 그대로 유지하세요.
+- example은 빈 문자열 ""로 두세요.
+
+마크다운 코드블록(\`\`\`) 없이 순수 JSON 배열만 출력하세요.
+각 항목: {"en":"단어","ko":"한국어뜻","example":""}
+
 텍스트:
-${content}`);
-    const m = res.match(/\[[\s\S]*\]/);
-    if (!m) throw new Error('파싱 실패');
-    _lcpParsedWords = JSON.parse(m[0]);
+${content}`, null, null, 8000);
+    if (!res || !res.trim()) throw new Error('AI 응답이 비어 있습니다 (잠시 후 다시 시도)');
+    // 코드펜스 제거 후 배열 추출
+    const cleaned = String(res).replace(/```(?:json)?/gi, '').trim();
+    let m = cleaned.match(/\[[\s\S]*\]/);
+    let parsed = null;
+    let truncated = false;
+    if (m) {
+      try { parsed = JSON.parse(m[0]); }
+      catch(pe) { try { parsed = JSON.parse(_repairJSON(m[0])); } catch(pe2) {} }
+    }
+    // 배열이 아니라 {"words":[...]} 형태로 온 경우 구제
+    if (!parsed) {
+      const om = cleaned.match(/\{[\s\S]*\}/);
+      if (om) {
+        try {
+          const obj = JSON.parse(om[0]);
+          const arr = Array.isArray(obj) ? obj
+            : (obj.words || obj.items || obj.result || obj.data || null);
+          if (Array.isArray(arr)) parsed = arr;
+        } catch(oe) {}
+      }
+    }
+    // 응답이 잘린 경우('[' 는 있는데 ']' 로 안 끝남) → 완성된 객체만 살려낸다
+    if (!parsed) {
+      const start = cleaned.indexOf('[');
+      if (start !== -1) {
+        const objs = [];
+        const re = /\{[^{}]*\}/g;
+        let mm;
+        re.lastIndex = start;
+        while ((mm = re.exec(cleaned)) !== null) {
+          try { objs.push(JSON.parse(_repairJSON(mm[0]))); } catch(_e) {}
+        }
+        if (objs.length) { parsed = objs; truncated = true; }
+      }
+    }
+    if (!parsed || !Array.isArray(parsed)) {
+      console.warn('[lcpParseAndPreview] 파싱 실패. AI 응답 전문:', res);
+      throw new Error('파싱 실패 — AI 응답 앞부분: ' + cleaned.slice(0, 120));
+    }
+    _lcpParsedWords = parsed.filter(w => w && w.en).map(w => ({
+      // AI가 번호를 남겨도 코드에서 한 번 더 제거 ("1. apple", "2) apple", "- apple")
+      en: String(w.en).replace(/^\s*(?:\d+\s*[.)\]]?|[-·•*])\s*/, '').trim(),
+      ko: _lcpStripSenseNums(String(w.ko == null ? '' : w.ko)),
+      example: String(w.example == null ? '' : w.example).trim()
+    })).filter(w => w.en);
+    if (!_lcpParsedWords.length) throw new Error('추출된 단어가 없습니다');
+    if (truncated) showToast(`AI 응답이 중간에 잘려 ${_lcpParsedWords.length}개만 복구했습니다. 내용을 나눠서 실행해 보세요.`, 'info');
     document.getElementById('lcp-ai-preview').style.display = '';
     document.getElementById('lcp-ai-preview-body').innerHTML = _lcpParsedWords.map(w =>
       `<div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)">
         <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--t1);flex:0 0 130px">${esc(w.en)}</span>
-        <span style="font-size:14px;color:var(--t2);flex:0 0 110px">${esc(w.ko)}</span>
+        <span style="font-size:14px;color:var(--t2);flex:0 0 110px">${esc(w.ko||'')}</span>
         <span style="font-size:13px;color:var(--t3);flex:1;font-style:italic">${esc(w.example||'')}</span>
       </div>`).join('');
     document.getElementById('lcp-create-ai-btn').style.display = '';
@@ -42907,7 +43043,6 @@ function renderQuiz(){
         <input class="form-input pw-visible" id="quiz-inp"
           type="text"
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-          readonly onfocus="this.removeAttribute('readonly')"
           placeholder="${dir==='en2ko'?'한국어 뜻 입력':'영어 단어 입력'}"
           style="flex:1;border-radius:14px;border:2px solid var(--border);font-size:17px;padding:12px 16px"
           data-wid="${_wid}" data-dir="${dir}"
@@ -47984,11 +48119,11 @@ async function openWordTest(bookId) {
         <input id="wt-inp-${i}" type="text" class="pw-visible" value="${esc(q.answer||'')}"
           placeholder="${placeholder}"
           autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-          ${submitted ? 'readonly' : 'readonly onfocus="this.removeAttribute(\'readonly\')"'}
+          ${submitted ? 'readonly' : ''}
           oninput="wtSaveInput(${i},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();const nx=document.getElementById('wt-inp-${i+1}');if(nx)nx.focus();}"
           style="width:100%;padding:10px 14px;border:1.5px solid ${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'};border-radius:10px;font-size:16px;font-family:'Outfit',sans-serif;outline:none;background:${q.correct!==null?'transparent':'#fff'};box-sizing:border-box;transition:border-color 0.2s"
-          onfocus="if(!this.hasAttribute('readonly')||!${submitted})this.style.borderColor='${col.b}'" onblur="this.style.borderColor='${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'}'"
+          onfocus="this.style.borderColor='${col.b}'" onblur="this.style.borderColor='${q.correct===false?'#fca5a5':q.correct===true?'#86efac':'#cbd5e1'}'"
           >
         ${q.correct === false ? `<div style="margin-top:8px;font-size:14px;color:#dc2626">정답: <strong>${q.dir==='en2ko'?q.w.ko:q.w.en}</strong></div>` : ''}
       </div>`;
@@ -50019,7 +50154,7 @@ GROQ_MODELS = [
   'llama-3.3-70b-versatile',
 ];
 
-async function callGroq(prompt, modelIdx, systemMsg) {
+async function callGroq(prompt, modelIdx, systemMsg, maxTokens) {
   // ── _callAI() 래퍼: 전체 폴백 체인(Gemini→Groq→Cerebras→OpenRouter→GitHub) 활용 ──
   const _LANG = '⚠️ CRITICAL: Remove Chinese/Japanese characters (한자·히라가나·가타카나). Keep English alphabet letters (A, B, C etc.) exactly as-is if present.';
   const sysContent = (systemMsg ? systemMsg + '\n' + _LANG : _LANG);
@@ -50027,7 +50162,7 @@ async function callGroq(prompt, modelIdx, systemMsg) {
     { role: 'system', content: sysContent },
     { role: 'user', content: prompt }
   ];
-  const text = await _callAI_teacher(messages, 4000);
+  const text = await _callAI_teacher(messages, maxTokens || 4000);
   return _filterForeignChars(text || '');
 }
 
