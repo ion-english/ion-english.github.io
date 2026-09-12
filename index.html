@@ -3439,6 +3439,162 @@ body.student-mode {
 .sp-frame:fullscreen .sp-chunk-unit .sc-g-ko{font-size:16px}
 .sp-frame:fullscreen .sp-sent-ko{font-size:20px}
 .sp-frame:fullscreen .sp-role-badge{font-size:15px;padding:6px 16px}
+
+/* ══════════════════════════════════════════════════════════════
+   외곽 셸 리디자인 (2026-09) — 아이콘 레일 + 카드형 본문 + 라미 패널
+   ※ 바깥 틀만 바꾼다. 페이지 안쪽(.page 내부) 스타일은 건드리지 않는다.
+   ══════════════════════════════════════════════════════════════ */
+body.shell2 #app-shell[style*="block"]{
+  display:grid !important;
+}
+body.shell2 #app-shell{
+  grid-template-columns:54px 1fr;
+  height:100vh;overflow:hidden;background:#E9EBEE;
+  transition:grid-template-columns .24s cubic-bezier(.4,0,.2,1);
+}
+body.shell2.rail-open #app-shell{grid-template-columns:212px 1fr}
+
+/* ── 레일 ── */
+body.shell2 .sidebar{
+  position:static !important;width:auto !important;height:100% !important;
+  background:#F0F1F2 !important;border-right:1px solid #E2E5E8 !important;box-shadow:none !important;
+  overflow:hidden;
+}
+body.shell2 .sidebar-head{border-bottom:none !important;padding:14px 10px 6px !important}
+body.shell2 .sidebar-brand{gap:10px}
+body.shell2 .sidebar-mark{background:#1A1D21 !important;color:#fff !important;
+  width:32px !important;height:32px !important;border-radius:10px !important;font-size:15px !important;flex:0 0 auto}
+body.shell2 .sidebar-title{color:#1A1D21 !important;font-size:15px !important;white-space:nowrap}
+body.shell2 .sidebar-userinfo{display:none !important}
+body.shell2 .sidebar-nav{padding:8px 10px !important}
+body.shell2 .nav-group-label,
+body.shell2 .nav-group-label-item{
+  color:#9CA3AF !important;font-size:9.5px !important;letter-spacing:.03em !important;
+  padding:0 0 0 8px !important;margin:12px 0 4px !important;text-align:left !important;
+}
+body.shell2 .nav-item{
+  color:#8A929B !important;background:none !important;box-shadow:none !important;
+  border-radius:11px !important;height:38px;padding:0 10px !important;gap:12px;margin-bottom:2px;
+  display:flex;align-items:center;justify-content:flex-start;width:100%;
+}
+body.shell2 .nav-item::before{display:none !important}
+body.shell2 .nav-item:hover{background:#E4E6E8 !important;color:#1A1D21 !important}
+body.shell2 .nav-item.active{
+  background:#fff !important;color:#1A1D21 !important;font-weight:600 !important;
+  box-shadow:0 1px 2px rgba(0,0,0,.07),0 0 0 1px #E2E5E8 !important;
+}
+body.shell2 .nav-icon{opacity:1 !important;color:inherit !important;flex:0 0 auto}
+body.shell2 .nav-item.active .nav-icon{color:#1A1D21 !important}
+body.shell2 .nav-label{font-size:13.5px;white-space:nowrap}
+body.shell2 .sidebar-bottom{border-top:1px solid #E2E5E8 !important;padding:8px !important}
+body.shell2 .logout-btn{
+  border:1px solid transparent !important;color:#8A929B !important;border-radius:11px !important;
+  padding:0 9px !important;height:34px;justify-content:flex-start !important;gap:11px;font-size:13.5px !important;
+}
+body.shell2 .logout-btn:hover{background:#E4E6E8 !important;color:#1A1D21 !important;border-color:transparent !important}
+body.shell2 .sidebar-toggle-btn{background:#E4E6E8 !important;border:1px solid #E2E5E8 !important}
+body.shell2 .sidebar-toggle-btn svg{stroke:#6B7280 !important}
+/* 접힘: 라벨 숨기고 아이콘만 */
+body.shell2:not(.rail-open) .sidebar-title,
+body.shell2:not(.rail-open) .nav-label,
+body.shell2:not(.rail-open) .nav-group-label,
+body.shell2:not(.rail-open) .nav-group-label-item{
+  opacity:0;width:0;overflow:hidden;white-space:nowrap;display:inline-block;
+}
+body.shell2:not(.rail-open) .nav-group-label,
+body.shell2:not(.rail-open) .nav-group-label-item{height:10px;margin:8px 0 2px !important;padding:0 !important}
+body.shell2:not(.rail-open) .nav-item,
+body.shell2:not(.rail-open) .logout-btn{justify-content:center !important;padding:0 !important;width:36px;margin-left:auto;margin-right:auto}
+body.shell2:not(.rail-open) .sidebar-nav{padding:8px 4px !important}
+body.shell2:not(.rail-open) .sidebar-bottom{padding:8px 4px !important}
+body.shell2:not(.rail-open) .sidebar-brand{justify-content:center}
+body.shell2:not(.rail-open) .sidebar-head{padding:14px 0 6px !important}
+
+/* ── 본문 영역: 탭 / 카드 / 라미 ── */
+body.shell2 .main{
+  margin-left:0 !important;min-height:0 !important;height:100%;background:transparent !important;
+  display:grid;grid-template-columns:1fr;grid-template-rows:auto auto 1fr;
+  padding:0 18px 18px;overflow:hidden;
+  transition:padding-right .22s cubic-bezier(.4,0,.2,1);
+}
+/* 레일이 접혀 있을 땐 아이콘 바로 옆이라 왼쪽 여백을 좁게 — 넓으면 휑해 보인다 */
+body.shell2:not(.rail-open) .main{padding-left:10px}
+body.shell2 #shell-tabs{grid-column:1/-1;grid-row:1}
+body.shell2 .topbar{grid-column:1;grid-row:2}
+body.shell2 .content{grid-column:1;grid-row:3}
+
+body.shell2 .topbar{
+  border-radius:18px 18px 0 0 !important;border-bottom:1px solid #ECEEF0 !important;
+  box-shadow:none !important;position:static !important;height:68px !important;padding:0 26px !important;
+  gap:16px !important;
+}
+body.shell2 .topbar-title{font-size:17px !important;font-weight:600 !important}
+body.shell2 .content{
+  background:#fff;border-radius:0 0 18px 18px;overflow-y:auto;min-height:0;
+  padding:26px 26px 32px !important;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+/* .page 가 갖고 있던 음수 마진(-20px -32px -36px)을 새 여백에 맞춘다 */
+body.shell2 .page.active{
+  background:transparent !important;min-height:0 !important;
+  margin:-26px -26px -32px !important;padding:26px 26px 32px !important;
+}
+
+/* ── 탭 줄 ── */
+#shell-tabs{display:none}
+body.shell2 #shell-tabs{
+  display:flex;align-items:flex-end;gap:3px;padding:12px 0 0 40px;overflow-x:auto;scrollbar-width:none;
+}
+body.shell2 #shell-tabs::-webkit-scrollbar{display:none}
+.sh-tab{
+  position:relative;display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:10px 10px 0 0;
+  font-size:13px;color:#6B7280;cursor:pointer;white-space:nowrap;flex:0 0 auto;transition:background .14s,color .14s;
+}
+.sh-tab:hover{background:#DFE2E5;color:#1A1D21}
+.sh-tab.on{background:#fff;color:#1A1D21;font-weight:600}
+.sh-tab .k{position:relative;width:15px;height:15px;flex:0 0 auto;opacity:.85}
+.sh-tab.on .k{opacity:1}
+.sh-tab .k svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
+.sh-tab .pn{position:absolute;left:-5px;bottom:-4px;width:11px;height:11px;border-radius:50%;
+  background:#E9EBEE;display:grid;place-items:center;color:#9CA3AF}
+.sh-tab.on .pn{background:#fff;color:#6B7280}
+.sh-tab .pn svg{width:8px;height:8px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round;display:block}
+.sh-tab .x{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;flex:0 0 auto;
+  color:#9CA3AF;opacity:0;transition:opacity .12s;margin:0 -3px 0 1px}
+.sh-tab:hover .x,.sh-tab.on .x{opacity:1}
+.sh-tab .x:hover{background:#D5D9DD;color:#1A1D21}
+.sh-tab .x svg{width:9px;height:9px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;display:block}
+.sh-div{width:1px;height:17px;background:#DDE1E5;margin:0 7px 9px;flex:0 0 auto}
+body.shell2 #shell-tabs-base{grid-column:1/-1;grid-row:1;align-self:end;height:1px;background:#DDE1E5;margin-left:40px}
+
+
+/* ── 라미(슬라임) 대화창을 오른쪽에 도킹 ──
+   기존 떠 있는 대화창(.slime-chat-panel)을 그대로 쓰되, 넓은 화면에서는
+   본문 오른쪽에 붙은 패널처럼 보이게 위치·크기만 바꾼다.
+   (대화 내용·전송 로직은 기존 것을 그대로 사용) */
+@media(min-width:1181px){
+  body.shell2.lami-open .main{padding-right:376px}
+  body.shell2.lami-open #slime-chat-panel{
+    position:fixed !important;right:18px !important;left:auto !important;
+    width:340px !important;min-width:0 !important;max-height:none !important;
+    border-radius:18px !important;border:1px solid #E2E5E8 !important;
+    box-shadow:0 1px 2px rgba(0,0,0,.05),0 12px 32px -20px rgba(0,0,0,.25) !important;
+    animation:none !important;z-index:900 !important;
+  }
+  body.shell2.lami-open #slime-chat-panel .slime-chat-msgs{max-height:none !important;flex:1}
+}
+
+@media(max-width:1180px){
+  /* 좁은 화면에선 도킹 대신 기존 떠 있는 대화창으로 (아래 도킹 CSS가 해제됨) */
+  body.shell2.lami-open .main{padding-right:18px}
+}
+@media(max-width:860px){
+  body.shell2 #app-shell{grid-template-columns:1fr !important}
+  body.shell2 .sidebar{display:none}
+  body.shell2 #shell-tabs{padding-left:12px}
+  body.shell2 .main{padding:0 8px 8px}
+}
+
 </style>
 
 
@@ -3526,6 +3682,10 @@ body.student-mode {
     <!-- 모바일 사이드바 오버레이 -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
+    <!-- 탭 줄 (외곽 셸): 고정 + 최근 -->
+    <div id="shell-tabs-base"></div>
+    <div id="shell-tabs"></div>
+
     <!-- ====== 모바일 바텀 네비게이션 ====== -->
 
 
@@ -3543,6 +3703,7 @@ body.student-mode {
       </div>
       <div class="topbar-right" id="topbar-right"></div>
     </div>
+
 
     <div class="content">
 
@@ -30828,21 +30989,23 @@ async function _spCallAIWithRetry(messages, validate, tries){
   }
   throw new Error(lastErr || 'AI 생성 실패');
 }
-// ── 지문학습 청크는 "청크학습(의미단위 훈련)"의 결과를 그대로 재사용한다 ──
+// ── 지문학습 청크는 "청크학습(의미단위 훈련)"의 결과를 출발점으로 삼는다 ──
 // 같은 문장을 두 번 AI로 분석하면 (1) 청크 기준이 서로 달라지고 (2) 토큰이 두 배로 든다.
-// 그래서 item.chunks(청크학습 결과)가 있으면 AI를 다시 부르지 않고 그대로 변환해서 쓴다.
-// 줄바꿈(br)도 AI에게 시키지 않고 아래 규칙대로 코드가 계산한다.
-const SP_BR_TYPES=new Set(['CONJ','COORD_P','COORD_C','CORR','ADV','ADVP','PP_ADV','TO_ADV','AC','AC_S','AC_O','AC_POS','NC_S','NC_O','NC_C']);
-const SP_BR_WORDS=/^(and|but|so|or|yet|for|because|since|although|though|while|whereas|unless|if|when|whenever|as|that|which|who|whom|whose|where|thus|therefore|however)\b/i;
+// 줄바꿈은 "문장 성분 경계"에서만, 그리고 줄이 길어졌을 때만 넣는다.
+// 한 성분(주어 덩어리 등)이 여러 청크로 쪼개져 있어도 그 안에서는 절대 끊지 않는다.
+//  → 예) "those (already living ...) (or trapped ...)" 전체가 한 줄에 남는다.
+// (각 청크의 g = 원래 최상위 청크 번호. 이 값이 바뀌는 지점만 줄바꿈 후보다.)
+const SP_LINE_MAX = 66;   // 한 줄에 담을 영어 글자 수(대략) — 이걸 넘으면 다음 성분부터 새 줄
 function _spComputeBr(chunks){
-  let inLine=0;
-  return chunks.map(function(c,i){
-    const out=Object.assign({}, c);
-    if(i===0){ delete out.br; inLine=1; return out; } // 문장 첫 청크는 이미 새 줄
-    const type=c.type||'';
-    const opensClause = SP_BR_TYPES.has(type) || SP_BR_WORDS.test(String(c.en||c.text||'').trim());
-    if(opensClause || inLine>=3){ out.br=true; inLine=1; }
-    else { delete out.br; inLine++; }
+  let lineLen = 0;
+  return chunks.map(function(c, i){
+    const out = Object.assign({}, c);
+    delete out.br;
+    const len = String(c.en || '').trim().length;
+    if(i === 0){ lineLen = len; return out; }
+    const boundary = c.g !== chunks[i-1].g; // 새로운 문장 성분이 시작되는 지점인가
+    if(boundary && lineLen + 1 + len > SP_LINE_MAX){ out.br = true; lineLen = len; }
+    else { lineLen += 1 + len; }
     return out;
   });
 }
@@ -30858,8 +31021,8 @@ function _spExpandNode(node){
   if(!Array.isArray(sub) || !sub.length) return [{ en: enText, ko: koText, type: node.type||'' }];
   const out=[];
   let enAccum='', cursor=0, koUsed=false;
-  // 남은(승격되지 않은) 영어 조각을 하나의 청크로 확정한다.
-  // ※ 해석은 영어 위치에 맞춰 쪼개지 않는다 — 한국어는 어순이 달라서 부분 문자열로 자르면
+  // 남은(어느 하위구에도 속하지 않는) 영어 조각을 하나의 청크로 확정한다.
+  // ※ 해석은 영어 위치에 맞춰 잘라 붙이지 않는다 — 한국어는 어순이 달라서 부분 문자열로 자르면
   //   같은 구절이 중복 복사된다. 부모의 해석은 첫 번째 조각에만 통째로 준다.
   function flushResidual(){
     if(!enAccum.trim()){
@@ -30867,7 +31030,7 @@ function _spExpandNode(node){
       enAccum='';
       return;
     }
-    out.push({ en:enAccum, ko: koUsed ? '' : koText, type:'' });
+    out.push({ en:enAccum.trim(), ko: koUsed ? '' : koText, type:'' });
     koUsed = true;
     enAccum='';
   }
@@ -30878,17 +31041,22 @@ function _spExpandNode(node){
     enAccum += enText.slice(cursor, idx);
     cursor = idx + sEn.length;
     const type = s.type || s.role || '';
+    const br = _spBracketOf(s, false);
     const subPieces = _spExpandNode(s);
-    if(SP_ADV_TYPES.has(type)){
-      // 부사구/절 → 최상위로 승격 ("/"로 끊어짐). 해석은 그 구 자신의 해석을 그대로 가져간다.
+    if(br || SP_ADV_TYPES.has(type)){
+      // 괄호로 묶이는 구/절과 부사구/절은 그 자체가 하나의 의미 덩어리이므로 별도 청크로 끊는다.
+      // → 해석도 그 덩어리 것만 붙어서, 한 청크에 긴 해석이 몰리지 않는다.
+      // 괄호는 그 덩어리의 첫 조각에 열고 마지막 조각에 닫는다(여러 청크에 걸쳐도 됨).
       flushResidual();
+      if(br && subPieces.length){
+        subPieces[0].en = br[0] + subPieces[0].en;
+        subPieces[subPieces.length-1].en = subPieces[subPieces.length-1].en + br[1];
+      }
       subPieces.forEach(function(p){ out.push(p); });
     } else {
-      // 명사절/구·형용사절/구 등 → 영어는 그 자리에 남기고 필요하면 [ ]·< > ( )로 감싼다.
-      // 해석은 부모 해석에 이미 포함돼 있으므로 따로 끼워 넣지 않는다.
-      const br = _spBracketOf(s, false);
+      // 괄호가 안 붙는 짧고 단순한 구는 굳이 끊지 않고 그 자리에 그대로 둔다
       const mergedEn = subPieces.map(function(p){ return p.en; }).join(' ').replace(/\s+/g,' ').trim();
-      enAccum += br ? (br[0]+mergedEn+br[1]) : mergedEn;
+      enAccum += mergedEn;
     }
   });
   enAccum += enText.slice(cursor);
@@ -30952,22 +31120,26 @@ function _spCleanKoSlashes(s){
 // (하위분석 펼치기 + [ ]·< > 표시 + 부사구/절 승격("/") + 인접 중복 정리 + 줄바꿈 계산)
 function _spProcessChunks(rawChunks){
   const out=[];
-  (rawChunks||[]).forEach(function(c){
+  // g = 원래 최상위 청크(문장 성분) 번호. 줄바꿈은 이 번호가 바뀌는 지점에서만 일어난다.
+  (rawChunks||[]).forEach(function(c, g){
     const pieces = _spExpandNode(c);
     const br = _spBracketOf(c, true);
     if(br){
-      // 이 청크 자체가 하나의 성분 덩어리(명사구/절 등)면 절대 쪼개지 않는다.
-      // 안에서 부사구가 승격돼 여러 조각이 났더라도 "/"로 이어 붙여 괄호 안에 넣는다.
-      //   예) [Listening / to scientists and innovators]  ← [ ]가 풀려 흩어지면 안 됨
-      // 해석은 청크가 통째로 남으므로 부모의 원래 해석을 그대로 쓴다(조각별로 섞으면 어순이 깨진다).
-      const en = pieces.map(function(p){ return (p.en||'').trim(); }).filter(Boolean).join(' / ');
-      out.push({ en: br[0]+en+br[1], ko:(c.ko||c.meaning||''), tag:c.tag||'', color:c.color||'#1a2d4a', type:c.type||'' });
+      // 최상위 청크 자신이 하나의 성분 덩어리(명사구/절 등)인 경우.
+      // 안에서 쪼개졌더라도 괄호는 첫 조각에 열고 마지막 조각에 닫아서 덩어리 범위를 표시한다.
+      //   예) [Listening / to scientists and innovators]
+      pieces[0].en = br[0] + pieces[0].en;
+      pieces[pieces.length-1].en = pieces[pieces.length-1].en + br[1];
+      if(pieces.length===1) pieces[0].ko = pieces[0].ko || c.ko || c.meaning || '';
+      pieces.forEach(function(p,i){
+        out.push({ en:p.en, ko:p.ko, tag:i===0?(c.tag||''):'', color:c.color||'#1a2d4a', type:i===0?(c.type||''):(p.type||''), g:g });
+      });
     } else if(pieces.length===1){
       const p = pieces[0];
-      out.push({ en:p.en, ko:p.ko, tag:c.tag||'', color:c.color||'#1a2d4a', type:c.type||'' });
+      out.push({ en:p.en, ko:p.ko, tag:c.tag||'', color:c.color||'#1a2d4a', type:c.type||'', g:g });
     } else {
       // 괄호로 묶이지 않는 청크 안에서 부사구/절이 승격된 경우만 최상위로 쪼갠다
-      pieces.forEach(function(p){ out.push({ en:p.en, ko:p.ko, tag:'', color:'#1a2d4a', type:p.type||'' }); });
+      pieces.forEach(function(p){ out.push({ en:p.en, ko:p.ko, tag:'', color:'#1a2d4a', type:p.type||'', g:g }); });
     }
   });
   const withBr = _spComputeBr(_spDedupAdjacent(out));
@@ -31244,6 +31416,41 @@ function spMergeAt(idx, ci){
   setTimeout(function(){ spInlineEdit(idx); }, 0);
 }
 // ── AI로 한글 뜻 재배치: 나뉜 청크에 맞게 해석을 다시 배분 ──
+// 청크 배열에 맞게 한글 해석을 AI로 다시 배분한다.
+// (청크를 새로 만들면 기존 해석이 새 청크 경계와 안 맞으므로 자동으로 이걸 돌린다)
+// 성공하면 ko가 채워진 청크 배열을 반환하고, 실패하면 원본을 그대로 돌려준다.
+async function _spRealignChunkKo(en, ko, chunks){
+  if(!Array.isArray(chunks) || chunks.length<2) return chunks;
+  const list=chunks.map(function(c,i){ return (i+1)+'. '+c.en; }).join('\n');
+  const prompt='다음은 한 영어 문장을 의미단위로 나눈 것이다.\n\n[전체 문장]\n'+(en||'')
+    +'\n\n[전체 해석]\n'+(ko||'')
+    +'\n\n[청크들]\n'+list
+    +'\n\n각 청크에 해당하는 한국어 뜻을 배정하라. 직독직해 방식으로 그 청크만의 뜻을 간결하게 쓴다.'
+    +' 전체 해석을 억지로 잘라 붙이지 말고, 각 청크의 의미에 맞게 자연스럽게 작성하라.'
+    +' 청크에 [ ] < > ( ) 같은 괄호 기호가 있으면 그건 구조 표시일 뿐이니 뜻에는 넣지 마라.'
+    +'\n★반드시 반말체(예: "이다","한다","되다","필요하다")로 통일하고 "~합니다/습니다/해요" 같은 존댓말은 절대 쓰지 마라.'
+    +'\n★★부정어(not/never/no/neither/nor/hardly/rarely 등)가 문장에 있으면 그 부정의 의미를 반드시 반영하라.'
+    +' 부정어가 다른 청크에 떨어져 있어도, 실제로 부정되는 동사·서술 청크의 뜻은 부정형으로 써야 한다.'
+    +' 전체 해석과 대조해서 긍정/부정이 뒤바뀌지 않았는지 확인하라.'
+    +'\n\n[출력] JSON 하나만: {"ko":["첫 청크 뜻","둘째 청크 뜻", ...]} — 배열 길이는 정확히 '+chunks.length+'개.'
+    +'\n마크다운 백틱·설명 없이 JSON만 출력하라.';
+  const parsed=await _spCallAIWithRetry([
+    {role:'system', content:'당신은 한국 최고의 영어 학원 교사입니다. 직독직해 해석을 작성합니다. JSON만 응답하세요.'},
+    {role:'user', content: prompt}
+  ], function(p){
+    if(!p || !Array.isArray(p.ko)) return 'ko 배열이 없음';
+    if(p.ko.length!==chunks.length) return '개수가 맞지 않음('+p.ko.length+'/'+chunks.length+')';
+    const politeRe = /(습니다|합니다|됩니다|입니다|해요|이에요|예요|해줘요|하세요)/;
+    if(p.ko.some(function(k){ return politeRe.test(k||''); })) return '존댓말이 섞여 있음(반말체로 통일 필요)';
+    return true;
+  });
+  return chunks.map(function(c,i){ return Object.assign({}, c, { ko:String(parsed.ko[i]||'').trim() }); });
+}
+// 청크 생성 직후 호출용 — 실패해도 청크 자체는 살리기 위해 예외를 삼킨다
+async function _spRealignSafe(en, ko, chunks){
+  try{ return await _spRealignChunkKo(en, ko, chunks); }
+  catch(e){ console.warn('[해석 자동 재배치] 실패 — 원본 해석 유지:', e.message); return chunks; }
+}
 async function spRealignKo(idx){
   if(!_requireTeacher()) return;
   const it=_spItems[idx];
@@ -31256,32 +31463,8 @@ async function spRealignKo(idx){
   const btn=document.getElementById('sp-realign-btn');
   if(btn){ btn.disabled=true; btn.textContent='재배치 중...'; }
   try{
-    const list=chunks.map(function(c,i){ return (i+1)+'. '+c.en; }).join('\n');
-    const prompt='다음은 한 영어 문장을 의미단위로 나눈 것이다.\n\n[전체 문장]\n'+(it.en||'')
-      +'\n\n[전체 해석]\n'+(it.ko||'')
-      +'\n\n[청크들]\n'+list
-      +'\n\n각 청크에 해당하는 한국어 뜻을 배정하라. 직독직해 방식으로 그 청크만의 뜻을 간결하게 쓴다.'
-      +' 전체 해석을 억지로 잘라 붙이지 말고, 각 청크의 의미에 맞게 자연스럽게 작성하라.'
-      +'\n★반드시 반말체(예: "이다","한다","되다","필요하다")로 통일하고 "~합니다/습니다/해요" 같은 존댓말은 절대 쓰지 마라.'
-      +'\n★★부정어(not/never/no/neither/nor/hardly/rarely 등)가 문장에 있으면 그 부정의 의미를 반드시 반영하라.'
-      +' 부정어가 다른 청크에 떨어져 있어도, 실제로 부정되는 동사·서술 청크의 뜻은 부정형으로 써야 한다.'
-      +' (예: "Neither do ... automatically understand ..." 에서 "automatically understand"는'
-      +' "자동으로 이해한다"가 아니라 "자동으로 이해하는 것은 아니다"로 써야 한다.)'
-      +' 전체 해석과 대조해서 긍정/부정이 뒤바뀌지 않았는지 확인하라.'
-      +'\n\n[출력] JSON 하나만: {"ko":["첫 청크 뜻","둘째 청크 뜻", ...]} — 배열 길이는 정확히 '+chunks.length+'개.'
-      +'\n마크다운 백틱·설명 없이 JSON만 출력하라.';
-    const parsed=await _spCallAIWithRetry([
-      {role:'system', content:'당신은 한국 최고의 영어 학원 교사입니다. 직독직해 해석을 작성합니다. JSON만 응답하세요.'},
-      {role:'user', content: prompt}
-    ], function(p){
-      if(!p || !Array.isArray(p.ko)) return 'ko 배열이 없음';
-      if(p.ko.length!==chunks.length) return '개수가 맞지 않음('+p.ko.length+'/'+chunks.length+')';
-      const politeRe = /(습니다|합니다|됩니다|입니다|해요|이에요|예요|해줘요|하세요)/;
-      if(p.ko.some(function(k){ return politeRe.test(k||''); })) return '존댓말이 섞여 있음(반말체로 통일 필요)';
-      return true;
-    });
-    chunks.forEach(function(c,i){ c.ko=String(parsed.ko[i]||'').trim(); });
-    _spApply(idx, chunks);
+    const realigned = await _spRealignChunkKo(it.en||'', it.ko||'', chunks);
+    _spApply(idx, realigned);
     if(typeof showToast==='function') showToast('해석 재배치 완료','success');
     renderSentPassageBody();
     setTimeout(function(){ spInlineEdit(idx); }, 0);
@@ -31388,7 +31571,11 @@ async function spGenerateOneChunk(idx){
       return true;
     });
     // 하위분석을 [ ]·< > 기호로 최상위 청크에 반영하고 부사구는 "/"로 분리 (지문학습 전용 표기)
-    it.passage_chunks = _spProcessChunks(_scConvertAIChunks(parsed.chunks));
+    let chunks = _spProcessChunks(_scConvertAIChunks(parsed.chunks));
+    // 청크 경계가 새로 잡혔으므로 해석도 그에 맞게 자동 재배치
+    if(rbtn) rbtn.textContent='해석 배치 중...';
+    chunks = await _spRealignSafe(it.en||'', it.ko||'', chunks);
+    it.passage_chunks = chunks;
     if(it.id && typeof sb!=='undefined'){
       sb.from('sentence_items').update({passage_chunks: it.passage_chunks}).eq('id', it.id).then(function(){}).catch(function(){});
     }
@@ -31442,13 +31629,16 @@ async function spGenerateChunks(){
         }
         return true;
       });
-      batchItems.forEach(function(it,i){
+      // 청크 확정 후, 새 청크 경계에 맞게 해석도 자동 재배치한다 (문장별 병렬)
+      await Promise.all(batchItems.map(async function(it,i){
         // 하위분석을 [ ]·< > 기호로 최상위 청크에 반영하고 부사구는 "/"로 분리 (지문학습 전용 표기)
-        it.passage_chunks = _spProcessChunks(_scConvertAIChunks(parsed.items[i].chunks||[]));
+        let chunks = _spProcessChunks(_scConvertAIChunks(parsed.items[i].chunks||[]));
+        chunks = await _spRealignSafe(it.en||'', it.ko||'', chunks);
+        it.passage_chunks = chunks;
         if(it.id && typeof sb!=='undefined'){
           sb.from('sentence_items').update({passage_chunks: it.passage_chunks}).eq('id', it.id).then(function(){}).catch(function(){});
         }
-      });
+      }));
     }catch(e){
       // 이 배치만 실패 — 나머지 배치는 계속 진행 (한 문장 때문에 전체가 멈추지 않도록)
       batchItems.forEach(function(it,i){ failedNums.push(bt.start+i+1); });
@@ -95959,6 +96149,149 @@ function esGenFromConstruction(id){
 }
 
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+/* ══════════════════════════════════════════════════════════════
+   외곽 셸 (2026-09) — 아이콘 레일 · 탭 줄 · 라미 패널
+   안쪽 페이지 로직은 건드리지 않고 바깥 틀만 담당한다.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  document.body.classList.add('shell2');
+
+  // 레일 접힘 상태를 새 셸 클래스(rail-open)와 동기화
+  function syncRail(){
+    document.body.classList.toggle('rail-open', !document.body.classList.contains('sidebar-collapsed'));
+  }
+  syncRail();
+  new MutationObserver(syncRail).observe(document.body, {attributes:true, attributeFilter:['class']});
+
+  // ── 라미 대화창을 오른쪽에 도킹 ──
+  // 상단 라미 버튼을 누르면 열리고, 다시 누르거나 닫기를 누르면 사라진다.
+  // 패널 자체는 기존 #slime-chat-panel 을 그대로 쓰므로 대화 기능은 손대지 않는다.
+  function _lamiDock(){
+    const panel=document.getElementById('slime-chat-panel');
+    const open = !!panel && panel.style.display === 'flex';
+    document.body.classList.toggle('lami-open', open);
+    if(!panel) return;
+    if(!open || window.innerWidth<=1180){
+      // 도킹 해제 — 인라인으로 넣었던 위치값을 지워 원래 떠 있는 형태로 되돌린다
+      panel.style.top=''; panel.style.bottom=''; panel.style.height='';
+      return;
+    }
+    // 본문 카드(상단바~본문)와 위아래를 정확히 맞춘다
+    const tb=document.querySelector('.topbar');
+    if(tb){
+      const r=tb.getBoundingClientRect();
+      panel.style.top = Math.round(r.top)+'px';
+      panel.style.bottom = '18px';
+      panel.style.height = 'auto';
+    }
+  }
+  // 패널이 열리고 닫히는 건 여러 경로(stOpenChat/stToggleChat/닫기버튼)로 일어나므로
+  // display 변화를 직접 감시해서 도킹 상태를 맞춘다.
+  const _scp=document.getElementById('slime-chat-panel');
+  if(_scp){
+    new MutationObserver(_lamiDock).observe(_scp,{attributes:true,attributeFilter:['style']});
+    _lamiDock();
+  }
+  window.addEventListener('resize', _lamiDock);
+
+  // ── 탭 줄: 고정 + 최근 ──
+  const KIND_SVG = {
+    word:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 015.5 4H18a2 2 0 012 2v12a2 2 0 01-2 2H5.5A1.5 1.5 0 014 18.5z"/><path d="M8 8.5h7M8 12h4.5"/></svg>',
+    doc :'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M7 9h10M7 12.5h6.5"/></svg>'
+  };
+  const PIN_SVG='<svg viewBox="0 0 24 24"><path d="M9 4h6l-1 5 3.5 3v2H6.5v-2L10 9z"/><path d="M12 14v6"/></svg>';
+  const X_SVG='<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+  const MAX_RECENT = 6;
+
+  let pinned=[], recent=[];
+  try{ pinned=JSON.parse(_lsGet('shellPinned')||'[]')||[]; }catch(_e){ pinned=[]; }
+  function savePinned(){ try{ _lsSet('shellPinned', JSON.stringify(pinned)); }catch(_e){} }
+
+  function labelOf(id){
+    const b=document.getElementById('nav-'+id);
+    return (b && b.dataset.label) || (document.getElementById('topbar-title')?.textContent) || id;
+  }
+  function isPinned(id){ return pinned.some(x=>x.id===id); }
+
+  let _sig='';
+  function render(){
+    const box=document.getElementById('shell-tabs');
+    if(!box) return;
+    const cur=document.querySelector('.page.active')?.id;
+    // 탭 구성이 그대로면 DOM을 다시 만들지 않고 활성 표시만 옮긴다
+    // (매번 새로 그리면 깜빡이고 마우스 올린 상태가 풀린다)
+    const sig=pinned.map(x=>'p'+x.id).join(',')+'|'+recent.filter(r=>!isPinned(r.id)).map(x=>x.id).join(',');
+    if(sig===_sig && box.children.length){
+      box.querySelectorAll('.sh-tab').forEach(el=>el.classList.toggle('on', el.dataset.id===cur));
+      return;
+    }
+    _sig=sig;
+    const tab=(t,pin)=>
+      '<div class="sh-tab'+(t.id===cur?' on':'')+'" data-id="'+t.id+'">'
+      + '<span class="k">'+(KIND_SVG[t.kind]||KIND_SVG.doc)+(pin?'<span class="pn">'+PIN_SVG+'</span>':'')+'</span>'
+      + t.label
+      + '<span class="x" title="닫기">'+X_SVG+'</span></div>';
+    box.innerHTML = pinned.map(t=>tab(t,true)).join('')
+      + (pinned.length&&recent.length?'<div class="sh-div"></div>':'')
+      + recent.filter(r=>!isPinned(r.id)).map(t=>tab(t,false)).join('');
+
+    box.querySelectorAll('.sh-tab').forEach(el=>{
+      const id=el.dataset.id;
+      el.addEventListener('click',e=>{
+        if(e.target.closest('.x')){
+          e.stopPropagation();
+          pinned=pinned.filter(x=>x.id!==id); recent=recent.filter(x=>x.id!==id);
+          savePinned(); render(); return;
+        }
+        if(typeof showPage==='function') showPage(id);
+      });
+      const toggle=e=>{
+        e.preventDefault();
+        if(isPinned(id)){ pinned=pinned.filter(x=>x.id!==id); }
+        else{
+          const item=recent.find(x=>x.id===id)||{id:id,label:labelOf(id),kind:'doc'};
+          pinned.push(item); recent=recent.filter(x=>x.id!==id);
+        }
+        savePinned(); render();
+      };
+      el.addEventListener('contextmenu',toggle);
+      el.addEventListener('dblclick',toggle);
+    });
+  }
+
+  window._shellTrackPage = function(id){
+    if(!id) return;
+    if(isPinned(id)){ render(); return; }
+    // 브라우저 탭처럼 동작한다:
+    //  - 이미 열려 있으면 자리를 그대로 두고 활성 표시만 바꾼다 (앞으로 끌어오지 않음)
+    //  - 새 탭은 항상 맨 뒤에 붙인다
+    if(recent.some(x=>x.id===id)){ render(); return; }
+    recent.push({id:id, label:labelOf(id), kind:/library|word|voca/i.test(id)?'word':'doc'});
+    // 개수가 넘치면 가장 오래된 것부터 정리하되, 지금 보고 있는 탭은 남긴다
+    while(recent.length>MAX_RECENT){
+      const victim=recent.findIndex(x=>x.id!==id);
+      if(victim<0) break;
+      recent.splice(victim,1);
+    }
+    render();
+  };
+
+  // showPage 를 감싸서 탭에 반영 (원래 동작은 그대로 통과)
+  const _origShowPage = window.showPage;
+  if(typeof _origShowPage === 'function'){
+    window.showPage = function(id, addHistory){
+      const r=_origShowPage.apply(this, arguments);
+      try{ window._shellTrackPage(id); }catch(_e){}
+      return r;
+    };
+  }
+  setTimeout(function(){
+    const cur=document.querySelector('.page.active')?.id;
+    if(cur) window._shellTrackPage(cur); else render();
+  }, 800);
+})();
 
 </script>
 
