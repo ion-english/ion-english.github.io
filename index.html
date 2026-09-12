@@ -1081,8 +1081,6 @@ body{font-family:'Outfit',sans-serif;font-size:17px;line-height:1.6;background:v
 /* 📱 모바일: 화면 가장자리에서 페이지 전체가 출렁이는 고무줄 스크롤 차단 */
 html,body{overscroll-behavior:none}
 
-
-}
 /* 초기 로딩 중 FOUC 방지 */
 body.app-initializing{visibility:hidden}
 
@@ -1504,6 +1502,54 @@ body.sidebar-collapsed .main{margin-left:60px !important}
 
 /* ════ BOOK CARDS ════ */
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+
+/* ══════════════════════════════════════════════════════════════
+   학생 화면 목록형 공통 컴포넌트 (2026-09) — Voca·Reading·Grammar·
+   Phonics·Speaking 전부 이 스타일을 쓴다. 카드형(큰 진입 버튼)을
+   걷어내고, 행 전체를 클릭하면 학습 화면이 열리는 방식.
+   모바일 터치를 고려해 버튼은 전부 44px 이상 높이를 확보한다.
+   ══════════════════════════════════════════════════════════════ */
+.stu-list{display:flex;flex-direction:column;gap:8px}
+.stu-row{
+  display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;
+  background:#fff;border:1px solid #e4e7ea;border-radius:14px;padding:13px 16px;
+  box-shadow:0 1px 2px rgba(16,24,32,.05);cursor:pointer;transition:border-color .15s,background .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.stu-row:hover{border-color:#c8d0d8}
+.stu-row.touch,.stu-row:active{background:#FAFBFC;border-color:#c8d0d8}
+.stu-tag{
+  font-size:12px;font-weight:700;border-radius:99px;padding:3px 10px;white-space:nowrap;
+  flex-shrink:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;color:#1e40af;background:#eff6ff;
+}
+.stu-tag.muted{color:#64748b;background:#F1F3F5}
+.stu-body{min-width:90px;flex:1 1 140px}
+.stu-name{font-size:15.5px;font-weight:700;color:#0f172a;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu-meta{font-size:12.5px;color:#94a3b8;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu-progress{display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:150px}
+.stu-bar{width:80px;height:5px;border-radius:99px;background:#eef0f2;overflow:hidden;flex-shrink:0}
+.stu-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1e4db7,#2563eb)}
+.stu-pct{font-size:12.5px;font-weight:700;color:#1e293b;white-space:nowrap}
+.stu-pct.todo{color:#94a3b8;font-weight:600}
+.stu-actions{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;flex-shrink:0}
+.stu-tbtn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-height:38px;padding:0 14px;border-radius:9px;border:none;
+  background:#F1F3F5;color:#374151;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;
+}
+.stu-tbtn:hover{background:#E4E7EA;color:#1A1D21}
+.stu-tbtn.touch,.stu-tbtn:active{background:#E4E7EA;color:#1A1D21}
+.stu-tbtn.locked{color:#c7cbd1;background:#F7F8F9;cursor:not-allowed}
+.stu-tbtn.locked:active,.stu-tbtn.locked.touch{background:#F7F8F9;color:#c7cbd1}
+@media (max-width:640px){
+  .stu-row{padding:12px 14px}
+  .stu-progress{min-width:0;order:3;flex-basis:100%}
+  .stu-bar{width:auto;flex:1} /* 줄 전체 폭이 생겼으니 고정 80px 대신 남는 폭을 다 채우게 */
+  .stu-actions{order:4;flex-basis:100%;justify-content:flex-start;margin-left:0}
+  .stu-tbtn{min-height:42px;flex:1 1 auto} /* 모바일에서는 버튼이 더 크고 넉넉하게 */
+}
 /* 학생 단어장 카드 - 더 넓은 간격 */
 #mybooks-grid.cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
 #sent-books-grid-student.cards-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
@@ -3452,7 +3498,7 @@ body.shell2 #app-shell{
   height:100vh;overflow:hidden;background:#E9EBEE;
   transition:grid-template-columns .24s cubic-bezier(.4,0,.2,1);
 }
-body.shell2.rail-open #app-shell{grid-template-columns:212px 1fr}
+body.shell2.rail-open #app-shell{grid-template-columns:236px 1fr}
 
 /* ── 레일 ── */
 body.shell2 .sidebar{
@@ -3460,21 +3506,38 @@ body.shell2 .sidebar{
   background:#F0F1F2 !important;border-right:1px solid #E2E5E8 !important;box-shadow:none !important;
   overflow:hidden;
 }
-body.shell2 .sidebar-head{border-bottom:none !important;padding:14px 10px 6px !important}
-body.shell2 .sidebar-brand{gap:10px}
-body.shell2 .sidebar-mark{background:#1A1D21 !important;color:#fff !important;
-  width:32px !important;height:32px !important;border-radius:10px !important;font-size:15px !important;flex:0 0 auto}
-body.shell2 .sidebar-title{color:#1A1D21 !important;font-size:15px !important;white-space:nowrap}
+body.shell2 .sidebar-head{border-bottom:none !important;padding:18px 14px 14px !important}
+body.shell2 .sidebar-brand{gap:12px;margin-bottom:0 !important}
+body.shell2 .sidebar-mark{margin-bottom:0 !important;
+  width:42px !important;height:42px !important;border-radius:13px !important;font-size:20px !important;flex:0 0 auto}
+body.shell2 .sidebar-title{color:#1A1D21 !important;font-size:24px !important;white-space:nowrap}
+/* 사용자 정보(이름 · 역할 · Lv 배지)
+   - 로고와 한 덩어리로 읽히도록 구분선 없이 간격으로만 분리한다.
+   - 레일이 무채색이라 배지에 색을 넣으면 혼자 튄다 → 옅은 회색으로. */
+/* 사용자 정보는 레일이 아니라 상단바(#shell-userchip)에 둔다 — 레일은 메뉴에만 집중 */
 body.shell2 .sidebar-userinfo{display:none !important}
-body.shell2 .sidebar-nav{padding:8px 10px !important}
+#shell-userchip #user-level-display{
+  background:#E7E9EC !important;color:#5A626B !important;border:none;
+  font-size:11px !important;font-weight:600;padding:1px 6px;margin-left:1px !important;border-radius:6px;
+}
+#shell-userchip #user-name-display{color:#4B5563;font-weight:500}
+#shell-userchip .sidebar-subtext{color:#8A929B !important;font-size:13.5px !important;white-space:nowrap}
+/* topbar가 justify-content:space-between 이라, 가운데 자식으로 들어가면 화면 중앙으로 밀린다.
+   오른쪽 두 요소(사용자 정보 + topbar-right)를 하나의 그룹으로 묶어 맨 오른쪽에 고정한다. */
+@media(max-width:860px){ #shell-userchip{display:none !important} }
+body.shell2 .sidebar-nav{padding:2px 12px !important}
 body.shell2 .nav-group-label,
 body.shell2 .nav-group-label-item{
-  color:#9CA3AF !important;font-size:9.5px !important;letter-spacing:.03em !important;
-  padding:0 0 0 8px !important;margin:12px 0 4px !important;text-align:left !important;
+  color:#A8AFB7 !important;font-size:13px !important;font-weight:700 !important;
+  letter-spacing:2px !important;text-transform:uppercase !important;
+  padding:0 0 0 10px !important;margin:19px 0 6px !important;text-align:left !important;
 }
+/* 첫 그룹은 위 여백을 줄여 사용자 정보와 붙지 않게만 */
+body.shell2 .sidebar-nav > .nav-group-label:first-child,
+body.shell2 .sidebar-nav > .nav-group-label-item:first-child{margin-top:10px !important}
 body.shell2 .nav-item{
-  color:#8A929B !important;background:none !important;box-shadow:none !important;
-  border-radius:11px !important;height:38px;padding:0 10px !important;gap:12px;margin-bottom:2px;
+  color:#7C848D !important;background:none !important;box-shadow:none !important;
+  border-radius:11px !important;height:39px;padding:0 12px !important;gap:11px;margin-bottom:2px;
   display:flex;align-items:center;justify-content:flex-start;width:100%;
 }
 body.shell2 .nav-item::before{display:none !important}
@@ -3485,11 +3548,11 @@ body.shell2 .nav-item.active{
 }
 body.shell2 .nav-icon{opacity:1 !important;color:inherit !important;flex:0 0 auto}
 body.shell2 .nav-item.active .nav-icon{color:#1A1D21 !important}
-body.shell2 .nav-label{font-size:13.5px;white-space:nowrap}
+body.shell2 .nav-label{font-size:16px;white-space:nowrap}
 body.shell2 .sidebar-bottom{border-top:1px solid #E2E5E8 !important;padding:8px !important}
 body.shell2 .logout-btn{
   border:1px solid transparent !important;color:#8A929B !important;border-radius:11px !important;
-  padding:0 9px !important;height:34px;justify-content:flex-start !important;gap:11px;font-size:13.5px !important;
+  padding:0 12px !important;height:36px;justify-content:flex-start !important;gap:11px;font-size:15px !important;
 }
 body.shell2 .logout-btn:hover{background:#E4E6E8 !important;color:#1A1D21 !important;border-color:transparent !important}
 body.shell2 .sidebar-toggle-btn{background:#E4E6E8 !important;border:1px solid #E2E5E8 !important}
@@ -3519,7 +3582,7 @@ body.shell2 .main{
 }
 /* 레일이 접혀 있을 땐 아이콘 바로 옆이라 왼쪽 여백을 좁게 — 넓으면 휑해 보인다 */
 body.shell2:not(.rail-open) .main{padding-left:10px}
-body.shell2 #shell-tabs{grid-column:1/-1;grid-row:1}
+body.shell2 #shell-tab-row{grid-column:1/-1;grid-row:1;min-width:0}
 body.shell2 .topbar{grid-column:1;grid-row:2}
 body.shell2 .content{grid-column:1;grid-row:3}
 
@@ -3568,6 +3631,133 @@ body.shell2 #shell-tabs::-webkit-scrollbar{display:none}
 body.shell2 #shell-tabs-base{grid-column:1/-1;grid-row:1;align-self:end;height:1px;background:#DDE1E5;margin-left:40px}
 
 
+
+/* ══════════════════════════════════════════════════════════════
+   내부 UI 통일 ① — Dashboard
+   외곽 셸(모서리 18px · 1px 테두리 · 옅은 그림자 · 다크 주버튼)에 맞춘다.
+   인라인 style 로 박혀 있는 값이 많아 속성 선택자 + !important 로 덮는다.
+   ※ 이 블록은 #pg-dashboard 안에서만 적용된다 (다른 화면 영향 없음).
+   ══════════════════════════════════════════════════════════════ */
+/* 모서리 — 큰 카드는 18px 로 통일 */
+#pg-dashboard [style*="border-radius:16px"],
+#pg-dashboard [style*="border-radius:14px"],
+#pg-dashboard [style*="border-radius:12px"]{border-radius:18px !important}
+/* 테두리 — 1.5px → 1px, 색도 셸과 동일하게 */
+#pg-dashboard [style*="1.5px solid"]{border-width:1px !important;border-color:#E4E7EA !important}
+/* 그림자 — 셸처럼 아주 얕게 */
+/* 카드 그림자(0 2px 8px 계열)는 건드리지 않는다 — Phonics처럼 입체감을 살리는 쪽으로 통일하기로 함.
+   옅은 var(--sh) 계열만 정리한다. */
+#pg-dashboard [style*="box-shadow:var(--sh)"]{box-shadow:0 1px 2px rgba(16,24,32,.05) !important}
+/* 주 버튼 — 파랑 대신 다크 잉크 (누르는 것과 상태 표시를 색으로 구분) */
+#pg-dashboard .btn-primary{
+  background:#1A1D21 !important;color:#fff !important;box-shadow:none !important;
+}
+#pg-dashboard .btn-primary:hover{background:#2C3138 !important;transform:none !important;box-shadow:none !important}
+#pg-dashboard .btn-secondary{border-width:1px !important;border-color:#E4E7EA !important;box-shadow:none !important}
+#pg-dashboard .btn-secondary:hover{border-color:#C9CED4 !important;background:#F7F8F9 !important}
+/* 일정관리 주간/월간 토글 — 선택된 쪽을 다크로.
+   ※ 날짜 칸(오늘/선택)도 같은 배경 문자열을 쓰므로, 토글에만 있는
+     "transition:all 0.15s" 까지 함께 걸어 날짜 칸이 물들지 않게 한다.
+     날짜 강조는 "상태 표시"라서 파랑을 그대로 두는 게 맞다. */
+#pg-dashboard [style*="background:var(--blue);color:white;transition:all 0.15s"]{background:#1A1D21 !important}
+/* 제목 크기 정리 */
+#pg-dashboard [style*="font-size:17px;font-weight:700"]{font-size:16px !important;font-weight:600 !important}
+
+
+/* ══════════════════════════════════════════════════════════════
+   내부 UI 통일 ② — Voca(단어장) / 문장집
+   ①Dashboard 와 같은 규칙: 모서리 18px · 테두리 1px · 옅은 그림자 ·
+   주 버튼은 다크, 상태 표시(배포·토글·뱃지)는 색 그대로.
+   ══════════════════════════════════════════════════════════════ */
+#pg-library [style*="border-radius:16px"],
+#pg-library [style*="border-radius:14px"],
+#pg-library [style*="border-radius:12px"],
+#pg-sentences [style*="border-radius:16px"],
+#pg-sentences [style*="border-radius:14px"],
+#pg-sentences [style*="border-radius:12px"]{border-radius:18px !important}
+
+#pg-library [style*="1.5px solid"],
+#pg-sentences [style*="1.5px solid"]{border-width:1px !important;border-color:#E4E7EA !important}
+
+/* 카드 그림자(0 2px 8px, 0 1px 4px 계열)는 그대로 둔다 — Voca 컬렉션 카드가 원래 갖고 있던
+   Phonics와 동일한 입체감 있는 그림자다. 옅은 var(--sh) 계열만 정리한다. */
+#pg-library [style*="box-shadow:var(--sh)"],
+#pg-sentences [style*="box-shadow:var(--sh)"]{box-shadow:0 1px 2px rgba(16,24,32,.05) !important}
+
+#pg-library .btn-primary,
+#pg-sentences .btn-primary{background:#1A1D21 !important;color:#fff !important;box-shadow:none !important}
+#pg-library .btn-primary:hover,
+#pg-sentences .btn-primary:hover{background:#2C3138 !important;transform:none !important;box-shadow:none !important}
+#pg-library .btn-secondary,
+#pg-sentences .btn-secondary{border-width:1px !important;border-color:#E4E7EA !important;box-shadow:none !important}
+#pg-library .btn-secondary:hover,
+#pg-sentences .btn-secondary:hover{border-color:#C9CED4 !important;background:#F7F8F9 !important}
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   내부 UI 통일 ③ — 모달 · 폼 (전 화면 공통)
+   모달은 어느 화면에서든 뜨므로, 여기만 맞춰도 전체 인상이 크게 정리된다.
+   ══════════════════════════════════════════════════════════════ */
+body.shell2 .modal{
+  border-radius:20px;border:1px solid #E4E7EA;
+  box-shadow:0 1px 3px rgba(16,24,32,.08),0 24px 60px -24px rgba(16,24,32,.35);
+}
+body.shell2 .modal-overlay{background:rgba(16,24,32,.42);backdrop-filter:blur(2px)}
+/* 제목 — 셸이 Outfit 위주라 Fraunces 대신 통일하고 크기도 한 단계 낮춘다 */
+body.shell2 .modal-title{
+  font-family:'Outfit',sans-serif;font-size:19px;font-weight:600;
+  letter-spacing:-0.01em;margin-bottom:18px;
+}
+body.shell2 .modal-actions{border-top-color:#EEF0F2;margin-top:22px;padding-top:16px}
+/* 폼 라벨 — 대문자·넓은 자간은 과하게 튀어서 일반 소형 라벨로 */
+body.shell2 .form-label{
+  font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:#6B7280;margin-bottom:6px;
+}
+body.shell2 .form-input{border-width:1px;border-color:#E4E7EA;border-radius:11px;font-size:15px}
+body.shell2 .form-input:focus{border-color:#9AA3AC;box-shadow:0 0 0 3px rgba(26,29,33,.06)}
+/* 모달 안 버튼도 다크 기준으로 */
+body.shell2 .modal .btn-primary{background:#1A1D21;color:#fff;box-shadow:none}
+body.shell2 .modal .btn-primary:hover{background:#2C3138;transform:none;box-shadow:none}
+body.shell2 .modal .btn-secondary{border-width:1px;border-color:#E4E7EA;box-shadow:none}
+body.shell2 .modal .btn-secondary:hover{border-color:#C9CED4;background:#F7F8F9}
+/* 토스트 — 셸의 잉크 색으로 */
+body.shell2 .toast{background:#1A1D21;border-radius:12px}
+
+
+/* ══════════════════════════════════════════════════════════════
+   내부 UI 통일 ④ — 나머지 화면 일괄 적용
+   ①Dashboard ②Voca/문장집 과 같은 규칙을 선생님용 관리 화면 전반에 적용.
+   ※ 학생 슬라임 홈(pg-slime-home)·게임·플래시카드처럼 고유 디자인이 중요한
+     화면은 일부러 제외했다. 여기까지 손대면 그 화면들의 성격이 사라진다.
+   ══════════════════════════════════════════════════════════════ */
+[style*="border-radius:16px"]:where(#pg-reading-review *,#pg-grammar *,#pg-phonics *,#pg-exam-lab *,#pg-study-note *,#pg-t-study-note *,#pg-students *,#pg-classes *,#pg-messages *,#pg-notices *,#pg-progress *,#pg-assign *,#pg-filevault *,#pg-speaking *,#pg-teachers *,#pg-editor *),
+[style*="border-radius:14px"]:where(#pg-reading-review *,#pg-grammar *,#pg-phonics *,#pg-exam-lab *,#pg-study-note *,#pg-t-study-note *,#pg-students *,#pg-classes *,#pg-messages *,#pg-notices *,#pg-progress *,#pg-assign *,#pg-filevault *,#pg-speaking *,#pg-teachers *,#pg-editor *),
+[style*="border-radius:12px"]:where(#pg-reading-review *,#pg-grammar *,#pg-phonics *,#pg-exam-lab *,#pg-study-note *,#pg-t-study-note *,#pg-students *,#pg-classes *,#pg-messages *,#pg-notices *,#pg-progress *,#pg-assign *,#pg-filevault *,#pg-speaking *,#pg-teachers *,#pg-editor *){
+  border-radius:18px !important;
+}
+[style*="1.5px solid"]:where(#pg-reading-review *,#pg-grammar *,#pg-phonics *,#pg-exam-lab *,#pg-study-note *,#pg-t-study-note *,#pg-students *,#pg-classes *,#pg-messages *,#pg-notices *,#pg-progress *,#pg-assign *,#pg-filevault *,#pg-speaking *,#pg-teachers *,#pg-editor *){
+  border-width:1px !important;border-color:#E4E7EA !important;
+}
+[style*="box-shadow:var(--sh)"]:where(#pg-reading-review *,#pg-grammar *,#pg-phonics *,#pg-exam-lab *,#pg-study-note *,#pg-t-study-note *,#pg-students *,#pg-classes *,#pg-messages *,#pg-notices *,#pg-progress *,#pg-assign *,#pg-filevault *,#pg-speaking *,#pg-teachers *,#pg-editor *){
+  box-shadow:0 1px 2px rgba(16,24,32,.05) !important;
+}
+/* 주/보조 버튼 — 위 화면들 공통 */
+:where(#pg-reading-review,#pg-grammar,#pg-phonics,#pg-exam-lab,#pg-study-note,#pg-t-study-note,#pg-students,#pg-classes,#pg-messages,#pg-notices,#pg-progress,#pg-assign,#pg-filevault,#pg-speaking,#pg-teachers,#pg-editor) .btn-primary{
+  background:#1A1D21 !important;color:#fff !important;box-shadow:none !important;
+}
+:where(#pg-reading-review,#pg-grammar,#pg-phonics,#pg-exam-lab,#pg-study-note,#pg-t-study-note,#pg-students,#pg-classes,#pg-messages,#pg-notices,#pg-progress,#pg-assign,#pg-filevault,#pg-speaking,#pg-teachers,#pg-editor) .btn-primary:hover{
+  background:#2C3138 !important;transform:none !important;box-shadow:none !important;
+}
+:where(#pg-reading-review,#pg-grammar,#pg-phonics,#pg-exam-lab,#pg-study-note,#pg-t-study-note,#pg-students,#pg-classes,#pg-messages,#pg-notices,#pg-progress,#pg-assign,#pg-filevault,#pg-speaking,#pg-teachers,#pg-editor) .btn-secondary{
+  border-width:1px !important;border-color:#E4E7EA !important;box-shadow:none !important;
+}
+/* 검색창 — 전 화면 공통 */
+body.shell2 .search-input{
+  border-width:1px !important;border-color:#E4E7EA !important;border-radius:14px !important;box-shadow:none !important;
+}
+body.shell2 .search-input:focus{border-color:#9AA3AC !important;box-shadow:0 0 0 3px rgba(26,29,33,.06) !important}
+
 /* ── 라미(슬라임) 대화창을 오른쪽에 도킹 ──
    기존 떠 있는 대화창(.slime-chat-panel)을 그대로 쓰되, 넓은 화면에서는
    본문 오른쪽에 붙은 패널처럼 보이게 위치·크기만 바꾼다.
@@ -3590,8 +3780,13 @@ body.shell2 #shell-tabs-base{grid-column:1/-1;grid-row:1;align-self:end;height:1
 }
 @media(max-width:860px){
   body.shell2 #app-shell{grid-template-columns:1fr !important}
-  body.shell2 .sidebar{display:none}
-  body.shell2 #shell-tabs{padding-left:12px}
+  /* 모바일에선 원래 앱의 슬라이드 사이드바(햄버거 버튼 → .sidebar.open)가 그대로 동작해야 하므로
+     여기서 display:none으로 숨기면 안 된다 — 예전엔 이 줄 때문에 사이드바가 영영 안 펼쳐졌었다. */
+  body.shell2 #shell-tabs-base{display:none}
+  body.shell2 #shell-tab-row{display:none !important} /* 탭 줄은 모바일 폭에서 어색해서 아예 숨긴다 (인라인 style보다 위에 있어야 해서 !important) */
+  body.shell2 .main{grid-template-rows:auto 1fr} /* 탭 줄 행이 없어졌으니 topbar·content 2행으로 */
+  body.shell2 .topbar{grid-row:1}
+  body.shell2 .content{grid-row:2}
   body.shell2 .main{padding:0 8px 8px}
 }
 
@@ -3682,9 +3877,13 @@ body.shell2 #shell-tabs-base{grid-column:1/-1;grid-row:1;align-self:end;height:1
     <!-- 모바일 사이드바 오버레이 -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-    <!-- 탭 줄 (외곽 셸): 고정 + 최근 -->
+    <!-- 탭 줄 (외곽 셸): 고정 + 최근. 오른쪽 끝에 사용자 정보를 같이 둔다 -->
     <div id="shell-tabs-base"></div>
-    <div id="shell-tabs"></div>
+    <div id="shell-tab-row" style="display:flex;align-items:flex-end">
+      <div id="shell-tabs" style="flex:1;min-width:0"></div>
+      <!-- 사용자 정보(이름·역할·Lv 배지) — 레일에서 이동 -->
+      <div id="shell-userchip" style="display:none;align-items:center;gap:8px;flex-shrink:0;margin:0 20px 10px 8px;font-size:13.5px;color:#8A929B;white-space:nowrap"></div>
+    </div>
 
     <!-- ====== 모바일 바텀 네비게이션 ====== -->
 
@@ -4964,7 +5163,7 @@ body.shell2 #shell-tabs-base{grid-column:1/-1;grid-row:1;align-self:end;height:1
           <span class="search-icon-el">🔍</span>
           <input type="text" class="search-input" id="mybooks-search" placeholder="단어장 검색..." oninput="renderMyBooks()">
         </div>
-        <div class="cards-grid" id="mybooks-grid"></div>
+        <div class="stu-list" id="mybooks-grid"></div>
       </div>
 
       <!-- ===== STUDENT: LEARNING GAMES ===== -->
@@ -8835,7 +9034,7 @@ function _slimeChatRenderPanel() {
         <option value="cerebras">🧠 Cerebras</option>
         <option value="github">🐙 GitHub</option>
       </select>` : ''}
-      <button onclick="stCloseAll()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:17px;line-height:1;padding:2px;flex-shrink:0">✕</button>
+      <button onclick="stCloseChatPanel()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:17px;line-height:1;padding:2px;flex-shrink:0">✕</button>
     </div>
     <div class="slime-chat-msgs" id="slime-chat-msgs">
       ${_slimeChatHistory.length === 0 ? `
@@ -9127,6 +9326,15 @@ function stToggleProfile() {
   if (!profile) return;
   if (notif) notif.style.display = 'none';
   profile.style.display = profile.style.display === 'none' ? '' : 'none';
+}
+
+// 라미 대화창 닫기 — ✕ 버튼 전용.
+// stCloseAll()은 의도적으로 대화창을 닫지 않으므로(바깥 클릭 핸들러가 담당),
+// ✕ 로는 안 닫히는 문제가 있어 별도 함수를 둔다.
+function stCloseChatPanel() {
+  const panel = document.getElementById('slime-chat-panel');
+  if (panel) panel.style.display = 'none';
+  stCloseAll();
 }
 
 function stCloseAll() {
@@ -14607,15 +14815,17 @@ function _phonicsRenderFolderList(root, content, assigns){
     const pct = f.items.length ? Math.round((doneCount / f.items.length) * 100) : 0;
     const pillLabel = isLetter(f.key) ? '커스텀' : f.combined ? '합본' : 'SB'+f.level;
     return `
-    <div class="book-card" onclick="phonicsOpenFolder('${f.key}')" style="cursor:pointer">
-      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
-        <span style="font-size:11px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:2px 9px;flex-shrink:0">${pillLabel}</span>
-        <span style="margin-left:auto;font-size:13px;font-weight:700;color:${pct===100?'#16a34a':pct>0?'#2563eb':'#cbd5e1'}">${pct>0?pct+'%':'미시작'}</span>
+    <div class="stu-row" onclick="phonicsOpenFolder('${f.key}')"
+      ontouchstart="this.classList.add('touch')"
+      ontouchend="var _r=this;setTimeout(function(){_r.classList.remove('touch')},250)">
+      <span class="stu-tag${pct>0?'':' muted'}">${pillLabel}</span>
+      <div class="stu-body">
+        <div class="stu-name">${f.emoji} ${esc(f.title)}</div>
+        <div class="stu-meta">${f.items.length}개 카드</div>
       </div>
-      <div class="book-name">${f.emoji} ${esc(f.title)}</div>
-      <div class="book-meta" style="margin-bottom:10px">${f.items.length}개 카드</div>
-      <div style="height:6px;background:var(--surface2,#f1f5f9);border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#1a56db,#3b82f6);border-radius:99px;transition:width 0.6s"></div>
+      <div class="stu-progress">
+        <div class="stu-bar"><i style="width:${pct}%"></i></div>
+        ${pct>0 ? `<span class="stu-pct">${pct}% DONE</span>` : `<span class="stu-pct todo">미시작</span>`}
       </div>
     </div>`;
   };
@@ -14628,11 +14838,10 @@ function _phonicsRenderFolderList(root, content, assigns){
   const _phExpPct = Math.min(100, Math.round(((sl.exp||0) % 100)));
 
   root.innerHTML =
-    _ionHeroBanner(sl.stage, "알파벳 소리를 익혀볼까요?", '파닉스 카드 학습 완료 시 <strong style="color:#2563eb">+10 EXP</strong>!', _phNextLv, _phExpPct)
-    + _phnAsgBannerHTML(assigns, content)
+    _phnAsgBannerHTML(assigns, content)
     + `
     <div class="search-bar" style="margin-bottom:14px"><span class="search-icon-el">🔍</span><input type="text" class="search-input" id="phn-stu-search" placeholder="파닉스 폴더 검색..." oninput="_renderPhnStuGrid()"></div>
-    <div id="phn-stu-grid" class="cards-grid"></div>
+    <div id="phn-stu-grid" class="stu-list"></div>
   `;
 
   window._phnStuAllFolders = allFolders;
@@ -17251,13 +17460,15 @@ async function renderStudentSpeaking(){
   catch(e){ console.error('sspl load',e); const el=document.getElementById('sspl-list'); if(el) el.innerHTML='<div style="color:#dc2626">레슨을 불러오지 못했어요.</div>'; return; }
   const arr=window._ssplLessons||[]; const el=document.getElementById('sspl-list'); if(!el) return;
   if(!arr.length){ el.innerHTML='<div style="padding:44px 16px;color:#94a3b8;border:1.5px dashed #e2e8f0;border-radius:14px">아직 선생님이 만든 회화 레슨이 없어요.</div>'; return; }
-  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;text-align:left">'+arr.map(function(l){
+  el.innerHTML='<div class="stu-list">'+arr.map(function(l){
     const ke=Array.isArray(l.key_expressions)?l.key_expressions.length:0;
-    return '<button onclick="splStudy(\''+l.id+'\')" style="text-align:left;border:1px solid #e2e8f0;border-radius:14px;padding:16px;background:#fff;cursor:pointer;font-family:inherit" onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#e2e8f0\'">'
-      +(l.level?'<div style="font-size:11px;color:#475569;background:#f1f5f9;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:6px">'+_spkEsc(l.level)+'</div>':'')
-      +'<div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:4px">'+_spkEsc(l.title||'')+'</div>'
-      +(l.topic?'<div style="font-size:12.5px;color:#64748b;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_spkEsc(l.topic)+'</div>':'')
-      +'<div style="margin-top:10px;font-size:12px;font-weight:700;color:#7c3aed">🎯 표현 '+ke+'개 · 학습 시작 →</div></button>';
+    return '<div class="stu-row" onclick="splStudy(\''+l.id+'\')"'
+      +' ontouchstart="this.classList.add(\'touch\')" ontouchend="var _r=this;setTimeout(function(){_r.classList.remove(\'touch\')},250)">'
+      +(l.level?'<span class="stu-tag">'+_spkEsc(l.level)+'</span>':'<span class="stu-tag muted">회화</span>')
+      +'<div class="stu-body"><div class="stu-name">'+_spkEsc(l.title||'')+'</div>'
+      +(l.topic?'<div class="stu-meta">'+_spkEsc(l.topic)+'</div>':'')+'</div>'
+      +'<span class="stu-pct">표현 '+ke+'개</span>'
+      +'</div>';
   }).join('')+'</div>';
 }
 // ── 1단계: 학습(인풋) ──
@@ -29073,8 +29284,7 @@ async function renderSentenceStudy() {
     const _sbNextLv = sl.stage + 2;
     const _sbExpPct = Math.min(100, Math.round(((sl.exp||0) % 100)));
     body.innerHTML = `
-      ${_ionHeroBanner(sl.stage, "새 단원을 배울 준비가 됐나요?", `문장집 1회독 완료 시 <strong style="color:#2563eb">+10 EXP</strong>!`, _sbNextLv, _sbExpPct)}
-      <div id="sent-books-grid-student" class="cards-grid"></div>`;
+      <div id="sent-books-grid-student" class="stu-list"></div>`;
 
     const grid = document.getElementById('sent-books-grid-student');
     // 문장집 고정 색상 (초록 계열)
@@ -29121,108 +29331,40 @@ async function renderSentenceStudy() {
       const taskChipsJson = JSON.stringify(taskChipData).replace(/"/g,'&quot;');
       const taskChips = '';
 
-      // 잠금 버튼 헬퍼
-      function sentLockBtn(label, icon, onclick, allowed) {
-        const lockedStyle = 'padding:10px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:14px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px;opacity:0.6';
-        const activeStyle = 'padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px';
+      // 잠금 버튼 헬퍼 (목록형: 선생님 버튼과 같은 회색 톤, 이모지·아이콘 없음)
+      function sentLockBtn(label, onclick, allowed) {
         if (!allowed) {
-          return `<button style="${lockedStyle}" disabled title="과제에 없는 학습 유형입니다">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            ${label}
-          </button>`;
+          return `<button class="stu-tbtn locked" disabled title="과제에 없는 학습 유형입니다">${label}</button>`;
         }
-        return `<button onclick="${onclick}"
-          style="${activeStyle}"
-          onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-          onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#cbd5e1';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)">
-          ${icon}${label}
-        </button>`;
+        return `<button class="stu-tbtn" onclick="event.stopPropagation();${onclick}"
+          ontouchstart="event.stopPropagation();this.classList.add('touch')"
+          ontouchend="event.stopPropagation();var _b=this;setTimeout(function(){_b.classList.remove('touch')},250)">${label}</button>`;
       }
 
-      const card = document.createElement('div');
-      card.style.cssText = `position:relative;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid ${hasTask?'#dbeafe':'#e8edf4'};transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:default;display:flex;flex-direction:column`;
-      card.onmouseenter = function(){
-        this.style.transform='translateY(-4px)';
-        this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';
-        this.style.borderColor='#bfdbfe';
-      };
-      card.onmouseleave = function(){
-        this.style.transform='';
-        this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';
-        this.style.borderColor=hasTask?'#dbeafe':'#e8edf4';
-      };
-      card.addEventListener('touchstart', function(){
-        this.style.transform='translateY(-4px)';
-        this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';
-        this.style.borderColor='#bfdbfe';
-      }, { passive: true });
-      (function(_card, _hasTask){
-        _card.addEventListener('touchend', function(){
-          setTimeout(function(){
-            _card.style.transform='';
-            _card.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';
-            _card.style.borderColor=_hasTask?'#dbeafe':'#e8edf4';
-          }, 300);
-        }, { passive: true });
-      })(card, hasTask);
-      card.innerHTML = `
-        <!-- 1행: 컬렉션 pill + 과제배지 + 진도 -->
-        <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;min-height:44px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
-              <span style="font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${collLabel}</span>
-            </div>
-            ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
-                style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
-                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'" ontouchstart="this.style.background='#163490'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#1e4db7'},300)">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>` : hasTask ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:13px;font-weight:800;color:#fff">과제</span></div>` : ''}
-          </div>
-          ${pct > 0
-            ? `<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">${pct}%</span><span style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span></div>`
-            : '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:15px;font-weight:600;color:${_pcolor}">${_plabel}</span></div>'
-          }
+      const row = document.createElement('div');
+      row.className = 'stu-row';
+      row.onclick = function(){ openSentStudyBook(b.id); };
+      row.addEventListener('touchstart', function(){ this.classList.add('touch'); }, { passive: true });
+      row.addEventListener('touchend', function(){ var _r=this; setTimeout(function(){ _r.classList.remove('touch'); }, 250); }, { passive: true });
+      row.innerHTML = `
+        <span class="stu-tag${hasTask?'':' muted'}">${collLabel}</span>
+        <div class="stu-body">
+          <div class="stu-name">${b.name||''}</div>
+          <div class="stu-meta">${sc}개 문장</div>
         </div>
-
-        <!-- 2행: 문장집 이름 -->
-        <div style="padding:10px 20px 0;min-height:56px;display:flex;align-items:flex-start">
-          <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name||''}</div>
+        <div class="stu-progress">
+          <div class="stu-bar"><i style="width:${pct}%"></i></div>
+          ${pct > 0 ? `<span class="stu-pct">${pct}% DONE</span>` : `<span class="stu-pct todo">미시작</span>`}
         </div>
-
-        <!-- 3행: 진도바 -->
-        <div style="padding:4px 20px 0">
-          <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
-            <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);border-radius:99px;transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1);box-shadow:0 0 8px rgba(5,150,105,0.5)"></div>
-          </div>
-        </div>
-
-        <!-- 4행: 문장 수 -->
-        <div style="padding:8px 20px 0;min-height:32px;display:flex;align-items:center">
-          <span style="font-size:14px;color:#94a3b8;font-weight:500">${sc}개 문장</span>
-        </div>
-
-        <!-- 5행: 문장공부 풀버튼 -->
-        <div style="margin-top:auto;padding:14px 16px 10px">
-          <button onclick="openSentStudyBook('${b.id}')"
-            style="width:100%;padding:12px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28);min-height:44px"
-            onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-            onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'" ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            문장공부
-          </button>
-        </div>
-
-        <!-- 6행: 배열 / 빈칸 / 청크 / 낭독 -->
-        <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
-          ${sentLockBtn('배열', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', "startSentStudy('"+b.id+"','unscramble')", unscAllowed)}
-          ${sentLockBtn('빈칸', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', "startSentStudy('"+b.id+"','dictation')", dictAllowed)}
-          ${sentLockBtn('청크', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>', "startSentStudy('"+b.id+"','chunk')", true)}
-          ${sentLockBtn('낭독', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>', "startSentRecording('"+b.id+"')", recAllowed)}
+        <div class="stu-actions">
+          ${sentLockBtn('배열', "startSentStudy('"+b.id+"','unscramble')", unscAllowed)}
+          ${sentLockBtn('빈칸', "startSentStudy('"+b.id+"','dictation')", dictAllowed)}
+          ${sentLockBtn('청크', "startSentStudy('"+b.id+"','chunk')", true)}
+          ${sentLockBtn('낭독', "startSentRecording('"+b.id+"')", recAllowed)}
+          ${hasTask && taskChipData.length ? `<button class="stu-tbtn" onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')" title="과제 상세">과제 ▾</button>` : ''}
         </div>
       `;
-      grid.appendChild(card);
+      grid.appendChild(row);
     });
     // iOS hover 잔상 차단: 렌더 직후 500ms pointer-events 차단
     Array.from(grid.children).forEach(function(c){ c.style.pointerEvents='none'; });
@@ -43455,7 +43597,7 @@ function renderMyBooks() {
         <span class="search-icon-el">🔍</span>
         <input type="text" class="search-input" id="mybooks-search" placeholder="단어장 검색..." oninput="renderMyBooks()">
       </div>
-      <div class="cards-grid" id="mybooks-grid"></div>`;
+      <div class="stu-list" id="mybooks-grid"></div>`;
     // 페이지 active 상태 보장
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     pg.classList.add('active');
@@ -43486,12 +43628,7 @@ function renderMyBooks() {
       .catch(() => { DB_quizLogs = []; });
   }
 
-  // 슬라임 배너
-  const banner = document.getElementById('mybooks-slime-banner');
-  const _wbNextLv = slime.stage + 2;
-  const _wbExpPct = Math.min(100, Math.round(((slime.exp||0) % 100)));
-  if (banner) banner.innerHTML = `
-  ${_ionHeroBanner(slime.stage, "단어 마스터에 도전해볼까요?", `단어장 1회독 완료 시 <strong style="color:#2563eb">+10 EXP</strong> 획득!`, _wbNextLv, _wbExpPct)}`;
+  // 배너는 목록형으로 바꾸면서 제거함 (mybooks-slime-banner 컨테이너는 그대로 두되 비워둠)
 
   grid.innerHTML = books.length
     ? books.map((b, idx) => {
@@ -43531,24 +43668,14 @@ function renderMyBooks() {
         const { pct, detail } = calcProgress();
         const masteredPct = pct > 0 ? pct : null;
 
-        // ── 버튼 잠금 헬퍼
-        function lockBtn(label, icon, onclick, isLocked, isAssigned) {
-          const lockedStyle = 'padding:11px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:14px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;position:relative;opacity:0.7';
-          const activeStyle = 'padding:11px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px';
+        // ── 버튼 잠금 헬퍼(목록형: 선생님 버튼과 같은 회색 톤, 이모지·아이콘 없음)
+        function lockBtn(label, onclick, isLocked, isAssigned) {
           if (isLocked || !isAssigned) {
-            return `<button style="${lockedStyle}" disabled title="과제에 없는 학습 유형입니다">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              ${label}
-            </button>`;
+            return `<button class="stu-tbtn locked" disabled title="과제에 없는 학습 유형입니다">${label}</button>`;
           }
-          return `<button onclick="${onclick}"
-            style="${activeStyle}"
-            onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.borderColor='#cbd5e1';_b.style.color='#1e3a5f';_b.style.background='#fff'},300)"
-            ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'"
-            ontouchend="var b=this;setTimeout(function(){b.style.borderColor='#cbd5e1';b.style.color='#1e3a5f';b.style.background='#fff'},300)">
-            ${icon}${label}
-          </button>`;
+          return `<button class="stu-tbtn" onclick="event.stopPropagation();${onclick}"
+            ontouchstart="event.stopPropagation();this.classList.add('touch')"
+            ontouchend="event.stopPropagation();var _b=this;setTimeout(function(){_b.classList.remove('touch')},250)">${label}</button>`;
         }
 
         // 과제 유형 판단
@@ -43574,67 +43701,26 @@ function renderMyBooks() {
         const tsIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
 
         return `
-        <div style="background:#fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;
-          box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);
-          transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);border:1.5px solid ${hasTask?'#dbeafe':'#e8edf4'};"
-          onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
-          onmouseout="this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'" ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';_b.style.borderColor='${hasTask?'#dbeafe':'#e8edf4'}'},300)"
-          ontouchstart="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe'"
-          ontouchend="var c=this,bc='${hasTask?'#dbeafe':'#e8edf4'}';setTimeout(function(){c.style.transform='';c.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';c.style.borderColor=bc},300)">
-
-          <!-- 1행: 컬렉션 pill + 과제배지(팝업버튼) + 점수 -->
-          <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;min-height:44px">
-            <div style="display:flex;align-items:center;gap:6px">
-              <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
-                <span style="font-size:14px;font-weight:700;color:#2563eb;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${collLabel}</span>
-              </div>
-              ${hasTask && taskChipData.length ? `<button onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')"
-                style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border:none;border-radius:20px;padding:3px 10px;cursor:pointer;transition:all 0.15s"
-                onmouseover="this.style.background='#163490'" onmouseout="this.style.background='#1e4db7'" ontouchstart="this.style.background='#163490'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.background='#1e4db7'},300)">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>` : hasTask ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e4db7;border-radius:20px;padding:3px 8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:0.05em">과제</span></div>` : ''}
-            </div>
+        <div class="stu-row" onclick="openStudentWordView('${b.id}')"
+          ontouchstart="this.classList.add('touch')"
+          ontouchend="var _r=this;setTimeout(function(){_r.classList.remove('touch')},250)">
+          <span class="stu-tag${hasTask?'':' muted'}">${collLabel}</span>
+          <div class="stu-body">
+            <div class="stu-name">${b.name}</div>
+            <div class="stu-meta">${subText}${detail ? ' · ' + detail : (rounds>0?' · '+rounds+'회독 완료':'')}</div>
+          </div>
+          <div class="stu-progress">
+            <div class="stu-bar"><i style="width:${pct}%"></i></div>
             ${masteredPct!==null
-              ? `<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:20px;font-weight:800;color:#1e3a5f;letter-spacing:-0.5px">${masteredPct}%</span><span style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:0.08em">DONE</span></div>`
-              : '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:15px;font-weight:600;color:#cbd5e1">미시작</span></div>'
+              ? `<span class="stu-pct">${masteredPct}% DONE</span>`
+              : `<span class="stu-pct todo">미시작</span>`
             }
           </div>
-
-          <!-- 2행: 단어장 이름 -->
-          <div style="padding:10px 20px 0;min-height:56px;display:flex;align-items:flex-start">
-            <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
-          </div>
-
-          <!-- 3행: 진도바 -->
-          <div style="padding:12px 20px 0">
-            <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);border-radius:99px;transition:width 1.2s cubic-bezier(0.34,1.2,0.64,1);box-shadow:0 0 8px rgba(30,77,183,0.5)"></div>
-            </div>
-          </div>
-
-          <!-- 4행: 단어 수 · 진도 -->
-          <div style="padding:8px 20px 0;min-height:32px;display:flex;align-items:center">
-            <span style="font-size:14px;color:#94a3b8;font-weight:500">${subText}${detail ? ' · ' + detail : (rounds>0?' · '+rounds+'회독 완료':'')}</span>
-          </div>
-
-          <!-- 5행: 단어보기 버튼 -->
-          <div style="margin-top:auto;padding:14px 16px 10px">
-            <button onclick="openStudentWordView('${b.id}')"
-              style="width:100%;padding:11px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28)"
-              onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-              onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'" ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'" ontouchend="var _b=this;setTimeout(function(){var s=_b.style;_b.style.transform='';_b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)"
-              ontouchstart="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-              ontouchend="var b=this;setTimeout(function(){b.style.transform='';b.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'},300)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              단어보기
-            </button>
-          </div>
-          <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            ${lockBtn('암기', fcIcon, "openStudentStudy('"+b.id+"')", !fcAssigned, !hasTask||fcAssigned)}
-            ${lockBtn('퀴즈', qzIcon, "openStudentQuizPopup('"+b.id+"')", !quizAssigned, !hasTask||quizAssigned)}
-            ${lockBtn('테스트', tsIcon, "openWordTest('"+b.id+"')", !testAssigned, !hasTask||testAssigned)}
+          <div class="stu-actions">
+            ${lockBtn('암기', "openStudentStudy('"+b.id+"')", !fcAssigned, !hasTask||fcAssigned)}
+            ${lockBtn('퀴즈', "openStudentQuizPopup('"+b.id+"')", !quizAssigned, !hasTask||quizAssigned)}
+            ${lockBtn('테스트', "openWordTest('"+b.id+"')", !testAssigned, !hasTask||testAssigned)}
+            ${hasTask && taskChipData.length ? `<button class="stu-tbtn" onclick="event.stopPropagation();showTaskChipsPopup(this,'${taskChipsJson}')" title="과제 상세">과제 ▾</button>` : ''}
           </div>
         </div>
 `;
@@ -61612,29 +61698,23 @@ async function sgInit(){
     // 선생님 _cards를 임시로 교체해서 grOpenCard가 동작하게
     window._sgCards=cards;
 
-    function sgLockBtn(label, icon, panel, cid, count) {
+    function sgLockBtn(label, panel, cid, count) {
       const disabled = count === 0;
-      const lockedStyle = 'padding:10px 0;background:#f8fafc;color:#c0cbe0;border:2px solid #e8edf4;border-radius:12px;font-size:14px;font-weight:700;cursor:not-allowed;font-family:\'Outfit\',sans-serif;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px;opacity:0.6';
-      const activeStyle = 'padding:10px 0;background:#fff;color:#1e3a5f;border:2px solid #cbd5e1;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;transition:all 0.18s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;min-height:44px';
       if (disabled) {
-        return `<button style="${lockedStyle}" disabled><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${label}</button>`;
+        return `<button class="stu-tbtn locked" disabled>${label}</button>`;
       }
-      return `<button onclick="event.stopPropagation();sgOpenCard('${cid}','${panel}')" style="${activeStyle}" onmouseover="this.style.borderColor='#1e4db7';this.style.color='#2563eb';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#1e3a5f';this.style.background='#fff'">${icon}${label}</button>`;
+      return `<button class="stu-tbtn" onclick="event.stopPropagation();sgOpenCard('${cid}','${panel}')"
+        ontouchstart="event.stopPropagation();this.classList.add('touch')"
+        ontouchend="event.stopPropagation();var _b=this;setTimeout(function(){_b.classList.remove('touch')},250)">${label}</button>`;
     }
-
-    const iconFlash = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
-    const iconOx   = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
-    const iconQuiz = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
 
     const sl  = getSlimeData();
     const _sgNextLv = sl.stage + 2;
     const _sgExpPct = Math.min(100, Math.round(((sl.exp||0) % 100)));
 
-    root.innerHTML =
-      _ionHeroBanner(sl.stage, "문법을 완벽하게 마스터해볼까요?", '그래머카드 암기 완료 시 <strong style="color:#2563eb">+10 EXP</strong>!', _sgNextLv, _sgExpPct)
-      + `
+    root.innerHTML = `
       <div class="search-bar" style="margin-bottom:14px"><span class="search-icon-el">🔍</span><input type="text" class="search-input" id="sg-search" placeholder="그래머카드 검색..." oninput="_renderSgGrid()"></div>
-      <div id="sg-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px"></div>
+      <div id="sg-card-grid" class="stu-list"></div>
     `;
 
     window._sgAllCards = cards;
@@ -61649,46 +61729,29 @@ async function sgInit(){
         const fc=(c.flashcards||[]).length, ox=(c.ox||[]).length, qz=(c.quizzes||[]).length;
         const _p = (window._sgProg&&window._sgProg[c.id]) || null;
         const _pct = grProgPct(_p), _plabel = grProgLabel(_p);
-        const _pcolor = _pct>=100?'#16a34a':_pct>0?'#2563eb':'#cbd5e1';
         const tgInfo=(window.GR_TAG&&GR_TAG[c.tag])||{color:'#7c3aed',label:'문법'};
-        const card = document.createElement('div');
-        card.style.cssText = 'position:relative;background:#fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07);border:1.5px solid #e8edf4;transition:all 0.25s cubic-bezier(0.34,1.2,0.64,1);cursor:default';
-        card.onmouseenter=function(){this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 40px rgba(15,23,42,0.13),0 2px 8px rgba(15,23,42,0.06)';this.style.borderColor='#bfdbfe';};
-        card.onmouseleave=function(){this.style.transform='';this.style.boxShadow='0 1px 4px rgba(15,23,42,0.05),0 6px 24px rgba(15,23,42,0.07)';this.style.borderColor='#e8edf4';};
-        card.innerHTML = `
-          <div style="padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;min-height:44px">
-            <div style="display:inline-flex;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px">
-              <span style="font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">${tgInfo.label}</span>
-            </div>
-            <div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:15px;font-weight:600;color:#cbd5e1">미시작</span></div>
+        const row = document.createElement('div');
+        row.className = 'stu-row';
+        row.onclick = function(){ sgOpenCard(c.id,'concept'); };
+        row.addEventListener('touchstart', function(){ this.classList.add('touch'); }, { passive: true });
+        row.addEventListener('touchend', function(){ var _r=this; setTimeout(function(){ _r.classList.remove('touch'); }, 250); }, { passive: true });
+        row.innerHTML = `
+          <span class="stu-tag${_pct>0?'':' muted'}">${tgInfo.label}</span>
+          <div class="stu-body">
+            <div class="stu-name">${c.title}</div>
+            <div class="stu-meta">암기 ${fc}개 · OX ${ox}개 · 퀴즈 ${qz}개</div>
           </div>
-          <div style="padding:10px 20px 0;min-height:56px;display:flex;align-items:flex-start">
-            <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.title}</div>
+          <div class="stu-progress">
+            <div class="stu-bar"><i style="width:${_pct}%"></i></div>
+            ${_pct>0 ? `<span class="stu-pct">${_pct}% DONE</span>` : `<span class="stu-pct todo">${_plabel||'미시작'}</span>`}
           </div>
-          <div style="padding:4px 20px 0">
-            <div style="position:relative;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${_pct}%;background:linear-gradient(90deg,#7c3aed 0%,#a78bfa 100%);border-radius:99px"></div>
-            </div>
-          </div>
-          <div style="padding:8px 20px 0;min-height:32px;display:flex;align-items:center">
-            <span style="font-size:14px;color:#94a3b8;font-weight:500">암기 ${fc}개 · OX ${ox}개 · 퀴즈 ${qz}개</span>
-          </div>
-          <div style="margin-top:auto;padding:14px 16px 10px">
-            <button onclick="sgOpenCard('${c.id}','concept')"
-              style="width:100%;padding:12px 0;background:linear-gradient(135deg,#1e4db7 0%,#1a3fa0 100%);color:#fff;border:2px solid #1e4db7;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 12px rgba(30,77,183,0.28);min-height:44px"
-              onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(30,77,183,0.42)'"
-              onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(30,77,183,0.28)'">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              그래머카드
-            </button>
-          </div>
-          <div style="padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-            ${sgLockBtn('암기', iconFlash, 'flash', c.id, fc)}
-            ${sgLockBtn('OX',  iconOx,    'ox',    c.id, ox)}
-            ${sgLockBtn('퀴즈', iconQuiz, 'quiz',  c.id, qz)}
+          <div class="stu-actions">
+            ${sgLockBtn('암기', 'flash', c.id, fc)}
+            ${sgLockBtn('OX',  'ox',    c.id, ox)}
+            ${sgLockBtn('퀴즈', 'quiz',  c.id, qz)}
           </div>
         `;
-        grid.appendChild(card);
+        grid.appendChild(row);
       });
     };
     window._renderSgGrid();
@@ -96164,6 +96227,16 @@ function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&l
   }
   syncRail();
   new MutationObserver(syncRail).observe(document.body, {attributes:true, attributeFilter:['class']});
+  // ── 사용자 정보를 레일에서 상단바로 옮긴다 ──
+  // #user-name-display 등은 기존 로직이 계속 채우는 실제 요소이므로,
+  // 새로 만들지 않고 그 노드를 통째로 옮겨서(moveChild) 항상 최신 값이 유지되게 한다.
+  (function moveUserChip(){
+    const src = document.getElementById('user-chip');
+    const dest = document.getElementById('shell-userchip');
+    if(!src || !dest) return;
+    dest.appendChild(src);
+    dest.style.display = 'flex';
+  })();
 
   // ── 라미 대화창을 오른쪽에 도킹 ──
   // 상단 라미 버튼을 누르면 열리고, 다시 누르거나 닫기를 누르면 사라진다.
@@ -96331,4 +96404,137 @@ function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&l
   </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════════════════
+     내부 UI 통일 ⑤ — 공통 컴포넌트 (문서 맨 끝: 뒤쪽 스타일 블록까지 덮기 위함)
+     앞선 ①~④는 인라인 style 만 겨냥해서, .gr-coll-card 처럼 클래스로
+     정의된 카드들이 그대로 남아 있었다. 여기서 컴포넌트 단위로 맞춘다.
+     ══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── 카드류: Phonics·Voca와 같은 입체감 있는 카드로 통일 ──
+   (테두리 두께·모서리만 맞추고, 그림자·호버 떠오름은 원래 값을 그대로 살린다) */
+body.shell2 .gr-coll-card,
+body.shell2 .book-card,
+body.shell2 .stat-card,
+body.shell2 .fv-card{
+  border-width:1px !important;border-color:#E4E7EA !important;border-radius:18px !important;
+  box-shadow:0 2px 8px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04) !important;
+}
+body.shell2 .gr-coll-card:hover,
+body.shell2 .book-card:hover,
+body.shell2 .stat-card:hover,
+body.shell2 .fv-card:hover{
+  transform:translateY(-2px) !important;border-color:#C9CED4 !important;
+  box-shadow:0 8px 24px rgba(15,23,42,.10),0 2px 6px rgba(15,23,42,.05) !important;
+}
+
+/* ── 버튼: 주 버튼은 다크, 보조는 회색 테두리 ── */
+body.shell2 .btn-primary{background:#1A1D21 !important;color:#fff !important;box-shadow:none !important}
+body.shell2 .btn-primary:hover{background:#2C3138 !important;transform:none !important;box-shadow:none !important}
+body.shell2 .btn-secondary{border-width:1px !important;border-color:#E4E7EA !important;box-shadow:none !important}
+body.shell2 .btn-secondary:hover{border-color:#C9CED4 !important;background:#F7F8F9 !important}
+body.shell2 .btn-ghost{border-width:1px !important;border-color:#E4E7EA !important}
+/* 학생용 놀이 화면은 원래의 밝은 성격을 유지 — 여기서만 파랑으로 되돌린다 */
+#pg-slime-home .btn-primary,
+#pg-games .btn-primary,
+#pg-flashcard .btn-primary{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%) !important}
+
+/* ── 입력류 ── */
+body.shell2 .search-input,
+body.shell2 .form-input{
+  border-width:1px !important;border-color:#E4E7EA !important;box-shadow:none !important;
+}
+body.shell2 .search-input{border-radius:14px !important}
+body.shell2 .search-input:focus,
+body.shell2 .form-input:focus{border-color:#9AA3AC !important;box-shadow:0 0 0 3px rgba(26,29,33,.06) !important}
+
+/* ── 섹션 제목 ── */
+body.shell2 .section-head{margin-bottom:14px}
+
+/* ── 큰 카드류: 모서리까지 18px 로 ── */
+body.shell2 .gr-list-card,
+body.shell2 .gr-add-card-btn,
+body.shell2 .gr-concept-card,
+body.shell2 .gr-sec,
+body.shell2 .gr-blank-card,
+body.shell2 .gr-quiz-card,
+body.shell2 .fvp-card{
+  border-width:1px !important;border-color:#E4E7EA !important;border-radius:18px !important;
+  box-shadow:0 1px 2px rgba(16,24,32,.05) !important;
+}
+body.shell2 .gr-list-card:hover,
+body.shell2 .gr-concept-card:hover,
+body.shell2 .fvp-card:hover{transform:none !important;border-color:#C9CED4 !important}
+
+/* ── 작은 컨트롤(버튼·태그·입력·행): 테두리 두께·색만 맞추고 모서리는 그대로 ──
+   여기에 18px 를 주면 작은 요소가 알약처럼 뭉개져서 오히려 정돈돼 보이지 않는다. */
+body.shell2 .chip,
+body.shell2 .gr-qz-token,
+body.shell2 .gr-qz-sent-item,
+body.shell2 .gr-blank-opt,
+body.shell2 .gr-qz-passage,
+body.shell2 .gr-quiz-opt,
+body.shell2 .gr-del,
+body.shell2 .gce,
+body.shell2 .es-constraint,
+body.shell2 .es-tag,
+body.shell2 .es-qtype-cb,
+body.shell2 .es-count-btn,
+body.shell2 .es-q-action,
+body.shell2 .es-passage-box,
+body.shell2 .es-question,
+body.shell2 .es-answer,
+body.shell2 .es-strategy,
+body.shell2 .el-rp-ta,
+body.shell2 .el-rp-input,
+body.shell2 .elpr-htable,
+body.shell2 .elpr-ans,
+body.shell2 .elpr-tk-titlerow,
+body.shell2 .fvp-seg,
+body.shell2 .fvp-type-btn,
+body.shell2 .fvp-reset-btn,
+body.shell2 .fvp-ai-cell,
+body.shell2 .msg-bs-avatar,
+body.shell2 .msg-bs-btn.ghost,
+body.shell2 .ce-inp,
+body.shell2 .ce-sel,
+body.shell2 .ce-btn,
+body.shell2 .ce-row,
+body.shell2 .ai-edit-cell,
+body.shell2 .ai-edit-del-btn,
+body.shell2 .row-del-inline-btn,
+body.shell2 .student-profile-menu{
+  border-width:1px !important;
+}
+/* 색 있는 테두리(정답/오답·강조 박스)는 의미가 있으므로 색은 그대로 두고 두께만 얇게 */
+body.shell2 .chip,
+body.shell2 .es-tag,
+body.shell2 .fvp-type-btn,
+body.shell2 .ce-inp,
+body.shell2 .ce-sel,
+body.shell2 .el-rp-ta,
+body.shell2 .el-rp-input{border-color:#E4E7EA !important}
+
+/* ── 남은 컴포넌트 마무리 ── */
+body.shell2 .es-q-card,
+body.shell2 .sn-notes-list,
+body.shell2 .upload-zone,
+body.shell2 .ce-modal,
+body.shell2 .gr-fc,
+body.shell2 .gr-fc-front,
+body.shell2 .gr-fc-back{
+  border-width:1px !important;border-color:#E4E7EA !important;border-radius:18px !important;
+}
+body.shell2 .es-chip,
+body.shell2 .fvp-split-col:first-child{border-width:1px !important}
+/* 아래는 색으로 의미를 나타내는 박스들(맞음/틀림·변환 전후·공식).
+   색을 빼면 뜻이 사라지므로 테두리 두께만 얇게 맞춘다. */
+body.shell2 .gr-compare-col.no,
+body.shell2 .gr-compare-col.ok,
+body.shell2 .gr-compare-row.no,
+body.shell2 .gr-compare-row.ok,
+body.shell2 .gr-transform-box.from,
+body.shell2 .gr-transform-box.to,
+body.shell2 .gr-formula-box{border-width:1px !important}
+</style>
 </body>
