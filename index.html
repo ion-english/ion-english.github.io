@@ -23207,13 +23207,13 @@ function sentBookListHTML(b, draggable) {
             onclick="event.stopPropagation()"
             style="font-size:15px;font-weight:700;color:var(--t1);border:1.5px solid var(--blue);border-radius:7px;padding:2px 8px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#fff">`
         : `<div style="min-width:0">
-            <div style="font-size:15.5px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px;transition:color 0.12s;cursor:pointer"
+            <div style="font-size:15.5px;font-weight:700;color:${b.hide_from_collection===true?'var(--t3)':'var(--t1)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px;transition:color 0.12s;cursor:pointer"
               onclick="openTeacherSentView('${b.id}')"
-              onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){_b.style.color='var(--t1)'},300)">${b.name}</div>
+              title="${b.hide_from_collection===true?'컬렉션 배포에서 제외됨 — 학생에게 보이지 않습니다':''}"
+              onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='${b.hide_from_collection===true?'var(--t3)':'var(--t1)'}'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){_b.style.color='${b.hide_from_collection===true?'var(--t3)':'var(--t1)'}'},300)">${b.name}</div>
           </div>`
       }
       ${(b.tag&&!b.tag.startsWith('AI'))?`<span style="flex-shrink:0;font-size:12px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(180,83,9,0.2);border-radius:8px;padding:1px 7px">${b.tag}</span>`:''}
-      ${b.hide_from_collection===true?`<span title="컬렉션 배포에서 제외됨 — 학생에게 보이지 않습니다" style="flex-shrink:0;font-size:12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px">🚫 배포 제외</span>`:''}
     </div>
 
     <!-- 문장수 -->
@@ -39459,13 +39459,13 @@ function bookListHTML(b, draggable) {
             onclick="event.stopPropagation()"
             style="font-size:15px;font-weight:700;color:var(--t1);border:1.5px solid var(--blue);border-radius:7px;padding:2px 8px;width:100%;outline:none;font-family:'Outfit',sans-serif;background:#fff">`
         : `<div style="min-width:0">
-            <div style="font-size:15.5px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px;transition:color 0.12s;cursor:pointer"
+            <div style="font-size:15.5px;font-weight:700;color:${b.hide_from_collection===true?'var(--t3)':'var(--t1)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px;transition:color 0.12s;cursor:pointer"
               onclick="openTeacherWordView('${b.id}')"
-              onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--t1)'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){_b.style.color='var(--t1)'},300)">${b.name}</div>
+              title="${b.hide_from_collection===true?'컬렉션 배포에서 제외됨 — 학생에게 보이지 않습니다':''}"
+              onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='${b.hide_from_collection===true?'var(--t3)':'var(--t1)'}'" ontouchstart="this.style.color='var(--blue)'" ontouchend="var _b=this;setTimeout(function(){_b.style.color='${b.hide_from_collection===true?'var(--t3)':'var(--t1)'}'},300)">${b.name}</div>
           </div>`
       }
       ${(b.tag&&!b.tag.startsWith('AI'))?`<span style="flex-shrink:0;font-size:12px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(180,83,9,0.2);border-radius:8px;padding:1px 7px">${b.tag}</span>`:''}
-      ${b.hide_from_collection===true?`<span title="컬렉션 배포에서 제외됨 — 학생에게 보이지 않습니다" style="flex-shrink:0;font-size:12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;padding:1px 7px">🚫 배포 제외</span>`:''}
       ${b.grade?`<span style="flex-shrink:0;font-size:12px;color:var(--t3)">${b.grade}</span>`:''}
     </div>
 
