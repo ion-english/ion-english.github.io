@@ -55690,7 +55690,7 @@ function renderSlimeHome() {
     const bg = COVER_COLORS[idx % COVER_COLORS.length];
     const uid = 'wd-'+b.id;
     return `
-    <div class="slime-book-item">
+    <div class="slime-book-item" style="cursor:pointer" onclick="openStudentStudy('${b.id}')">
       <div class="slime-book-info">
         <div class="slime-book-name">${b.name}</div>
         <div class="slime-book-meta">${b.grade?b.grade+' · ':''}${wc}개 단어</div>
@@ -55698,7 +55698,7 @@ function renderSlimeHome() {
           <div class="slime-book-prog" style="width:${pct}%;background:linear-gradient(90deg,#163490 0%,#1e4db7 50%,#60a5fa 100%);transition:width 0.8s ease;box-shadow:0 0 6px rgba(30,77,183,0.4)"></div>
         </div>
       </div>
-      <div class="slime-book-actions">
+      <div class="slime-book-actions" onclick="event.stopPropagation()">
         <button class="slime-mini-btn" style="background:#f8fafc;border-color:#e2e8f0;color:#475569"
           onclick="openStudentStudy('${b.id}')">보기</button>
         <div class="slime-popup-wrap">
@@ -55733,7 +55733,7 @@ function renderSlimeHome() {
       sPct = sGoal > 0 ? Math.min(100, Math.round(sDone/sGoal*100)) : 0;
     }
     return `
-    <div class="slime-book-item">
+    <div class="slime-book-item" style="cursor:pointer" onclick="openSentStudyBook('${b.id}')">
       <div class="slime-book-info">
         <div class="slime-book-name">${b.name}</div>
         <div class="slime-book-meta">${b.tag?b.tag+' · ':''}${cnt}개 문장</div>
@@ -55741,9 +55741,9 @@ function renderSlimeHome() {
           <div class="slime-book-prog" style="width:${sPct}%;background:linear-gradient(90deg,#059669 0%,#10b981 50%,#34d399 100%);box-shadow:0 0 6px rgba(5,150,105,0.4)"></div>
         </div>
       </div>
-      <div class="slime-book-actions">
+      <div class="slime-book-actions" onclick="event.stopPropagation()">
         <button class="slime-mini-btn" style="background:#f8fafc;border-color:#e2e8f0;color:#475569"
-          onclick="showPage('pg-sentence-study')">보기</button>
+          onclick="openSentStudyBook('${b.id}')">보기</button>
         <div class="slime-popup-wrap">
         <button class="slime-mini-btn" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669"
             onclick="slimeToggleDropdown('${uid}',this)">학습 ▾</button>
