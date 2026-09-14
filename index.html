@@ -2672,7 +2672,17 @@ body.student-mode {
   }
   .topbar-title{font-size:18px;font-weight:800}
   .topbar-search{display:none} /* 모바일에서 topbar 검색창 숨김 */
-  .slime-chat-bar{min-width:100px;max-width:160px}
+  .slime-chat-bar{
+    min-width:0;max-width:none;width:auto;flex:0 0 auto;
+    padding:0;border:none;box-shadow:none;background:none;
+  }
+  .slime-chat-bar-avatar{
+    border-radius:50%;padding:0;width:36px;height:36px;
+    justify-content:center;border:0.5px solid #d1d5db;background:#fff;
+  }
+  .slime-chat-bar-avatar-name,
+  .slime-chat-bar-input,
+  .slime-chat-bar-send{display:none;}
   .slime-chat-panel{min-width:240px;left:-60px;right:-60px}
   .hamburger-btn{display:flex !important}
   .content{padding:12px 14px 20px}
@@ -2959,8 +2969,6 @@ body.student-mode {
 
 /* ════ 소형 폰 추가 패치 (380px 이하) ════ */
 @media(max-width:380px){
-  .slime-chat-bar { max-width: 130px !important; min-width: 100px !important; }
-  .slime-chat-bar-avatar-name { display: none; }
   .book-footer .btn { font-size: 13px !important; padding: 4px 5px !important; }
   .section-head > div:last-child .btn { font-size: 13px; padding: 7px 10px; }
 }
