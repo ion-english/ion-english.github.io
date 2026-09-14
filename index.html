@@ -3691,8 +3691,12 @@ body.shell2 .main{
   padding:0 18px 18px;overflow:hidden;
   transition:padding-right .22s cubic-bezier(.4,0,.2,1);
 }
-/* 레일이 접혀 있을 땐 아이콘 바로 옆이라 왼쪽 여백을 좁게 — 넓으면 휑해 보인다 */
-body.shell2:not(.rail-open) .main{padding-left:10px}
+/* 구버전 '.sidebar.collapsed~.main{margin-left:60px}' 규칙이 클래스 3개라 위 규칙보다
+   우선순위가 높아 접었을 때 여백이 이중으로 생기던 문제 — 더 높은 특이성으로 확실히 무력화 */
+body.shell2.sidebar-collapsed .main,
+body.shell2 .sidebar.collapsed ~ .main{margin-left:0 !important}
+/* 레일이 접혀 있어도 폈을 때와 동일한 좌측 여백 유지 */
+body.shell2:not(.rail-open) .main{padding-left:18px}
 body.shell2 #shell-tab-row{grid-column:1/-1;grid-row:1;min-width:0}
 body.shell2 .topbar{grid-column:1;grid-row:2}
 body.shell2 .content{grid-column:1;grid-row:3}
