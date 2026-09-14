@@ -2672,8 +2672,8 @@ body.student-mode {
   }
   .ion-list-row > div:last-child{
     width:100% !important;
-    flex-wrap:wrap !important;
-    justify-content:flex-end !important;
+    flex-wrap:nowrap !important;
+    justify-content:space-between !important;
   }
   .ion-list-row > div:nth-child(2){
     text-align:left !important;padding-right:0 !important;
@@ -20460,7 +20460,7 @@ function _openTaskOptsModal(bookId, studentId, studentName, isChecked) {
   const isNew = window._taskOptsTemp[studentId] === undefined;
 
   function numSelect(name, label, val, defaultVal) {
-    const resolved = (defaultVal !== undefined) ? defaultVal : (val || 0);
+    const resolved = (defaultVal !== undefined) ? defaultVal : (val !== undefined ? val : 3);
     const opts = [0,1,2,3,4,5].map(n => `<option value="${n}" ${resolved==n?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('');
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:15px;color:var(--t1);font-weight:500">${label}</span>
@@ -20484,7 +20484,7 @@ function _openTaskOptsModal(bookId, studentId, studentName, isChecked) {
         ${numSelect('quiz_input_en2ko','✍️ 주관식 영→한',cur.quiz_input_en2ko)}
         ${numSelect('quiz_input_ko2en','✍️ 주관식 한→영',cur.quiz_input_ko2en)}
         <div style="font-size:13px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;padding:12px 0 4px">📝 테스트</div>
-        ${numSelect('test','🎯 단어 테스트',cur.test,isNew?1:(cur.test||0))}
+        ${numSelect('test','🎯 단어 테스트',cur.test)}
       </div>
       <div style="font-size:13px;color:var(--t3);margin-bottom:16px">0 = 없음(잠금), 1~5 = 목표 회독 수</div>
       <div style="display:flex;gap:8px">
@@ -20538,7 +20538,8 @@ function _openSentTaskOptsModal(bookId, studentId, studentName, isChecked) {
   const cur = window._sentTaskOptsTemp[studentId] || {};
 
   function numSelect(name, label, val) {
-    const opts = [0,1,2,3,4,5].map(n => `<option value="${n}" ${(val||0)==n?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('');
+    const resolved = (val !== undefined) ? val : 3;
+    const opts = [0,1,2,3,4,5].map(n => `<option value="${n}" ${resolved==n?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('');
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:15px;color:var(--t1);font-weight:500">${label}</span>
       <select id="sto_${name}" style="padding:5px 10px;border:1.5px solid var(--border2);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">${opts}</select>
@@ -20606,7 +20607,7 @@ function _bamBulkTaskModal(bookId, cid) {
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;font-weight:500;color:var(--t1)">${label}</span>
       <select id="bbulk_${name}" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">
-        ${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n===0?'없음':n+'회독'}</option>`).join('')}
+        ${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('')}
       </select></div>`;
   }
   const ov = document.createElement('div');
@@ -23229,6 +23230,7 @@ function sentBookListHTML(b, draggable) {
         <option value="" ${!b.collection_id?'selected':''}>미분류</option>
         ${collOpts}
       </select>
+      <div class="ion-icon-cluster" style="display:flex;align-items:center;gap:6px">
       <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
         style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
         title="시험지 만들기"
@@ -23253,6 +23255,7 @@ function sentBookListHTML(b, draggable) {
         onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </button>
+      </div>
     </div>`}
   </div>`;
 }
@@ -26308,7 +26311,7 @@ function _samBulkTaskModal(bookId, cid) {
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;font-weight:500;color:var(--t1)">${label}</span>
       <select id="sbulk_${name}" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">
-        ${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n===0?'없음':n+'회독'}</option>`).join('')}
+        ${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('')}
       </select></div>`;
   }
   const ov = document.createElement('div');
@@ -39475,6 +39478,7 @@ function bookListHTML(b, draggable) {
     ${_libEditMode ? `` : `
     <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
       ${collSelect}
+      <div class="ion-icon-cluster" style="display:flex;align-items:center;gap:6px">
       <button onclick="bookMakeTest('${b.id}')"
         style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
         title="시험지 만들기"
@@ -39499,6 +39503,7 @@ function bookListHTML(b, draggable) {
         onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </button>
+      </div>
     </div>`}
   </div>`;
 }
@@ -43399,7 +43404,7 @@ function _panelWordBulkModal(bid, cid) {
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;font-weight:500;color:var(--t1)">${label}</span>
       <select id="pwbulk_${name}" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">
-        ${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n===0?'없음':n+'회독'}</option>`).join('')}
+        ${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('')}
       </select></div>`;
   }
   const ov=document.createElement('div');
@@ -43507,7 +43512,7 @@ function _panelSentBulkModal(bid, cid) {
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
       <span style="font-size:14px;font-weight:500;color:var(--t1)">${label}</span>
       <select id="psbulk_${name}" style="padding:4px 8px;border:1.5px solid var(--border2);border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--t1);background:#fff;cursor:pointer">
-        ${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n===0?'없음':n+'회독'}</option>`).join('')}
+        ${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===3?'selected':''}>${n===0?'없음':n+'회독'}</option>`).join('')}
       </select></div>`;
   }
   const ov=document.createElement('div');
@@ -55614,10 +55619,11 @@ function renderSlimeHome() {
   }
   const earnedBadges = (slime.badges||[]).length;
 
-  // 배포된 단어장 (최대 4개)
+  // 배포된 단어장 (최대 4개) — 개별/반 지정 과제만 (컬렉션 전체 공개는 제외)
   const wordBooks = getAssignedBooks().slice(0,4);
-  // 배포된 문장집 (최대 4개)
-  const sentBooks = (DB_sentBooks||[]).slice(0,4);
+  // 배포된 문장집 (최대 4개) — DB_sentAssigns(개별 배정)에 있는 것만
+  const assignedSentIds = new Set((DB_sentAssigns||[]).map(a => a.book_id));
+  const sentBooks = (DB_sentBooks||[]).filter(b => assignedSentIds.has(b.id)).slice(0,4);
 
   const COVER_COLORS = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#06b6d4','#84cc16'];
 
