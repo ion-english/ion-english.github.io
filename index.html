@@ -2650,6 +2650,21 @@ body.student-mode {
 
 /* ════ 모바일 (600px 이하) ════ */
 @media(max-width:600px){
+  /* ── 단어장/문장집 목록 행: 고정폭 그리드(420px 등) 대신 줄바꿈 ── */
+  .ion-list-row{
+    display:flex !important;
+    flex-wrap:wrap !important;
+    grid-template-columns:none !important;
+    row-gap:8px !important;
+  }
+  .ion-list-row > div:last-child{
+    width:100% !important;
+    flex-wrap:wrap !important;
+    justify-content:flex-start !important;
+  }
+  .ion-list-row > div:nth-child(2){
+    text-align:left !important;padding-right:0 !important;
+  }
   /* ── 사이드바 슬라이드 아웃 ── */
   .sidebar{
     position:fixed;left:-280px;width:280px;
@@ -23160,7 +23175,7 @@ function sentBookListHTML(b, draggable) {
     `<option value="${c.id}" ${b.collection_id===c.id?'selected':''}>${c.name}</option>`).join('');
 
   return `
-  <div data-sentbookid="${b.id}" class="ion-list-row" style="display:${_sentEditMode?'flex':'grid'};grid-template-columns:1fr auto 420px;align-items:center;gap:${_sentEditMode?'10px':'0'};padding:14px 18px;background:#fff;
+  <div data-sentbookid="${b.id}" class="ion-list-row" style="display:${_sentEditMode?'flex':'grid'};grid-template-columns:1fr auto auto;align-items:center;gap:${_sentEditMode?'10px':'0'};padding:14px 18px;background:#fff;
     border-bottom:1px solid #eef2f7;transition:background 0.15s;cursor:default"
     onmouseover="this.style.background='#f8fafc'"
     onmouseout="this.style.background='#fff'" ontouchstart="this.style.background='#f8fafc'" ontouchend="var _b=this;setTimeout(function(){_b.style.background='#fff'},300)">
@@ -23194,25 +23209,37 @@ function sentBookListHTML(b, draggable) {
 
     <!-- 버튼들 -->
     ${_sentEditMode ? `` : `
-    <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
+    <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
       <select onchange="event.stopPropagation();sentMoveBookColl('${b.id}',this.value||null);this.blur()"
-        style="font-size:13px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;background:var(--surface2);color:var(--t2);cursor:pointer;outline:none;max-width:110px"
+        style="font-size:13px;border:1px solid var(--border);border-radius:6px;padding:2px 6px;background:var(--surface2);color:var(--t2);cursor:pointer;outline:none;max-width:90px"
         onclick="event.stopPropagation()">
         <option value="" ${!b.collection_id?'selected':''}>미분류</option>
         ${collOpts}
       </select>
       <button onclick="event.stopPropagation();sentMakeTest('${b.id}')"
-        style="padding:5px 11px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">시험지</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="시험지 만들기"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </button>
       <button onclick="event.stopPropagation();sentQuickPrint('${b.id}')"
-        style="padding:5px 11px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">인쇄</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="인쇄"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </button>
       <button onclick="event.stopPropagation();_sentEditorBookId='${b.id}';openSentAssignModal('${b.id}')"
-        style="padding:5px 11px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">배포</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="배포"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
       <button onclick="event.stopPropagation();openSentStatusModal('${b.id}')"
-        style="padding:5px 11px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">현황</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="현황"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
     </div>`}
   </div>`;
 }
@@ -39398,7 +39425,7 @@ function bookListHTML(b, draggable) {
   </select>`;
 
   return `
-  <div data-bookid="${b.id}" class="ion-list-row" style="display:${_libEditMode?'flex':'grid'};grid-template-columns:1fr auto ${collSelect?'420px':'300px'};align-items:center;gap:${_libEditMode?'10px':'0'};padding:14px 18px;background:#fff;
+  <div data-bookid="${b.id}" class="ion-list-row" style="display:${_libEditMode?'flex':'grid'};grid-template-columns:1fr auto auto;align-items:center;gap:${_libEditMode?'10px':'0'};padding:14px 18px;background:#fff;
     border-bottom:1px solid #eef2f7;transition:background 0.15s;cursor:default"
     onmouseover="this.style.background='#f8fafc'"
     onmouseout="this.style.background='#fff'" ontouchstart="this.style.background='#f8fafc'" ontouchend="var _b=this;setTimeout(function(){_b.style.background='#fff'},300)">
@@ -39433,25 +39460,32 @@ function bookListHTML(b, draggable) {
 
     <!-- 버튼들 -->
     ${_libEditMode ? `` : `
-    <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
+    <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
       ${collSelect}
       <button onclick="bookMakeTest('${b.id}')"
-        style="padding:4px 10px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;
-        font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">시험지</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="시험지 만들기"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </button>
       <button onclick="openWordPrintStudio('${b.id}')"
-        style="padding:4px 10px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;
-        font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
         title="바로 인쇄"
-        onmouseover="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--t2)';this.style.color='var(--t1)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">인쇄</button>
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </button>
       <button onclick="openBookAssignModal('${b.id}')"
-        style="padding:4px 10px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;
-        font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">배포</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="배포"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
       <button onclick="openWordBookStatusModal('${b.id}')"
-        style="padding:4px 10px;background:transparent;color:var(--t2);border:1px solid var(--border);border-radius:6px;
-        font-size:13px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.12s;white-space:nowrap"
-        onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'" ontouchstart="this.style.borderColor='var(--blue2)';this.style.color='var(--blue2)'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='var(--border)';_b.style.color='var(--t2)'},300)">현황</button>
+        style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;color:#64748b;transition:all 0.13s;flex-shrink:0"
+        title="현황"
+        onmouseover="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b';this.style.background='#fff'" ontouchstart="this.style.borderColor='#1e4db7';this.style.color='#1e4db7';this.style.background='#eff3ff'" ontouchend="var _b=this;setTimeout(function(){_b.style.borderColor='#e2e8f0';_b.style.color='#64748b';_b.style.background='#fff'},300)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
     </div>`}
   </div>`;
 }
