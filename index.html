@@ -2650,6 +2650,19 @@ body.student-mode {
 
 /* ════ 모바일 (600px 이하) ════ */
 @media(max-width:600px){
+  /* ── 시험지/인쇄 스튜디오: 좌우 분할 → 위아래로 쌓기 ── */
+  .tstudio-body{
+    flex-direction:column !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+  .tstudio-settings{
+    width:100% !important;
+    max-height:52vh;
+    border-right:none !important;
+    border-bottom:1px solid rgba(255,255,255,0.08) !important;
+    flex-shrink:0 !important;
+  }
   /* ── 단어장/문장집 목록 행: 고정폭 그리드(420px 등) 대신 줄바꿈 ── */
   .ion-list-row{
     display:flex !important;
@@ -32636,9 +32649,9 @@ async function sentMakeTest(bookId) {
       </div>
     </div>
 
-    <div style="display:flex;flex:1;overflow:hidden">
+    <div class="tstudio-body" style="display:flex;flex:1;overflow:hidden">
       <!-- 설정 패널 -->
-      <div style="width:320px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px">
+      <div class="tstudio-settings" style="width:320px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px">
         <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px">인쇄 설정</div>
 
         <!-- 제목 -->
@@ -34798,8 +34811,8 @@ function openSentListPrint(bookId) {
       </div>
     </div>
     <!-- 본문: 설정 + 미리보기 -->
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div id="slp-settings-panel" style="width:220px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px"></div>
+    <div class="tstudio-body" style="display:flex;flex:1;overflow:hidden">
+      <div id="slp-settings-panel" class="tstudio-settings" style="width:220px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px"></div>
       <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d1421">
         <div id="slp-ann-toolbar-wrap" style="flex-shrink:0;display:none;"></div>
         <div style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;">
@@ -49035,10 +49048,10 @@ async function openWordPrintStudio(bookId) {
       </div>
     </div>
 
-    <div style="display:flex;flex:1;overflow:hidden">
+    <div class="tstudio-body" style="display:flex;flex:1;overflow:hidden">
 
       <!-- 왼쪽 설정 패널 -->
-      <div style="width:480px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:20px 18px">
+      <div class="tstudio-settings" style="width:480px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:20px 18px">
 
         <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">설정</div>
 
@@ -49714,10 +49727,10 @@ function testShowSettings(defaultTitle, words) {
     </div>
 
     <!-- 본문: 설정 패널 + 미리보기 -->
-    <div style="display:flex;flex:1;overflow:hidden">
+    <div class="tstudio-body" style="display:flex;flex:1;overflow:hidden">
 
       <!-- 왼쪽: 설정 패널 -->
-      <div style="width:360px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:20px 18px">
+      <div class="tstudio-settings" style="width:360px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:20px 18px">
 
         <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">설정</div>
 
@@ -53715,9 +53728,9 @@ function openWordListPrint(bookId) {
       </div>
     </div>
 
-    <div style="display:flex;flex:1;overflow:hidden">
+    <div class="tstudio-body" style="display:flex;flex:1;overflow:hidden">
       <!-- 설정 패널 -->
-      <div style="width:320px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px">
+      <div class="tstudio-settings" style="width:320px;flex-shrink:0;background:#141f35;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:18px 14px">
         <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px">인쇄 설정</div>
 
         <!-- 제목 -->
