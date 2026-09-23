@@ -6017,6 +6017,33 @@ window._ttsOK = function(){
   try{ return ('speechSynthesis' in window) && (typeof window.SpeechSynthesisUtterance === 'function'); }
   catch(e){ return false; }
 };
+// 삼성 인터넷 등 일부 안드로이드 브라우저는 speechSynthesis API 자체는 있지만
+// 1) 음성 목록(getVoices)이 비동기로 늦게 채워져서 첫 호출이 조용히 실패하고
+// 2) speechSynthesis가 일시정지 상태로 멈춰버리는 경우가 있다.
+// → 음성 목록을 미리 예열해두고, 사용자 첫 터치 시 무음 발화로 엔진을 깨운다.
+window._ttsVoicesReady = false;
+(function(){
+  if (!window._ttsOK()) return;
+  try{
+    var v = window.speechSynthesis.getVoices();
+    if (v && v.length) window._ttsVoicesReady = true;
+    window.speechSynthesis.onvoiceschanged = function(){ window._ttsVoicesReady = true; };
+  }catch(e){}
+  var _ttsUnlocked = false;
+  function _ttsUnlock(){
+    if (_ttsUnlocked) return; _ttsUnlocked = true;
+    try{
+      window.speechSynthesis.resume();
+      var u = new window.SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+    document.removeEventListener('touchend', _ttsUnlock, true);
+    document.removeEventListener('click', _ttsUnlock, true);
+  }
+  document.addEventListener('touchend', _ttsUnlock, true);
+  document.addEventListener('click', _ttsUnlock, true);
+})();
 
 function _lsGet(k){
   try{ if(_lsOK){ var v=window.localStorage.getItem(k); if(v!==null) return v; } }catch(e){ _lsOK=false; }
@@ -44044,7 +44071,7 @@ function _gmShuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math
 function _gmBest(bookId,game){ const v=parseInt(_lsGet('gm_best_'+bookId+'_'+game)||'0',10); return isNaN(v)?0:v; }
 function _gmSetBest(bookId,game,score){ if(score>_gmBest(bookId,game)) _lsSet('gm_best_'+bookId+'_'+game, String(score)); }
 function _gmBookName(b){ return (b&&(b.title||b.name))||'단어장'; }
-function _gmSpeak(w){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang='en-US'; u.rate=0.9; speechSynthesis.speak(u); }catch(e){} }
+function _gmSpeak(w){ if(!window._ttsOK||!window._ttsOK())return; try{ speechSynthesis.resume(); speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang='en-US'; u.rate=0.9; speechSynthesis.speak(u); }catch(e){} }
 
 // ── 허브 진입 ────────────────────────────────────────────────
 function gamesOpen(){
@@ -53513,10 +53540,27 @@ function _rowSpeak(row){
 function speak(word) {
   if(!_ttsOK()) return;
   try{
+    window.speechSynthesis.resume(); // 삼성 인터넷 등에서 speechSynthesis가 일시정지 상태로 멈춰있는 경우 대응
     const u=new window.SpeechSynthesisUtterance(word);
     u.lang='en-US'; u.rate=0.85;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
+    // 음성 목록이 아직 로드되지 않은 브라우저(삼성 인터넷 등)는 첫 호출이 조용히 실패할 수 있어
+    // 목록이 채워지는 대로 한 번 더 시도한다.
+    if (!window._ttsVoicesReady) {
+      setTimeout(function(){
+        try{
+          var vs = window.speechSynthesis.getVoices();
+          if (vs && vs.length) {
+            window._ttsVoicesReady = true;
+            window.speechSynthesis.cancel();
+            const u2=new window.SpeechSynthesisUtterance(word);
+            u2.lang='en-US'; u2.rate=0.85;
+            window.speechSynthesis.speak(u2);
+          }
+        }catch(e){}
+      }, 300);
+    }
   }catch(e){ console.warn('[TTS] speak 실패:', e && e.message); }
 }
 
