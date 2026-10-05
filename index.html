@@ -65362,6 +65362,25 @@ function gxHTML(c){
     +c.examBlocks.map(function(b){ return b.html; }).join('')
     +'</div>';
 }
+
+window.gxEdBold=function(){ document.execCommand('bold'); };
+window.gxEdMask=function(){
+  var s=window.getSelection(); if(!s.rangeCount||s.isCollapsed) return;
+  var r=s.getRangeAt(0); var ce=r.commonAncestorContainer; ce=ce.nodeType===1?ce:ce.parentElement;
+  if(!ce||!ce.closest('#gre-exam-blocks')) return;
+  var sp=document.createElement('span'); sp.className='ax'; sp.setAttribute('onclick',"this.classList.toggle('on')");
+  try{ r.surroundContents(sp); }catch(e){ alert('한 문장(한 줄) 안에서 글자를 선택해 주세요.'); }
+  s.removeAllRanges();
+};
+window.gxEdUnmask=function(){
+  var s=window.getSelection(); if(!s.rangeCount) return;
+  var n=s.anchorNode; var el=(n&&n.nodeType===1?n:(n&&n.parentElement)); el=el&&el.closest('.ax'); if(!el) return;
+  var p=el.parentNode; while(el.firstChild) p.insertBefore(el.firstChild,el); el.remove();
+};
+(function(){ if(document.getElementById('gx-edit-style')) return;
+  var s=document.createElement('style'); s.id='gx-edit-style';
+  s.textContent='#gre-panel-concept > .gr-sec:not(:has(#gre-ex-list)){display:none}';
+  document.head.appendChild(s); })();
 window.gxSetAns=function(v){
   _gxHide=!v;
   var r=document.getElementById('gx-root'); if(!r) return;
@@ -65375,6 +65394,9 @@ window.grImportExamCards=async function(){
   var n=GX_EXAM_CARDS.length;
   if(!confirm('가온중3 내신대비 시험대비 문법 카드 '+n+'개를 불러옵니다.\n이미 불러온 카드는 최신 내용으로 덮어씁니다. 계속할까요?')) return;
   var added=0,updated=0;
+  var _ed=GX_EXAM_CARDS.filter(function(nc){ var o=_cards.find(function(x){return x.id===nc.id;}); return o&&o.examEdited; }).length;
+  var _keep=false;
+  if(_ed) _keep=!confirm('직접 고친 개념 카드가 '+_ed+'개 있어요.\n[확인] 파일의 원본으로 모두 덮어쓰기\n[취소] 직접 고친 개념 카드는 그대로 두고 나머지(문항·예문)만 갱신');
   GX_EXAM_CARDS.forEach(function(nc){
     var card=JSON.parse(JSON.stringify(nc));
     var i=_cards.findIndex(function(x){ return x.id===card.id; });
@@ -65385,6 +65407,7 @@ window.grImportExamCards=async function(){
         var o=(old.flashcards||[]).find(function(x){ return x.q===f.q; });
         if(o&&o.status) f.status=o.status;
       });
+      if(_keep&&old.examEdited){ card.examBlocks=old.examBlocks; card.examEdited=true; }
       _cards[i]=card; updated++;
     } else { _cards.push(card); added++; }
   });
@@ -66498,7 +66521,7 @@ function grEditCard(id){
     +mainTabBar
 
     /* ── 개념카드 패널 ── */
-    +`<div id="gre-panel-concept" style="display:block">${c.exam?`<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;line-height:1.75;color:#78350f"><b>시험대비 카드</b>의 개념 카드는 판서형 화면(HTML)으로 만들어져 있어 이 화면에서는 편집할 수 없어요.<br>문항·예문·퀴즈는 <b>📚 학습 자료</b> 탭에서 수정할 수 있고, 개념 카드 내용을 고치려면 Claude에게 수정을 요청해 주세요.</div>`:''}`
+    +`<div id="gre-panel-concept" style="display:block">${c.exam?`<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13px;line-height:1.75;color:#78350f"><b>시험대비 카드</b>: 아래 개념 카드를 <b>글자를 눌러 바로 고칠 수 있어요</b>. 핵심어 가림은 글자를 드래그해서 버튼으로 지정·해제합니다. 저장하면 반영돼요.<br>※ 직접 고친 개념 카드는 "시험대비 카드 불러오기"를 다시 눌러도 유지돼요(덮어쓸지 물어봐요).</div><div id="gre-exam-tb" style="position:sticky;top:0;z-index:6;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #e3e8f4;border-radius:10px;padding:8px 10px;margin-bottom:12px"><button type="button" onmousedown="event.preventDefault()" onclick="gxEdBold()" style="padding:5px 12px;border:1.5px solid #cbd5e1;background:#fff;border-radius:8px;font-weight:800;cursor:pointer">굵게</button><button type="button" onmousedown="event.preventDefault()" onclick="gxEdMask()" style="padding:5px 12px;border:1.5px solid #1e4db7;background:#eff6ff;color:#1e4db7;border-radius:8px;font-weight:700;cursor:pointer">선택한 글자 가림 지정</button><button type="button" onmousedown="event.preventDefault()" onclick="gxEdUnmask()" style="padding:5px 12px;border:1.5px solid #cbd5e1;background:#fff;border-radius:8px;font-weight:700;cursor:pointer">가림 해제</button><span style="font-size:12px;color:#94a3b8">파란 배경 = 가림 대상 글자</span></div><div id="gre-exam-blocks">${(c.examBlocks||[]).map((b,i)=>'<div class="gx sP all gx-edit" data-bi="'+i+'" contenteditable="true" spellcheck="false" style="margin-bottom:14px;outline:2px dashed transparent;border-radius:14px" onfocus="this.style.outlineColor=\'#93c5fd\'" onblur="this.style.outlineColor=\'transparent\'">'+b.html+'</div>').join('')}</div>`:''}`
     +sec('#1e4db7','핵심 공식',`<div id="gre-formula-list">${formulasHTML||'<div style="text-align:center;color:var(--t3);font-size:13px;padding:16px">공식을 추가하세요</div>'}</div><button onclick="grAddFormulaItem()" class="gr-add-row">+ 공식 추가</button>`,`<button onclick="grAISection('formula')" style="padding:6px 14px;border-radius:8px;border:1.5px solid #7c3aed;background:#fdf4ff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✨ AI 생성</button>`,'formula')
     +`<div class="gr-sec" data-sec-key="cc"><div class="gr-sec-hdr"><div class="gr-sec-hdr-l"><div style="display:flex;gap:3px;margin-right:8px"><button onclick="grSecMove('cc',-1)" style="padding:2px 7px;border-radius:5px;border:0.5px solid #e2e8f0;background:transparent;color:#94a3b8;font-size:11px;cursor:pointer;font-family:inherit">↑</button><button onclick="grSecMove('cc',1)" style="padding:2px 7px;border-radius:5px;border:0.5px solid #e2e8f0;background:transparent;color:#94a3b8;font-size:11px;cursor:pointer;font-family:inherit">↓</button></div><span class="gr-sec-hdr-icon" style="background:#7c3aed"></span><span class="gr-sec-hdr-title">개념 설명 카드</span></div><div style="display:flex;gap:6px">${aiBtn}${manBtn}${ptsBtn}</div></div><div id="gre-cc-list" style="padding:${ccHtml?'0':'20px'}">${ccHtml||'<div style="text-align:center;color:var(--t3);font-size:13px">개념 카드를 추가하세요</div>'}</div></div>`
     +sec('#ea580c',c.transformTitle||'구조',`<div id="gre-transform-list">${transformsHTML||'<div style="text-align:center;color:var(--t3);font-size:13px;padding:16px">구조를 추가하세요</div>'}</div><button onclick="grAddTransformItem()" class="gr-add-row">+ 구조 추가</button>`,`<div style="display:flex;gap:6px"><button onclick="grAISection('transform')" style="padding:6px 14px;border-radius:8px;border:1.5px solid #7c3aed;background:#fdf4ff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✨ AI 생성</button><button onclick="grAddTransformItem()" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ 추가</button></div>`,'transform')
@@ -69494,6 +69517,22 @@ function grSaveEdit(){
     return {type:t,q:qHtml,qText,passage:finalPassage,sentence,opts:finalOpts,ans,explain,answer:finalAnswer,correct,errors,order:finalOrder,condition,conditions,ujAnswer,underlines,sentA,sentB,combineMode,leftItems,rightItems,matchAnswer,korean:koreanSent};
     }).filter(x=>{const ok=!!x&&!!(x.qText||x.q?.replace(/<[^>]+>/g,'').trim());console.log('[Save] quiz item:', x?.type, (x?.qText||'')?.slice(0,20), '→', ok);return ok;});
     console.log('[Save] total quizzes:', c.quizzes.length);
+  }
+  if(c.exam){ var _wr=[].slice.call(ov.querySelectorAll('#gre-exam-blocks .gx-edit'));
+    if(_wr.length && Array.isArray(c.examBlocks)){
+      var _chg=false;
+      _wr.forEach(function(w){ var bi=+w.dataset.bi; var b=c.examBlocks[bi]; if(!b) return;
+        var cl=w.cloneNode(true);
+        [].forEach.call(cl.querySelectorAll('.ax'),function(x){ x.classList.remove('on'); if(!x.className) x.removeAttribute('class'); });
+        [].forEach.call(cl.querySelectorAll('[contenteditable]'),function(x){ x.removeAttribute('contenteditable'); });
+        var h=cl.innerHTML.trim();
+        var ttl=cl.querySelector('.hA .ti'), tg=cl.querySelector('.hA .tg');
+        if(h!==String(b.html).trim()){ b.html=h; _chg=true; }
+        if(ttl && ttl.textContent.trim()) b.title=ttl.textContent.trim();
+        if(tg && tg.textContent.trim()) b.tag=tg.textContent.trim();
+      });
+      if(_chg) c.examEdited=true;
+    }
   }
   if(c.exam){ var _old=_cards[idx];
     (c.examples||[]).forEach(function(e){ var o=(_old.examples||[]).find(function(x){return x.en===e.en;})||(_old.examples||[]).find(function(x){return x.ko===e.ko;}); if(o){ if(o.focus&&!e.focus) e.focus=o.focus; if(o.point&&!e.point) e.point=o.point; } });
