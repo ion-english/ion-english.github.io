@@ -73861,6 +73861,7 @@ function elRenderGrid() {
       ${sel.on?'':`<div class="el-cardacts">
         <button onclick="event.stopPropagation();elOpenSet('${s.id}')">편집</button>
         <button onclick="event.stopPropagation();elRenameSet('${s.id}')">이름변경</button>
+        ${(!s.source_type||s.source_type==='text')?`<button onclick="event.stopPropagation();gbConvertSet('${s.id}')">문법 은행형으로</button>`:''}
         <button class="del" onclick="event.stopPropagation();elDeleteSet('${s.id}')">삭제</button>
       </div>`}
     </div>`;
@@ -73983,6 +73984,7 @@ async function elNewSet() {
 
 async function elOpenSet(id) {
   const s=EL.sets.find(x=>x.id===id);
+  if (s?.source_type === 'grammar_bank' && typeof gbEdOpen === 'function') { gbEdOpen(s); return; }
   // 워크북 세트는 워크북 view로 열기
   if (s?.source_type === 'workbook') {
     elOpenWorkbookFromSet(s); return;
@@ -106317,6 +106319,48 @@ body.shell2 .gr-formula-box{border-width:1px !important}
 .gbs .gp{background:#eef1ff;border-radius:16px;padding:14px 18px;margin:0 0 8px}.gbs .gp .gl{font-size:12.5px;font-weight:700;color:var(--acc);margin-bottom:6px}.gbs .gp .gb2{background:#fff;border-radius:10px;padding:12px 14px;line-height:1.9;font-size:.98em}
 .gbs .fb{font-size:15px}
 @media(max-width:520px){.gbs{font-size:17px}.gbs .q{padding:18px 16px}.gbs .row{gap:10px}.gbs .qn{width:28px;height:28px}.gbs .ti{font-size:22px}}
+
+.gbs input.bi,#gbs-ov input.bi,input.bi{font:inherit;font-weight:600;color:#1d4ed8;border:0;border-bottom:2px solid #94a3b8;background:#f1f5f9;border-radius:6px 6px 0 0;padding:2px 6px;margin:0 3px;text-align:center;outline:none;min-width:4.5em;max-width:100%;box-sizing:border-box;vertical-align:baseline}
+input.bi:focus{border-bottom-color:#2563eb;background:#eff6ff}
+input.bi.ok{color:#15803d;border-bottom-color:#16a34a;background:#f0fdf4}
+input.bi.bad{color:#b91c1c;border-bottom-color:#dc2626;background:#fef2f2}
+.bhint{font-size:.8em;color:#94a3b8;margin-top:8px}
+#ge-ov{position:fixed;inset:0;z-index:9000;background:#f4f5f7;display:none;flex-direction:column;font-family:'Outfit','Pretendard','Malgun Gothic',system-ui,sans-serif;color:#1f2430}
+#ge-ov.on{display:flex}
+#ge-ov *{box-sizing:border-box}
+#ge-ov .top{display:flex;align-items:center;gap:10px;padding:10px 18px;background:#fff;border-bottom:1px solid #e3e5ea;flex-wrap:wrap}
+#ge-ov .badge{background:#eef2ff;color:#3b5bdb;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700}
+#ge-ov .top b{font-size:17px}#ge-ov .top .sm{color:#8a90a0;font-size:13px}
+#ge-ov .top .r{margin-left:auto;display:flex;gap:8px}
+#ge-ov .btn{border:1px solid #cfd3da;background:#fff;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13px;font-family:inherit}
+#ge-ov .btn.p{background:#3b5bdb;color:#fff;border-color:#3b5bdb;font-weight:700}
+#ge-ov .btn.g{background:#e9a100;color:#fff;border-color:#e9a100;font-weight:700}
+#ge-ov .btn:disabled{opacity:.5;cursor:default}
+#ge-ov .cols{flex:1;min-height:0;display:grid;grid-template-columns:1fr 290px}
+#ge-ov .list{overflow:auto;padding:14px 16px 60px}
+#ge-ov .side{overflow:auto;padding:14px;border-left:1px solid #e3e5ea;background:#fff;font-size:13px}
+#ge-ov .side h4{margin:16px 0 6px;font-size:12px;color:#6b7280}
+#ge-ov .stat{display:flex;gap:8px}#ge-ov .stat div{flex:1;background:#f4f6fb;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#6b7280}#ge-ov .stat b{display:block;font-size:21px;color:#1f2430}
+#ge-ov .add{background:#fff8e6;border:1px solid #f3d98b;border-radius:10px;padding:12px;margin-top:6px;line-height:2.1}
+#ge-ov .add select{width:100%;border:1px solid #d9c38a;border-radius:6px;padding:5px;font-size:13px;background:#fff}
+#ge-ov .add input[type=number]{width:56px;border:1px solid #d9c38a;border-radius:6px;padding:3px;text-align:center}
+#ge-ov .it{background:#fff;border:1px solid #e3e5ea;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+#ge-ov .hd{display:flex;gap:7px;align-items:center;font-size:12px;flex-wrap:wrap}
+#ge-ov .no{width:26px;height:26px;border-radius:8px;background:#3b5bdb;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+#ge-ov .tg{background:#e8f0fe;color:#2456d6;padding:1px 9px;border-radius:9px}#ge-ov .tg.s{background:#fdeede;color:#b45309}
+#ge-ov .un{background:#f1f1f1;padding:1px 9px;border-radius:9px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ge-ov .pt,#ge-ov .id{color:#8a90a0}
+#ge-ov .act{margin-left:auto;display:flex;gap:4px}
+#ge-ov .act button{border:1px solid #d5d8de;background:#fff;border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer}#ge-ov .act button:disabled{opacity:.35;cursor:default}#ge-ov .act .x{color:#c0392b}
+#ge-ov .qh{font-weight:700;margin:9px 0 3px}
+#ge-ov .ln{display:flex;gap:.5em;margin:2px 0}#ge-ov .ln .mk{flex:none;min-width:1.9em;color:#3b5bdb;font-weight:700}#ge-ov .ln .tx{flex:1;min-width:0}#ge-ov .ln.in{margin-left:2.4em}#ge-ov .ln.nm{display:block}
+#ge-ov .spk{display:flex;gap:.5em}#ge-ov .spk b{flex:none;background:#eef1ff;color:#3b5bdb;border-radius:5px;padding:0 .4em;font-size:.8em;height:1.5em;margin-top:.15em}
+#ge-ov .bl{display:inline-block;border-bottom:1.5px solid #64748b;height:1em;vertical-align:-2px;margin:0 2px}
+#ge-ov .ch{margin-top:6px;font-size:13.5px;color:#4b5160}#ge-ov .ch .ok{color:#15803d;font-weight:700}
+#ge-ov .ex{margin-top:7px;font-size:12.5px;color:#7a8190;border-top:1px dashed #e3e5ea;padding-top:5px;white-space:pre-wrap}
+#ge-ov .empty{text-align:center;color:#8a90a0;padding:70px 0}
+@media(max-width:900px){#ge-ov .cols{grid-template-columns:1fr}#ge-ov .side{border-left:none;border-top:1px solid #e3e5ea}}
+#ge-ov .ln{font-size:14.5px}#ge-ov .qh{font-size:15px}
 </style>
 <script id="gb-js">/* ===== 문법문제은행 출제 (grammar_questions → exam_sets/exam_items) ===== */
 const GB={units:[],meta:[],rows:{},node:null,type:'',pt:'',kw:'',sel:{},open:{},loaded:false,busy:false};
@@ -106330,14 +106374,15 @@ function gbEnsure(){
    +'<div class="gb-foot" id="gb-foot"></div></div>';
   document.body.appendChild(d);
 }
-async function gbOpen(){
+async function gbOpen(target){
+  GB.target=(typeof target==='string')?target:null;
   gbEnsure();document.getElementById('gb-ov').classList.add('on');
   if(!GB.loaded)await gbLoadMeta();
   gbRender();
 }
-function gbClose(){const o=document.getElementById('gb-ov');if(o)o.classList.remove('on');}
+function gbClose(){const o=document.getElementById('gb-ov');if(o)o.classList.remove('on');GB.target=null;}
 async function gbLoadMeta(){
-  const g=document.getElementById('gb-grid');g.innerHTML='<div class="gb-empty">문제은행 불러오는 중…</div>';
+  const g=document.getElementById('gb-grid');if(g)g.innerHTML='<div class="gb-empty">문제은행 불러오는 중…</div>';
   try{
     const u=await sb.from('grammar_units').select('*').order('sort');
     if(u.error)throw u.error;GB.units=u.data||[];
@@ -106347,8 +106392,8 @@ async function gbLoadMeta(){
       if(r.error)throw r.error;all=all.concat(r.data||[]);
       if(!r.data||r.data.length<1000)break;from+=1000;
     }
-    GB.meta=all;GB.loaded=true;
-  }catch(e){g.innerHTML='<div class="gb-empty">불러오기 실패: '+gbEsc(e.message||e)+'<br>(grammar_questions 테이블/읽기 권한 확인)</div>';throw e;}
+    GB.meta=all;GB.loaded=true;GB.err=null;
+  }catch(e){if(g)g.innerHTML='<div class="gb-empty">불러오기 실패: '+gbEsc(e.message||e)+'<br>(grammar_questions 테이블/읽기 권한 확인)</div>';GB.err=String(e&&e.message||e);throw e;}
 }
 function gbCounts(){
   const c={};GB.meta.forEach(m=>{const k=m.unit_code||'-';c[k]=(c[k]||0)+1;});return c;
@@ -106449,7 +106494,7 @@ function gbRenderBar(){
 }
 function gbPool(type){
   const codes=gbNodeCodes(GB.node);
-  return GB.meta.filter(m=>m.qtype===type&&(!codes||codes.includes(m.unit_code||'-'))&&(!GB.pt||String(m.points)===GB.pt));
+  return GB.meta.filter(m=>m.qtype===type&&(!codes||codes.includes(m.unit_code||'-'))&&(!GB.pt||String(m.points)===GB.pt)&&!(GB.target&&window.GE&&GE.ids&&GE.ids.has(m.id)));
 }
 function gbRenderRnd(){
   const e=document.getElementById('gb-rnd');if(!e)return;
@@ -106471,7 +106516,7 @@ async function gbRandom(){
   try{await gbFetchRows(ids);}catch(e){GB.busy=false;gbRenderFoot();showToast('불러오기 실패: '+e.message,'error');return;}
   GB.busy=false;
   GB.sel={};ids.forEach(i=>GB.sel[i]=1);
-  let nm=(document.getElementById('gb-name').value||'').trim();
+  let nm=GB.target?'x':(document.getElementById('gb-name').value||'').trim();
   if(!nm){const lab=GB.node.k==='u'?(GB.units.find(u=>u.code===GB.node.code)||{}).name:GB.node.k==='c'?GB.node.ch:GB.node.k==='g'?GB.node.g+'학년':'전체';
     nm=(lab||'문법')+' 랜덤 (객관식 '+nmc+'+서술형 '+nsub+')';document.getElementById('gb-name').value=nm;}
   await gbSave(true);
@@ -106482,27 +106527,33 @@ function gbRenderFoot(){
   const ids=Object.keys(GB.sel).map(Number),f=document.getElementById('gb-foot');
   const pts=ids.reduce((a,i)=>a+((GB.rows[i]||{}).points||0),0);
   const nm=(document.getElementById('gb-name')||{}).value||'';
-  f.innerHTML=`<span><b>${ids.length}</b>문항 선택${ids.length?' · '+pts+'점':''}</span><input id="gb-name" placeholder="세트 이름 (예: 중1 조동사 단원평가)" value="${gbEsc(nm)}"><button ${ids.length&&!GB.busy?'':'disabled'} onclick="gbSave()">${GB.busy?'담는 중…':'시험 세트로 담기'}</button><button class="g" ${ids.length?'':'disabled'} onclick="GB.sel={};gbRender()">선택 비우기</button>`;
+  f.innerHTML=`<span><b>${ids.length}</b>문항 선택${ids.length?' · '+pts+'점':''}</span>${GB.target?'<span style="opacity:.7;font-size:13px">현재 세트에 이어서 추가됩니다</span>':'<input id="gb-name" placeholder="세트 이름 (예: 중1 조동사 단원평가)" value="'+gbEsc(nm)+'">'}<button ${ids.length&&!GB.busy?'':'disabled'} onclick="gbSave()">${GB.busy?'담는 중…':(GB.target?'이 세트에 추가':'시험 세트로 담기')}</button><button class="g" ${ids.length?'':'disabled'} onclick="GB.sel={};gbRender()">선택 비우기</button>`;
 }
 function gbMeta(q){return '__meta__:'+JSON.stringify({gbPts:q.points||0,gbId:q.id})+'\n';}
-function gbToItem(q,setId){
+function gbToItem(q,setId,ord){
   const parts=String(q.stem||'').split('\n'),question=parts[0]||'',passage=parts.slice(1).join('\n');
   if(q.qtype==='mc'){
-    return {set_id:setId,type:'grammar_point',passage:passage,question:question,options:(q.choices||[]).filter(x=>x!==''&&x!=null),answer:q.answer_idx==null?0:q.answer_idx,explanation:gbMeta(q)+(q.explanation||''),difficulty:3,is_modified:false,approved:true};
+    return {set_id:setId,type:'grammar_point',passage:passage,question:question,options:(q.choices||[]).filter(x=>x!==''&&x!=null),answer:q.answer_idx==null?0:q.answer_idx,explanation:gbMeta(q)+(q.explanation||''),difficulty:3,is_modified:false,approved:true,order_num:ord||0};
   }
-  return {set_id:setId,type:'sentence_transform',passage:passage,question:question,options:[],answer:-1,explanation:gbMeta(q)+'[모범답안] '+(q.answer_text||'')+(q.explanation?'\n[해설] '+q.explanation:''),difficulty:3,is_modified:false,approved:true};
+  return {set_id:setId,type:'sentence_transform',passage:passage,question:question,options:[],answer:-1,explanation:gbMeta(q)+'[모범답안] '+(q.answer_text||'')+(q.explanation?'\n[해설] '+q.explanation:''),difficulty:3,is_modified:false,approved:true,order_num:ord||0};
 }
 async function gbSave(auto){
   if(GB.busy)return;
   const ids=Object.keys(GB.sel).map(Number).sort((a,b)=>{const x=(GB.rows[a]||{}).qtype==='sub'?1:0,y=(GB.rows[b]||{}).qtype==='sub'?1:0;return x-y||a-b;});if(!ids.length)return;
-  const title=(document.getElementById('gb-name').value||'').trim()||('문법 은행 '+new Date().toLocaleDateString('ko-KR'));
+  const title=((document.getElementById('gb-name')||{}).value||'').trim()||('문법 은행 '+new Date().toLocaleDateString('ko-KR'));
   const noAns=ids.filter(i=>{const q=GB.rows[i];return q&&q.qtype==='sub'&&!(q.answer_text||'').trim();}).length;
   if(noAns&&!confirm('서술형 중 정답이 비어 있는 문항이 '+noAns+'개 있습니다. 그대로 담을까요?'))return;
+  if(GB.target&&typeof gbEdAppend==='function'){
+    GB.busy=true;gbRenderFoot();
+    try{await gbEdAppend(GB.target,ids.map(i=>GB.rows[i]));GB.sel={};GB.busy=false;gbClose();}
+    catch(e){GB.busy=false;gbRenderFoot();showToast('추가 실패: '+(e.message||JSON.stringify(e)),'error');}
+    return;
+  }
   GB.busy=true;gbRenderFoot();
   try{
     const s=await sb.from('exam_sets').insert({teacher_id:currentUser.id,title:title,source_type:'grammar_bank',item_count:ids.length}).select().single();
     if(s.error)throw s.error;
-    const rows=ids.map(i=>gbToItem(GB.rows[i],s.data.id));
+    const rows=ids.map((i,k)=>gbToItem(GB.rows[i],s.data.id,k));
     for(let i=0;i<rows.length;i+=100){const r=await sb.from('exam_items').insert(rows.slice(i,i+100));if(r.error)throw r.error;}
     showToast('✅ "'+title+'" 세트에 '+ids.length+'문항을 담았습니다','success');
     GB.sel={};GB.busy=false;gbClose();
@@ -106513,10 +106564,30 @@ async function gbSave(auto){
 window.GB=GB;
 
 /* ===== 문법 은행 세트 — 학생 풀이 화면 (시험지형·모던 카드) ===== */
-const GBS={items:[],ans:{},done:false,ov:{},body:null,title:'',raw:false,grp:{}};
+const GBS={items:[],ans:{},done:false,ov:{},body:null,title:'',raw:false,grp:{},bctx:null,nb:{},bok:{}};
 function gbsEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function gbsT(s){return GBS.raw?String(s==null?'':s):gbsEsc(s);}
-function gbsBlank(t){return gbsT(t).replace(/_{3,}/g,m=>'<span class="bl" style="width:'+Math.min(Math.max(m.length*0.5,3.5),13)+'em"></span>');}
+function gbsBlank(t){
+  return gbsT(t).replace(/_{3,}/g,m=>{
+    const w=Math.min(Math.max(m.length*0.45,4.5),12).toFixed(1)+'em',c=GBS.bctx;
+    if(c){
+      const i=c.i,k=c.k++;const a=GBS.ans[i],v=Array.isArray(a)?(a[k]||''):'';
+      const st=GBS.done&&GBS.bok[i]&&GBS.bok[i][k]!==undefined?(GBS.bok[i][k]?' ok':' bad'):'';
+      return '<input class="bi'+st+'" id="gbs-b'+i+'-'+k+'" style="width:'+w+'" value="'+gbsEsc(v)+'" '+(GBS.done?'disabled ':'')+'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="gbsBi('+i+','+k+',this.value)">';
+    }
+    return '<span class="bl" style="width:'+w+'"></span>';
+  });
+}
+function gbsVal(i){const a=GBS.ans[i];return Array.isArray(a)?a.join(' ').replace(/\s+/g,' ').trim():String(a==null?'':a).trim();}
+function gbsBi(i,k,v){let a=GBS.ans[i];if(!Array.isArray(a)){a=[];GBS.ans[i]=a;}const n=GBS.nb[i]||0;for(let x=0;x<n;x++)if(a[x]===undefined)a[x]='';a[k]=v;gbsProg();}
+function gbsParts(model,n){
+  const m=String(model||'').replace(/\(\d+\)/g,' ');
+  const seg=m.split(/[\n,;\/→]/).map(s=>s.trim()).filter(Boolean);
+  if(seg.length===n)return seg;
+  const words=m.replace(/[.,!?;:\/]/g,' ').split(/\s+/).filter(Boolean);
+  if(words.length===n)return words;
+  return null;
+}
 function gbsFmt(text){
   const lines=String(text||'').split('\n');let out='',grp=false;
   lines.forEach(raw=>{
@@ -106547,36 +106618,40 @@ function gbsNorm(s){return String(s||'').toLowerCase().replace(/[’‘`]/g,"'")
 function gbsOk(i){
   const q=GBS.items[i];if(GBS.ov[i])return true;
   if(q._sub&&!q._model)return false;
-  if(q._sub)return gbsNorm(GBS.ans[i])!==''&&gbsNorm(GBS.ans[i])===gbsNorm(q._model);
+  if(q._sub){const P=GBS.nb[i]>0?gbsParts(q._model,GBS.nb[i]):null,a=GBS.ans[i];if(P&&Array.isArray(a)){GBS.bok[i]=P.map((p,k)=>gbsNorm(a[k]||'')!==''&&gbsNorm(a[k])===gbsNorm(p));return GBS.bok[i].every(Boolean);}return gbsNorm(gbsVal(i))!==''&&gbsNorm(gbsVal(i))===gbsNorm(q._model);}
   return GBS.ans[i]===q.answer;
 }
 function gbsQ(i){
   const q=GBS.items[i],N='①②③④⑤',d=GBS.done,g=GBS.grp[i];
+  if(d){const o=GBS.ov[i];GBS.ov[i]=false;q._rawok=gbsOk(i);GBS.ov[i]=o;}
   let pre='';
   if(g&&g.first)pre='<div class="gp"><div class="gl">['+(i+1)+'~'+(i+g.n)+'번] 공통 지문</div><div class="gb2">'+(typeof elRenderPassage==='function'?elRenderPassage(g.passage):gbsFmt(g.passage))+'</div></div>';
+  GBS.bctx=q._sub?{i:i,k:0}:null;
   const stem='<div class="stem"><div class="h">'+gbsBlank(q.question)+'</div>'+(g?'':(q.passage?'<div class="ps">'+gbsFmt(q.passage)+'</div>':''))+(GBS.raw&&typeof seSpecialHTML==='function'?seSpecialHTML(q):'')+'</div>';
+  const nb=GBS.bctx?GBS.bctx.k:0;GBS.bctx=null;if(q._sub)GBS.nb[i]=nb;
   let h=pre+'<div class="q"><div class="row"><span class="qn">'+(i+1)+'</span><div class="bd"><span class="tag'+(q._sub?' s':'')+'">'+(q._sub?'서술형':'객관식')+'</span>'+(q._pt?'<span class="pt">'+q._pt+'점</span>':'')+stem;
   if(!q._sub){
     (q.options||[]).forEach((c,j)=>{let k='opt';if(d){if(j===q.answer)k+=' ok';else if(GBS.ans[i]===j)k+=' bad';}else if(GBS.ans[i]===j)k+=' sel';
       h+='<div class="'+k+'" onclick="gbsPick('+i+','+j+')"><b>'+N[j]+'</b><span>'+gbsBlank(c)+'</span></div>';});
-  }else h+='<textarea id="gbs-ta'+i+'" placeholder="여기에 정답을 입력하세요" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" '+(d?'disabled':'')+' oninput="GBS.ans['+i+']=this.value;gbsProg()">'+gbsEsc(GBS.ans[i]||'')+'</textarea>';
+  }else if(nb>0){if(!d)h+='<div class="bhint">빈칸을 눌러 각각 답을 입력하세요</div>';}
+  else h+='<textarea id="gbs-ta'+i+'" placeholder="여기에 정답을 입력하세요" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" '+(d?'disabled':'')+' oninput="GBS.ans['+i+']=this.value;gbsProg()">'+gbsEsc(gbsVal(i))+'</textarea>';
   if(d){
     const r=gbsOk(i),nm=q._sub&&!q._model;
     h+='<div class="fb '+(nm?'ok':(r?'ok':'bad'))+'">'+(nm?'직접 확인하세요':(r?(GBS.ov[i]?'정답으로 처리됨 ✓':'정답입니다 ✓'):'오답'))
       +(q._sub&&q._model?'<div class="ma"><b>모범답안</b>'+gbsFmt(gbsEsc(q._model))+'</div>':'')
-      +(q._sub&&q._model&&!(gbsNorm(GBS.ans[i])===gbsNorm(q._model))?'<button onclick="gbsOv('+i+')">'+(GBS.ov[i]?'정답 처리 취소':'내 답도 맞아요 (정답 처리)')+'</button>':'')+'</div>'
+      +(q._sub&&q._model&&!q._rawok?'<button onclick="gbsOv('+i+')">'+(GBS.ov[i]?'정답 처리 취소':'내 답도 맞아요 (정답 처리)')+'</button>':'')+'</div>'
       +(q._ex?'<div class="ex">'+gbsT(q._ex).replace(/\n/g,'<br>')+'</div>':'');
   }
   return h+'</div></div></div>';
 }
-function gbsProg(){const n=GBS.items.filter((_,i)=>GBS.ans[i]!==undefined&&String(GBS.ans[i]).trim()!=='').length;const e=document.getElementById('gbs-pg');if(e){e.querySelector('u').style.width=(n/GBS.items.length*100)+'%';e.querySelector('span').textContent=n+' / '+GBS.items.length;}}
+function gbsProg(){const n=GBS.items.filter((_,i)=>gbsVal(i)!=='').length;const e=document.getElementById('gbs-pg');if(e){e.querySelector('u').style.width=(n/GBS.items.length*100)+'%';e.querySelector('span').textContent=n+' / '+GBS.items.length;}}
 function gbsPick(i,j){if(GBS.done)return;GBS.ans[i]=j;gbsRender();}
 function gbsOv(i){GBS.ov[i]=!GBS.ov[i];gbsRender(true);gbsLast();}
 function gbsTotal(){return GBS.items.reduce((a,q)=>a+(q._pt||0),0);}
 function gbsLast(){
   window._seLastWrongs=GBS.items.map((q,i)=>({q:q,i:i})).filter(x=>!gbsOk(x.i)).map(x=>{const q=x.q,N='①②③④⑤';return {
     question:String(q.question||''),passage:String(q.passage||''),options:(q.options||[]).map(o=>String(o||'')),
-    myAnswer:q._sub?String(GBS.ans[x.i]||''):(GBS.ans[x.i]==null?'':N[GBS.ans[x.i]]+' '+String((q.options||[])[GBS.ans[x.i]]||'')),
+    myAnswer:q._sub?gbsVal(x.i):(GBS.ans[x.i]==null?'':N[GBS.ans[x.i]]+' '+String((q.options||[])[GBS.ans[x.i]]||'')),
     correctAnswer:q._sub?String(q._model||''):N[q.answer]+' '+String((q.options||[])[q.answer]||''),explanation:String(q._ex||'')};});
 }
 function gbsRender(keep){
@@ -106598,7 +106673,7 @@ function gbsRender(keep){
   if(sy!=null)window.scrollTo(0,sy);
 }
 function gbsSubmit(){
-  const un=GBS.items.filter((_,i)=>GBS.ans[i]===undefined||String(GBS.ans[i]).trim()==='').length;
+  const un=GBS.items.filter((_,i)=>gbsVal(i)==='').length;
   if(un&&!confirm('풀지 않은 문제가 '+un+'개 있어요. 그래도 제출할까요?'))return;
   GBS.done=true;gbsLast();gbsRender();
   const ov=document.getElementById('se-exam-ov');(ov&&ov.querySelector('#se-exam-body')||window).scrollTo&&(ov&&ov.querySelector('#se-exam-body')||window).scrollTo(0,0);
@@ -106627,5 +106702,150 @@ function gbStuRender(items,body,title,bank){
   gbsRender();
 }
 ['gbStuOk','gbStuRender','gbsPick','gbsOv','gbsSubmit','gbsProg'].forEach(n=>{window[n]=eval(n);});window.GBS=GBS;
+
+/* ===== 문법 은행 세트 전용 편집 화면 ===== */
+const GE={set:null,items:[],ids:new Set(),show:true,busy:false};
+function geEnsure(){
+  if(document.getElementById('ge-ov'))return;
+  const d=document.createElement('div');d.id='ge-ov';document.body.appendChild(d);
+}
+async function gbEdOpen(set){
+  geEnsure();GE.set=set;GE.items=[];GE.busy=false;
+  const o=document.getElementById('ge-ov');o.classList.add('on');
+  o.innerHTML='<div class="empty">불러오는 중…</div>';
+  try{
+    const r=await sb.from('exam_items').select('*').eq('set_id',set.id);
+    if(r.error)throw r.error;
+    let its=(r.data||[]).map(d=>{const b=Object.assign({},d);elDecodeExpl(d,b);return b;});
+    its.sort((a,b)=>(a.order_num||0)-(b.order_num||0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    /* order_num 정규화 (0,1,2…) — 중복/0이면 DB도 맞춰줌 */
+    for(let i=0;i<its.length;i++){if(its[i].order_num!==i){its[i].order_num=i;sb.from('exam_items').update({order_num:i}).eq('id',its[i].id).then(()=>{},()=>{});}}
+    GE.items=its;
+  }catch(e){o.innerHTML='<div class="empty">불러오기 실패: '+gbEsc(e.message||e)+'</div>';return;}
+  GE.ids=new Set(GE.items.map(i=>i.gbId).filter(Boolean));
+  geRender();
+  if(!GB.loaded){try{await gbLoadMeta();}catch(x){}geRender();}
+}
+function geClose(){const o=document.getElementById('ge-ov');if(o)o.classList.remove('on');if(typeof elLoadSets==='function')elLoadSets();}
+function geUnitOptions(){
+  let h='<option value="all">전체 단원</option>';
+  [1,2,3].forEach(g=>{
+    const us=GB.units.filter(u=>u.grade===g);if(!us.length)return;
+    h+='<optgroup label="'+g+'학년">';
+    h+='<option value=\''+gbJ({k:'g',g:g})+'\'>'+g+'학년 전체</option>';
+    [...new Set(us.map(u=>u.chapter))].forEach(ch=>{
+      h+='<option value=\''+gbJ({k:'c',g:g,ch:ch})+'\'>└ '+gbEsc(ch)+' (전체)</option>';
+      us.filter(u=>u.chapter===ch).forEach(u=>{h+='<option value=\''+gbJ({k:'u',code:u.code})+'\'>　· '+gbEsc(u.name)+'</option>';});
+    });
+    h+='</optgroup>';
+  });
+  return h;
+}
+function geCard(it,i){
+  const sub=(it.answer===-1||!(it.options&&it.options.length));
+  const q=String(it.question||''),N='①②③④⑤';
+  GBS.raw=false;
+  let body='<div class="qh">'+gbsBlank(q)+'</div>'+gbsFmt(it.passage||'');
+  let exTxt='';
+  if(GE.show){
+    if(!sub){
+      body+='<div class="ch">'+(it.options||[]).map((c,j)=>'<div class="'+(j===it.answer?'ok':'')+'">'+N[j]+' '+gbsEsc(c)+(j===it.answer?' ✓':'')+'</div>').join('')+'</div>';
+      exTxt=it.explanation||'';
+    }else{
+      const s=gbsSplitExpl(it.explanation);
+      body+='<div class="ch"><div class="ok">정답</div>'+gbsFmt(gbsEsc(s.model||'(미입력)'))+'</div>';exTxt=s.ex;
+    }
+    if(exTxt)body+='<div class="ex">'+gbsEsc(exTxt)+'</div>';
+  }
+  const last=GE.items.length-1;
+  return '<div class="it"><div class="hd"><span class="no">'+(i+1)+'</span><span class="tg'+(sub?' s':'')+'">'+(sub?'서술형':'객관식')+'</span>'
+   +'<span class="un">'+gbsEsc(geUnitName(it))+'</span>'+(it.points?'<span class="pt">'+it.points+'점</span>':'')+(it.gbId?'<span class="id">#'+it.gbId+'</span>':'')
+   +'<span class="act"><button '+(it.gbId?'':'disabled')+' onclick="geReplace('+i+')">🎲 교체</button><button '+(i?'':'disabled')+' onclick="geMove('+i+',-1)">↑</button><button '+(i<last?'':'disabled')+' onclick="geMove('+i+',1)">↓</button><button class="x" onclick="geDel('+i+')">삭제</button></span></div>'+body+'</div>';
+}
+function geUnitName(it){const m=(GB.meta||[]).find(x=>x.id===it.gbId);if(!m)return '';const u=(GB.units||[]).find(x=>x.code===m.unit_code);return u?u.name:'미분류';}
+function geRender(){
+  const o=document.getElementById('ge-ov'),s=GE.set,its=GE.items;
+  const nmc=its.filter(i=>!(i.answer===-1||!(i.options&&i.options.length))).length,nsub=its.length-nmc,tot=its.reduce((a,i)=>a+(i.points||0),0);
+  o.innerHTML='<div class="top"><span class="badge">문법 은행 세트</span><b id="ge-title">'+gbsEsc(s.title||'')+'</b><span class="sm">'+its.length+'문항'+(tot?' · 총 '+tot+'점':'')+'</span>'
+   +'<span class="r"><button class="btn" onclick="geRename()">이름 변경</button><button class="btn p" onclick="geDeploy()">학생에게 배포</button><button class="btn" onclick="geClose()">닫기 ✕</button></span></div>'
+   +'<div class="cols"><div class="list">'+(its.length?its.map(geCard).join(''):'<div class="empty">문항이 없습니다. 오른쪽에서 은행 문항을 추가하세요.</div>')+'</div>'
+   +'<div class="side"><div class="stat"><div><b>'+nmc+'</b>객관식</div><div><b>'+nsub+'</b>서술형</div><div><b>'+tot+'</b>총점</div></div>'
+   +'<h4>은행에서 문항 추가</h4><div class="add"><b>🎲 랜덤 추가</b><br><select id="ge-unit">'+(GB.units&&GB.units.length?geUnitOptions():'<option value="all">'+(GB.err?'(은행 불러오기 실패 — 다시 열어주세요)':'(은행 불러오는 중)')+'</option>')+'</select>객관식 <input type="number" id="ge-mc" min="0" value="3"> 서술형 <input type="number" id="ge-sub" min="0" value="1"><br>'
+   +'<button class="btn g" style="width:100%" onclick="geRandomAdd()" '+(GE.busy?'disabled':'')+'>추가하기</button></div>'
+   +'<button class="btn" style="width:100%;margin-top:8px" onclick="geBrowse()">단원에서 직접 고르기 ▸</button>'
+   +'<h4>보기 옵션</h4><label><input type="checkbox" '+(GE.show?'checked':'')+' onchange="GE.show=this.checked;geRender()"> 정답·해설 표시</label></div></div>';
+}
+async function geSyncCount(){try{await sb.from('exam_sets').update({item_count:GE.items.length}).eq('id',GE.set.id);GE.set.item_count=GE.items.length;}catch(e){}}
+async function geMove(i,d){
+  const a=GE.items[i],b=GE.items[i+d];if(!b)return;
+  const oa=a.order_num,ob=b.order_num;a.order_num=ob;b.order_num=oa;GE.items[i]=b;GE.items[i+d]=a;geRender();
+  try{await sb.from('exam_items').update({order_num:a.order_num}).eq('id',a.id);await sb.from('exam_items').update({order_num:b.order_num}).eq('id',b.id);}catch(e){showToast('순서 저장 실패','error');}
+}
+async function geDel(i){
+  const it=GE.items[i];if(!confirm((i+1)+'번 문항을 이 세트에서 삭제할까요? (은행 원본은 그대로입니다)'))return;
+  try{const r=await sb.from('exam_items').delete().eq('id',it.id);if(r&&r.error)throw r.error;}catch(e){showToast('삭제 실패: '+(e.message||e),'error');return;}
+  GE.items.splice(i,1);if(it.gbId)GE.ids.delete(it.gbId);GE.items.forEach((x,k)=>{if(x.order_num!==k){x.order_num=k;sb.from('exam_items').update({order_num:k}).eq('id',x.id).then(()=>{},()=>{});}});
+  await geSyncCount();geRender();
+}
+async function geReplace(i){
+  const it=GE.items[i];if(!it.gbId)return;
+  if(!GB.loaded){showToast('은행을 불러오는 중입니다. 잠시 후 다시 눌러주세요','error');return;}
+  const cur=GB.meta.find(m=>m.id===it.gbId);if(!cur){showToast('은행에서 원본 문항을 찾을 수 없습니다','error');return;}
+  const pool=GB.meta.filter(m=>m.unit_code===cur.unit_code&&m.qtype===cur.qtype&&!GE.ids.has(m.id));
+  if(!pool.length){showToast('같은 단원·유형에서 교체할 문항이 더 없습니다','error');return;}
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  try{
+    await gbFetchRows([pick.id]);const q=GB.rows[pick.id];
+    const row=gbToItem(q,GE.set.id,it.order_num);delete row.set_id;
+    const r=await sb.from('exam_items').update(row).eq('id',it.id);if(r&&r.error)throw r.error;
+    GE.ids.delete(it.gbId);GE.ids.add(pick.id);
+    const nb=Object.assign({},it,row,{gbId:pick.id,points:q.points});
+    elDecodeExpl({explanation:row.explanation},nb);nb.options=row.options;nb.answer=row.answer;
+    GE.items[i]=nb;geRender();
+  }catch(e){showToast('교체 실패: '+(e.message||e),'error');}
+}
+async function geRandomAdd(){
+  if(GE.busy)return;if(!GB.loaded){showToast('은행을 불러오는 중입니다','error');return;}
+  const nmc=Math.max(0,parseInt(document.getElementById('ge-mc').value)||0),nsub=Math.max(0,parseInt(document.getElementById('ge-sub').value)||0);
+  if(!nmc&&!nsub){showToast('추가할 문항 수를 입력하세요','error');return;}
+  const v=document.getElementById('ge-unit').value;GB.node=v==='all'?{k:'all'}:JSON.parse(v);GB.pt='';GB.target=GE.set.id;
+  const pm=gbPool('mc'),ps=gbPool('sub');GB.target=null;
+  if(nmc>pm.length||nsub>ps.length){showToast('선택한 범위의 남은 문항이 부족합니다 (객관식 '+pm.length+' / 서술형 '+ps.length+')','error');return;}
+  const pick=(a,n)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.slice(0,n).map(m=>m.id);};
+  const ids=pick(pm,nmc).concat(pick(ps,nsub));
+  GE.busy=true;geRender();
+  try{await gbFetchRows(ids);await gbEdAppend(GE.set.id,ids.map(i=>GB.rows[i]));}catch(e){showToast('추가 실패: '+(e.message||e),'error');}
+  GE.busy=false;geRender();
+}
+async function gbEdAppend(setId,rows){
+  if(!GE.set||GE.set.id!==setId)throw new Error('편집 중인 세트가 아닙니다');
+  rows=rows.slice().sort((a,b)=>(a.qtype==='sub'?1:0)-(b.qtype==='sub'?1:0)||a.id-b.id);
+  const base=GE.items.length,add=rows.map((q,k)=>gbToItem(q,setId,base+k));
+  for(let i=0;i<add.length;i+=100){const r=await sb.from('exam_items').insert(add.slice(i,i+100));if(r&&r.error)throw r.error;}
+  await gbEdOpen(GE.set);await geSyncCount();geRender();
+  showToast('✅ '+rows.length+'문항을 추가했습니다','success');
+}
+function geBrowse(){gbOpen(GE.set.id);}
+async function geRename(){
+  const cur=GE.set.title||'',n=prompt('세트 이름을 입력하세요:',cur);if(n===null)return;const t=n.trim();if(!t){showToast('이름을 입력하세요','error');return;}
+  try{const r=await sb.from('exam_sets').update({title:t}).eq('id',GE.set.id);if(r&&r.error)throw r.error;GE.set.title=t;geRender();showToast('이름 변경 완료','success');}catch(e){showToast('이름 변경 실패','error');}
+}
+function geDeploy(){
+  if(!GE.items.length){showToast('문항이 없습니다','error');return;}
+  EL.activeSetId=GE.set.id;
+  EL.questions=GE.items.map(i=>Object.assign({},i,{passage_display:i.passage||''}));
+  if(typeof elOpenDeploy==='function')elOpenDeploy();
+}
+['gbEdOpen','geClose','geMove','geDel','geReplace','geRandomAdd','gbEdAppend','geBrowse','geRename','geDeploy','geRender'].forEach(n=>{window[n]=eval(n);});window.GE=GE;
+async function gbConvertSet(id){
+  const s=(EL.sets||[]).find(x=>x.id===id);if(!s)return;
+  if(!confirm('"'+(s.title||'')+'" 세트를 문법 은행 세트로 바꿀까요?\n\n· 편집 화면이 은행 전용(순서 변경·삭제·은행 문항 추가)으로 바뀝니다.\n· 기존 문항은 은행 번호가 없어 🎲 교체는 안 되고, 점수 표시도 없습니다.\n· 문항 내용은 그대로입니다.'))return;
+  try{
+    const r=await sb.from('exam_sets').update({source_type:'grammar_bank'}).eq('id',id);if(r&&r.error)throw r.error;
+    s.source_type='grammar_bank';if(typeof elRenderGrid==='function')elRenderGrid();
+    showToast('문법 은행 세트로 변경했습니다','success');
+  }catch(e){showToast('변환 실패: '+(e.message||JSON.stringify(e)),'error');}
+}
+window.gbConvertSet=gbConvertSet;
 </script>
 </body>
