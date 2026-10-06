@@ -62256,7 +62256,7 @@ async function grProgLoad(cardId){
   try{ var lv=JSON.parse(_lsGet(_grProgKey(cardId))||'null'); if(lv) local=lv; }catch(e){}
   if(typeof sb!=='undefined' && currentUser && currentUser.id){
     try{
-      var res = await sb.from('progress').select('*')
+      var res = await sb.from('grammar_progress').select('*')
         .eq('student_id', currentUser.id).eq('book_id', cardId).maybeSingle();
       if(!res.error && res.data){
         var srv = _grProgDecode(res.data);
@@ -62302,7 +62302,7 @@ async function grProgSave(cardId, prog){
   var _le=null;
   for(var _try=0;_try<3;_try++){   // 일시적 실패는 자동 재시도 (최대 3회)
     try{
-      var { error } = await sb.from('progress').upsert(_pl, { onConflict: 'student_id,book_id' });
+      var { error } = await sb.from('grammar_progress').upsert(_pl, { onConflict: 'student_id,book_id' });
       if(error) throw error;
       return true;
     }catch(e){
@@ -62327,7 +62327,7 @@ async function grProgLoadMany(cardIds){
     return out;
   }
   try{
-    var res = await sb.from('progress').select('*')
+    var res = await sb.from('grammar_progress').select('*')
       .eq('student_id', currentUser.id).in('book_id', cardIds);
     if(!res.error && res.data){
       res.data.forEach(function(row){ out[row.book_id]=_grProgDecode(row); });
