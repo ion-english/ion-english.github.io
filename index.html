@@ -4232,25 +4232,25 @@ body.stats-open #st-stats-panel{display:flex;animation:stpSlide .22s cubic-bezie
   .bh-short b{font-size:14px}
   .bh-in .bh-hero-tx{animation:bhFade .55s .1s both}
   .bh-hero-tx{position:static}.bh-hero-tx small,.bh-hero-tx h2{position:relative;z-index:3}
-  .bh-chips{position:absolute;bottom:40px;left:22px;z-index:3;flex-direction:column;align-items:flex-start;gap:5px;margin:0}
+  .bh-chips{position:static;width:max-content;max-width:none;z-index:3;flex-direction:column;flex-wrap:nowrap;align-items:flex-start;gap:6px;margin:14px 0 0}
   .bh-chip{padding:3px 9px;gap:5px}.bh-chip i{font-size:10px}.bh-chip b{font-size:11px}
-  .bh-hero{padding:24px 22px;min-height:330px;align-items:flex-start}
+  .bh-hero{padding:24px 22px;min-height:380px;align-items:flex-start}
   .bh-hero-tx{max-width:64%}.bh-hero-tx h2{font-size:21px}
   .bh-scene{width:100%}
-  .bh-hero-slime,.bh-hero.night .bh-hero-slime{width:104px;height:104px;left:auto;right:8%;bottom:8px}
-  .bh-hero.px .bh-hero-slime{width:96px;height:96px;bottom:20px}
+  .bh-hero-slime,.bh-hero.night .bh-hero-slime{width:104px;height:104px;left:calc(50% - 52px);right:auto;bottom:8px}
+  .bh-hero.px .bh-hero-slime{width:96px;height:96px;left:calc(50% - 48px);bottom:20px}
   .pz-gr{height:52px}
-  .bh-hero-slime svg{transform:scaleX(-1)}
+  .bh-hero-slime svg{transform:none}
   .bh-scene.px .pz-sun{right:9%;top:20px;width:44px;height:44px}
-  .bs-isl{left:auto !important;right:calc(8% - 98px) !important;width:300px !important;height:112px !important;bottom:-62px !important}
-  .bh-bub{left:auto;right:0;transform:none;font-size:12px;padding:8px 12px}.bh-bub::after{left:auto;right:44px}
+  .bs-isl{right:auto !important;left:calc(50% - 150px) !important;width:300px !important;height:112px !important;bottom:-62px !important}
+  .bh-bub{font-size:12px;padding:8px 12px}
 }
 
 /* 픽셀 배너 — 기본 배경과 같은 구성(번짐·섬·반짝·꽃잎)을 도트로 */
 .pz-bk{position:absolute;z-index:0}
 .pz-isl{position:absolute;z-index:1;right:calc(22% - 104px);bottom:-70px;width:344px;height:120px}
 .bs-pt.pzp{border-radius:0;width:7px;height:7px;animation-timing-function:steps(12)}
-@media(max-width:700px){.pz-isl{left:auto;right:calc(8% - 100px);width:300px;height:105px;bottom:-60px}}
+@media(max-width:700px){.pz-isl{right:auto;left:calc(50% - 150px);width:300px;height:105px;bottom:-60px}}
 /* 슬라임 스타일 — 눈 깜빡임 */
 .ionsk .eye{animation:ionBlink 4.2s infinite;transform-box:fill-box;transform-origin:center}
 @keyframes ionBlink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
@@ -4265,6 +4265,20 @@ body.stats-open #st-stats-panel{display:flex;animation:stpSlide .22s cubic-bezie
   }
   body.student-mode.shell2.rail-open #el-boot-loading,
   body.teacher-b.shell2.rail-open #el-boot-loading{left:calc(46px + 212px + 25px) !important}
+}
+
+/* 모바일 브라우저에서 블러·애니메이션 요소가 둥근 모서리 밖으로 새는 문제 방지 */
+.bh-hero{clip-path:inset(0 round 26px);-webkit-clip-path:inset(0 round 26px);-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0)}
+.bh-scene{clip-path:inset(0 round 26px);-webkit-clip-path:inset(0 round 26px)}
+
+/* 모바일: 배정된 과제 줄이 가로로 넘치지 않게 — 위줄 태그·이름·화살표, 아랫줄 진행바 */
+@media(max-width:700px){
+  .bh-table{overflow-x:visible}
+  .bh-row{min-width:0;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"tag name go" "prog prog prog";gap:8px 12px;padding:14px 16px}
+  .bh-row .bh-tag{grid-area:tag}
+  .bh-row-name{grid-area:name;min-width:0}
+  .bh-row-prog{grid-area:prog}
+  .bh-row .bh-go{grid-area:go}
 }
 
 </style>
@@ -7954,24 +7968,26 @@ function slimeSVG({ size=120, bodyType='Blob', core=['#86e8b8','#22a862'],
   const wingStroke = c0;          // 슬라임 base 색
   let wingsEl = '';
   if (stageIdx >= 3) {
-    const ws = (rh * 1.55) / 121.46;
-    const sw = 2.0 / ws;
-    const rAX=cx+rw*0.78, rAY=cy+rh*0.10;
-    const rTx=rAX-12.35*ws, rTy=rAY-121.46*ws;
-    const lAX=cx-rw*0.78, lAY=cy+rh*0.10;
-    const lTx=lAX+12.35*ws, lTy=lAY-121.46*ws;
-
+    // 날개: 불투명(오라가 비치지 않게) · 뿌리를 몸통 뒤 어깨에 넣어 몸에서 자란 것처럼
+    const _wc = Math.random().toString(36).slice(2,6);
+    const wsc = 0.68, wpx = rw*0.66, wpy = cy+rh*0.12;
+    const wBody = `<path d="${WING_PATH}" fill="#ffffff" stroke="none"/><path d="${WING_PATH}" fill="url(#${id}W${_wc})" stroke="${c1}" stroke-width="2.2" stroke-opacity=".9" stroke-linejoin="round"/>`;
     wingsEl = `
-      <g transform="translate(${lTx},${lTy}) scale(${-ws},${ws})">
-        <path d="${WING_PATH}" fill="${wingFill}" fill-rule="nonzero" stroke="${wingStroke}" stroke-width="${sw}" opacity=".92"/>
-      </g>
-      <g transform="translate(${rTx},${rTy}) scale(${ws},${ws})">
-        <path d="${WING_PATH}" fill="${wingFill}" fill-rule="nonzero" stroke="${wingStroke}" stroke-width="${sw}" opacity=".92"/>
-      </g>`;
+      <defs><linearGradient id="${id}W${_wc}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>
+      <g transform="translate(${cx+wpx},${wpy}) scale(${wsc}) translate(-12.35,-121.46)">${wBody}</g>
+      <g transform="translate(${cx-wpx},${wpy}) scale(${-wsc},${wsc}) translate(-12.35,-121.46)">${wBody}</g>`;
   }
 
+  const _sh = (hex,a)=>{ const n=parseInt(String(hex).replace('#',''),16); const f=v=>Math.min(255,Math.max(0,v)); return '#'+((f((n>>16)+a)<<16)|(f(((n>>8)&255)+a)<<8)|f((n&255)+a)).toString(16).padStart(6,'0'); };
+  const _mid=c1, _hi=_sh(_mid,85), _lo=_sh(_mid,-62), _edge=_sh(_mid,-85);
   return `<svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
     <defs>
+      <radialGradient id="${id}G" cx=".36" cy=".28" r=".95"><stop offset="0" stop-color="${_hi}"/><stop offset=".38" stop-color="${_sh(_mid,28)}"/><stop offset=".72" stop-color="${_mid}"/><stop offset="1" stop-color="${_lo}"/></radialGradient>
+      <radialGradient id="${id}E" cx=".5" cy=".42" r=".62"><stop offset=".6" stop-color="${_edge}" stop-opacity="0"/><stop offset="1" stop-color="${_edge}" stop-opacity=".55"/></radialGradient>
+      <radialGradient id="${id}K"><stop offset="0" stop-color="${_sh(_mid,95)}" stop-opacity=".7"/><stop offset="1" stop-color="${_sh(_mid,95)}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${id}H"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset=".55" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${id}O"><stop offset=".55" stop-color="${_mid}" stop-opacity=".5"/><stop offset="1" stop-color="${_mid}" stop-opacity="0"/></radialGradient>
+      <clipPath id="${id}C"><path d="${body}"/></clipPath>
       <radialGradient id="${id}g" cx="32%" cy="26%" r="68%">
         <stop offset="0%"   stop-color="white"  stop-opacity=".85"/>
         <stop offset="20%"  stop-color="${c0}"   stop-opacity=".60"/>
@@ -8001,12 +8017,13 @@ function slimeSVG({ size=120, bodyType='Blob', core=['#86e8b8','#22a862'],
     <ellipse cx="${cx}" cy="${cy+rh+12}" rx="${bw*0.68}" ry="6" fill="${dark}" opacity=".14" filter="url(#${id}b)"/>
     <path d="${body}" fill="${dark}" opacity=".01"/>
     <path d="${body}" fill="white" opacity=".01"/>
-    <g filter="url(#${id}f)">
-      <path d="${body}" fill="${c1}" opacity=".28"/>
-      <path d="${body}" fill="url(#${id}g)"/>
-      <path d="${jelly}" fill="url(#${id}j)"/>
-      <path d="${body}" fill="url(#${id}r)"/>
-    </g>
+    <ellipse cx="${cx}" cy="${cy+rh*0.40}" rx="${rw*1.18}" ry="${rh*1.05}" fill="url(#${id}O)"/>
+    <path d="${body}" fill="url(#${id}G)"/>
+    <path d="${body}" fill="url(#${id}E)"/>
+    <g clip-path="url(#${id}C)"><ellipse cx="${cx}" cy="${cy+rh*0.72}" rx="${rw*0.86}" ry="${rh*0.30}" fill="url(#${id}K)"/></g>
+    <path d="${body}" fill="none" stroke="${_edge}" stroke-opacity=".28" stroke-width="1"/>
+    <ellipse cx="${cx-rw*0.46}" cy="${cy-rh*0.46}" rx="${rw*0.34}" ry="${rw*0.15}" fill="url(#${id}H)" transform="rotate(-48 ${cx-rw*0.46} ${cy-rh*0.46})"/>
+    <ellipse cx="${cx-rw*0.30}" cy="${cy-rh*0.64}" rx="${rw*0.085}" ry="${rw*0.06}" fill="#fff" opacity=".85" transform="rotate(-48 ${cx-rw*0.30} ${cy-rh*0.64})"/>
     ${blush}
     ${drawEye(cx-eGap)} ${drawEye(cx+eGap)}
     ${tears}
@@ -8214,8 +8231,8 @@ function openSlimeCustomizeModal() {
         style="margin-top:10px;text-align:center;font-weight:700;border-radius:12px;font-size:17px;max-width:180px">
     </div>
 
-    <!-- 바디 타입 -->
-    <div class="form-group">
+    <!-- 바디 타입 (숨김) -->
+    <div class="form-group" style="display:none">
       <label class="form-label">몸체 모양</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="cust-body-row">
         ${SLIME_BODY_TYPES.map(t => {
@@ -45974,7 +45991,7 @@ function renderFC() {
           <div style="flex:1;height:8px;background:#e8eef7;border-radius:99px;overflow:hidden">
             <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col.a},${col.b});border-radius:99px;transition:width .5s ease"></div>
           </div>
-          <div id="fc-ind-slime" style="width:30px;height:30px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite">${buildMiniSlimeSVG(slime.stage, 30)}</div>
+          <div id="fc-ind-slime" style="width:30px;height:30px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite">${buildMiniSlimeSVG(slime.stage, 30, {skin:'classic'})}</div>
           <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
             <button onclick="window._fcAutoSpeak=(window._fcAutoSpeak===false);var on=window._fcAutoSpeak;this.style.borderColor=on?'${col.b}':'#e2e8f0';this.style.background=on?'${col.a}22':'#fff';this.style.color=on?'${col.dark}':'#b0bdcc';if(on)speak('${esc(w.en)}')" title="자동 발음" aria-label="자동 발음" style="width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;${window._fcAutoSpeak!==false?`border:1px solid ${col.b};background:${col.a}22;color:${col.dark}`:'border:1px solid #e2e8f0;background:#fff;color:#b0bdcc'}">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
@@ -46174,7 +46191,7 @@ function _hdrSlimeReact(isGood) {
     if (!wrap) return;
     try {
       const sz = document.getElementById('quiz-ind-slime') ? 30 : 32;
-      const svg = slimeSVG({ size:sz, core:[col.a,col.b], eyeStyle:slime.eyeStyle||'round', stageIdx:slime.stage, accessory:slime.accessory||'none', mood:m });
+      const svg = slimeSVG({ size:sz, core:[col.a,col.b], eyeStyle:slime.eyeStyle||'round', stageIdx:slime.stage, accessory:slime.accessory||'none', mood:m, skin:'classic' });
       const el = wrap.querySelector('svg');
       if (el) { const t=document.createElement('div'); t.innerHTML=svg; const n=t.querySelector('svg'); if(n) el.replaceWith(n); }
     } catch(e) {}
@@ -46806,7 +46823,7 @@ function renderQuiz(){
     <div style="display:flex;align-items:center;gap:10px;
       background:${colorDefQ.b}12;border:1.5px solid ${colorDefQ.b}30;border-radius:16px;padding:10px 16px">
       <div id="quiz-ind-slime" style="width:30px;height:30px;flex-shrink:0;animation:slimeBob 2.5s ease-in-out infinite;position:relative">
-        ${buildMiniSlimeSVG(slimeQ.stage,30)}
+        ${buildMiniSlimeSVG(slimeQ.stage,30,{skin:'classic'})}
       </div>
       <div style="flex:1">
         <div style="height:6px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden">
@@ -109263,6 +109280,9 @@ window.bhSlimeHop = function(el){
     {id:'defense', label:'디펜스'},
     {id:'horn',    label:'뿔 슬라임'},
     {id:'sprout',  label:'새싹'},
+    {id:'warrior', label:'전사'},
+    {id:'mage',    label:'마법사'},
+    {id:'fairy',   label:'요정'},
     {id:'pixel',   label:'픽셀'}
   ];
   let uid = 0;
@@ -109328,7 +109348,93 @@ window.bhSlimeHop = function(el){
     const leaf = '<path d="M0-25Q0-31 2-34" stroke="#3f9b5f" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M2-34Q13-43 19-32Q9-27 2-34Z" fill="#5fcf84"/><path d="M2-34Q-9-43-15-32Q-5-27 2-34Z" fill="#86e3a1"/>';
     const face = `<g class="look"><g class="eye">${bigEye(-11,0,5.2,6)}${bigEye(11,0,5.2,6)}</g></g>
 <path d="M-5.2 8.4Q-2.6 12.6 0 8.6Q2.6 12.6 5.2 8.4" stroke="${INK}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>${blushPair(21.5,8.6,5.4)}`;
-    return `<svg class="ionsk" %S viewBox="-38 -48 76 78"><defs>${J.defs}</defs>${J.under}${leaf}${J.over}${face}</svg>`;
+    return `<svg class="ionsk" %S viewBox="-44 -52 88 90"><defs>${J.defs}</defs>${J.under}${leaf}${J.over}${face}</svg>`;
+  }
+
+  // 마법사 — 통통한 젤리 몸통에 처진 챙 모자(달·별·리본)
+  const mstar = (x,y,r,fill)=>{ const p=[]; for (let i=0;i<10;i++){ const rr=i%2?r*.45:r, a=-Math.PI/2+i*Math.PI/5; p.push((x+Math.cos(a)*rr).toFixed(1)+','+(y+Math.sin(a)*rr).toFixed(1)); } return `<polygon points="${p.join(' ')}" fill="${fill}" stroke="#e0a800" stroke-width=".6" stroke-linejoin="round"/>`; };
+  function mageEye(x, y){
+    const id = 'ey'+(++uid);
+    return `<defs><radialGradient id="${id}" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#5a46b0"/><stop offset=".55" stop-color="#2b2060"/><stop offset="1" stop-color="#140f33"/></radialGradient></defs><ellipse cx="${x}" cy="${y}" rx="5.9" ry="6.9" fill="url(#${id})"/><path d="M${x-5.6} ${y-2.2}Q${x} ${y-9.6} ${x+5.6} ${y-2.2}" stroke="#140f33" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="${x-1.9}" cy="${y-2.4}" r="2.3" fill="#fff"/><circle cx="${x+2}" cy="${y+2.6}" r="1.1" fill="#fff" opacity=".95"/>`;
+  }
+  function mageHat(){
+    const id = 'hr'+(++uid), ln = '#1c1f5a', band = '#7a5cc4';
+    return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bb8"/><stop offset="1" stop-color="#2c2f78"/></linearGradient></defs>
+<g transform="translate(0 -1.5) rotate(-5 0 -20) translate(0 -14) scale(.9) translate(0 14)">
+<path d="M-25 -22C-23 -42 -9 -56 8 -63C18 -67 29 -64 33 -55C25 -58 19 -52 21 -44C23 -37 25 -29 27 -22Z" fill="url(#${id})" stroke="${ln}" stroke-width="1.2" stroke-linejoin="round"/>
+<path d="M-17 -34C-12 -46 -4 -54 6 -59" stroke="#fff" stroke-opacity=".28" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M-43 -17C-34 -33 34 -35 43 -18C37 -8 22 -10 0 -10C-22 -10 -37 -8 -43 -17Z" fill="url(#${id})" stroke="${ln}" stroke-width="1.2" stroke-linejoin="round"/>
+<path d="M-41 -17C-30 -12 -14 -13 0 -13C16 -13 32 -12 41 -17" stroke="#f4c24a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M-25 -22C-12 -17 12 -17 27 -22" stroke="${band}" stroke-width="4.4" fill="none"/>
+<path d="M24 -21L33 -27L32 -16Z" fill="${band}" stroke="${ln}" stroke-width=".8" stroke-linejoin="round"/><path d="M26 -21L18 -27L19 -16Z" fill="${band}" stroke="${ln}" stroke-width=".8" stroke-linejoin="round"/><circle cx="25" cy="-21" r="2.6" fill="${band}" stroke="${ln}" stroke-width=".8"/>
+<g transform="translate(-6 -38) rotate(-18)"><path d="M0 -7A7 7 0 1 0 6.5 3A5.4 5.4 0 1 1 0 -7Z" fill="#ffd95a" stroke="#d9a21a" stroke-width=".7"/></g>
+${mstar(8,-45,2.6,'#ffd95a')}${mstar(-15,-27,2.2,'#ffd95a')}${mstar(15,-31,2,'#ffd95a')}</g>`;
+  }
+  function mage(c){
+    const J = jelly(CUTE, c.b, [-17,-14,-48], [-11,-20], 12, 26, 28);
+    const face = `<g class="look"><g class="eye">${mageEye(-11.5,1)}${mageEye(11.5,1)}</g></g><path d="M-3.2 10Q0 12.6 3.2 10" stroke="#3a2a6a" stroke-width="1.6" stroke-linecap="round" fill="none"/>${blushPair(21.5,8.6,4.6)}`;
+    return `<svg class="ionsk" %S overflow="visible" viewBox="-44 -52 88 90"><defs>${J.defs}</defs>${J.under}${J.over}${face}${mageHat()}</svg>`;
+  }
+
+  // 요정 — 몸 색을 따라가는 잎 모양 날개 + 작은 눈·w 입 + 꽃
+  function wingL(c,sc,ru,rl,rx,ry,lu,ll){sc=sc||1;var id='wl'+(++uid);
+   var b=c.b,ln=shade(b,-45);
+   var leaf=function(L,W){return 'M0 0C'+(-W*.9)+' '+(-L*.25)+' '+(-W*.7)+' '+(-L*.85)+' '+(W*.1)+' '+(-L)+'C'+(W*1.05)+' '+(-L*.8)+' '+(W*1.0)+' '+(-L*.2)+' 0 0Z'};
+   var one=function(L,W,rot,hl){return '<g transform="rotate('+rot+')"><path d="'+leaf(L,W)+'" fill="url(#'+id+')" stroke="'+ln+'" stroke-width="1.5" stroke-linejoin="round"/><path d="M0 -3C'+(W*.1)+' '+(-L*.4)+' '+(W*.1)+' '+(-L*.7)+' '+(W*.1)+' '+(-L*.9)+'" stroke="'+ln+'" stroke-opacity=".35" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M0 -'+(L*.3)+'C'+(W*.5)+' '+(-L*.4)+' '+(W*.7)+' '+(-L*.5)+' '+(W*.85)+' '+(-L*.55)+'M0 '+(-L*.5)+'C'+(-W*.3)+' '+(-L*.58)+' '+(-W*.5)+' '+(-L*.66)+' '+(-W*.6)+' '+(-L*.72)+'" stroke="'+ln+'" stroke-opacity=".25" stroke-width=".8" fill="none" stroke-linecap="round"/><ellipse cx="'+(-W*.28)+'" cy="'+(-L*.6)+'" rx="'+(W*.13)+'" ry="'+(L*.2)+'" fill="#fff" opacity=".55"/></g>'};
+   var w=one(ll[0],ll[1],rl)+one(lu[0],lu[1],ru);
+   return '<defs><radialGradient id="'+id+'" cx=".5" cy=".95" r="1.0"><stop offset="0" stop-color="'+shade(b,150)+'"/><stop offset=".55" stop-color="'+shade(b,95)+'"/><stop offset="1" stop-color="'+shade(b,35)+'"/></radialGradient></defs><g transform="translate('+rx+' '+ry+') scale('+sc+')">'+w+'</g><g transform="translate('+(-rx)+' '+ry+') scale(-1 1) scale('+sc+')">'+w+'</g>'}
+  function eyeD(x,y){return '<ellipse cx="'+x+'" cy="'+y+'" rx="4" ry="4.8" fill="#4a3036"/><ellipse cx="'+x+'" cy="'+(y+1.6)+'" rx="3.2" ry="2.6" fill="#7a5058" opacity=".5"/><circle cx="'+(x-1.4)+'" cy="'+(y-1.8)+'" r="1.7" fill="#fff"/><circle cx="'+(x+1.5)+'" cy="'+(y+1.8)+'" r=".8" fill="#fff" opacity=".9"/>'}
+  function bigFlower(x,y,r){var g='<ellipse cx="'+(x-r*.95)+'" cy="'+(y+r*.55)+'" rx="'+(r*.75)+'" ry="'+(r*.4)+'" fill="#a9d79b" stroke="#6fae6a" stroke-width=".7" transform="rotate(-25 '+(x-r*.95)+' '+(y+r*.55)+')"/><ellipse cx="'+(x+r*.95)+'" cy="'+(y+r*.55)+'" rx="'+(r*.75)+'" ry="'+(r*.4)+'" fill="#bde3ae" stroke="#6fae6a" stroke-width=".7" transform="rotate(25 '+(x+r*.95)+' '+(y+r*.55)+')"/>';var s='';for(var i=0;i<5;i++){var a=(i*72-90)*Math.PI/180;s+='<circle cx="'+(x+Math.cos(a)*r*.58).toFixed(1)+'" cy="'+(y+Math.sin(a)*r*.58).toFixed(1)+'" r="'+(r*.52).toFixed(1)+'" fill="#ffd2e2" stroke="#f0a3c0" stroke-width=".7"/>'}return g+s+'<circle cx="'+x+'" cy="'+y+'" r="'+(r*.34).toFixed(1)+'" fill="#ffe27a" stroke="#f0b84a" stroke-width=".6"/>'}
+  function fairy(c){
+    const J = jelly(CUTE, c.b, [-17,-14,-48], [-11,-20], 12, 26, 28);
+    const face = `<g class="look"><g class="eye">${eyeD(-13,2)}${eyeD(13,2)}</g></g><path d="M-4.4 9.4Q-2.2 13 0 9.6Q2.2 13 4.4 9.4" stroke="#5a3a40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>${blushPair(21,9,5.6)}`;
+    return `<svg class="ionsk" %S overflow="visible" viewBox="-44 -52 88 90"><defs>${J.defs}</defs>${wingL(c,.56,46,106,19,-2,[68,26],[48,20])}${J.under}${J.over}${face}${bigFlower(17,-22,9)}</svg>`;
+  }
+
+
+  // 전사 — 머리에 걸친 금빛 투구 + 크리스털 검 + 별 방패
+  function wHelm(P){var id='ha'+(++uid);
+   var slit=function(x,r){return '<g transform="rotate('+r+' '+x+' -21)"><rect x="'+(x-1.9)+'" y="-25.5" width="3.8" height="9.5" rx="1.7" fill="'+P.dk+'"/><rect x="'+(x-1.9)+'" y="-25.5" width="1.3" height="9.5" rx=".65" fill="#000" opacity=".25"/></g>'};
+   return '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+P.h1+'"/><stop offset=".55" stop-color="'+P.h2+'"/><stop offset="1" stop-color="'+P.h3+'"/></linearGradient><linearGradient id="'+id+'t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+P.h1+'"/><stop offset="1" stop-color="'+P.h2+'"/></linearGradient></defs>'
+   +'<path d="M-30 -8L-25 -22L-9 -31L0 -37L9 -31L25 -22L30 -8Q0 -17 -30 -8Z" fill="url(#'+id+')" stroke="'+P.ln+'" stroke-width="1.4" stroke-linejoin="round"/>'
+   +'<path d="M-25 -22L-9 -31L-6 -14L-30 -8Z" fill="'+P.h3+'" opacity=".28"/><path d="M25 -22L9 -31L6 -14L30 -8Z" fill="'+P.h3+'" opacity=".5"/>'
+   +'<path d="M-9 -31L0 -37L9 -31L6 -13Q0 -12 -6 -13Z" fill="url(#'+id+'t)" stroke="'+P.ln+'" stroke-width="1" stroke-linejoin="round"/>'
+   +'<path d="M-25 -22L-9 -31M25 -22L9 -31" stroke="#fff" stroke-opacity=".55" stroke-width="1.2" stroke-linecap="round"/><path d="M-3 -34L0 -36L3 -34" stroke="#fff" stroke-opacity=".8" stroke-width="1.2" fill="none" stroke-linecap="round"/>'
+   +slit(-19,-14)+slit(-13,-8)+slit(13,8)+slit(19,14)
+   +'<path d="M0 -29L5.4 -22.5L0 -16L-5.4 -22.5Z" fill="'+P.tr+'" stroke="'+P.trd+'" stroke-width="1"/><path d="M0 -27L3.6 -22.5L0 -18L-3.6 -22.5Z" fill="#7cb6ff" stroke="#4a7fd0" stroke-width=".7"/><path d="M0 -27L0 -18M-3.6 -22.5L3.6 -22.5" stroke="#fff" stroke-opacity=".6" stroke-width=".6"/>'
+   +'<path d="M-30 -8Q0 -17 30 -8L31 -5.4Q0 -14.6 -31 -5.4Z" fill="'+P.tr+'" stroke="'+P.trd+'" stroke-width="1.1" stroke-linejoin="round"/>'
+   +[-22,-11,0,11,22].map(function(x){return '<circle cx="'+x+'" cy="-9.4" r="1" fill="'+P.trd+'"/>'}).join('')}
+  function wHelmOn(P,sc,dy,rot,dx){var fid='fb'+(++uid);
+   var sh='<defs><filter id="'+fid+'" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="1.6"/></filter></defs><path d="M-29 -7Q0 -16 29 -7L27 -.5Q0 -9.5 -27 -.5Z" fill="#0f2a5a" opacity=".38" filter="url(#'+fid+')"/>';
+   return '<g transform="translate('+(dx||0)+' '+dy+') rotate('+rot+' 0 -10) translate(0 -10) scale('+sc+') translate(0 10)">'+sh+wHelm(P)+'</g>'}
+  function wSword(){var id='sw'+(++uid);
+   return '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2f9ff"/><stop offset=".5" stop-color="#b6d6ff"/><stop offset="1" stop-color="#6f9ee8"/></linearGradient><linearGradient id="'+id+'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9a6"/><stop offset="1" stop-color="#d09a35"/></linearGradient></defs>'
+   +'<g transform="translate(-38 4) rotate(-24)">'
+   +'<path d="M-5.2 -5L-6 -38L-2.6 -49L2.6 -49L6 -38L5.2 -5Z" fill="url(#'+id+')" stroke="#4a78cc" stroke-width="1.4" stroke-linejoin="round"/>'
+   +'<path d="M0 -5L0 -49M-6 -38L6 -38" stroke="#4a78cc" stroke-opacity=".45" stroke-width=".8"/><path d="M-2.6 -49L0 -38L2.6 -49" stroke="#4a78cc" stroke-opacity=".45" stroke-width=".8" fill="none"/>'
+   +'<path d="M-3.2 -36L-3.2 -9" stroke="#fff" stroke-opacity=".8" stroke-width="1.8" stroke-linecap="round"/><path d="M3 -30L3 -12" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/>'
+   +'<path d="M-11 -2.8Q-9 -7 -5 -5L5 -5Q9 -7 11 -2.8Q9 .6 5 -.4L-5 -.4Q-9 .6 -11 -2.8Z" fill="url(#'+id+'g)" stroke="#a87820" stroke-width="1" stroke-linejoin="round"/><circle cx="-11" cy="-2.8" r="1.7" fill="#ffe9a6" stroke="#a87820" stroke-width=".7"/><circle cx="11" cy="-2.8" r="1.7" fill="#ffe9a6" stroke="#a87820" stroke-width=".7"/>'
+   +'<path d="M0 -6.4L2.6 -2.8L0 .8L-2.6 -2.8Z" fill="#7cb6ff" stroke="#3f74c8" stroke-width=".8"/>'
+   +'<rect x="-2.4" y="0" width="4.8" height="10" rx="2" fill="#9b5f33" stroke="#5f3a1f" stroke-width=".8"/><path d="M-2.4 3L2.4 4.6M-2.4 6.4L2.4 8" stroke="#5f3a1f" stroke-opacity=".6" stroke-width=".8"/><circle cx="0" cy="11.6" r="2.8" fill="url(#'+id+'g)" stroke="#a87820" stroke-width=".8"/></g>'}
+  function wHand(c,x,y){return '<ellipse cx="'+x+'" cy="'+y+'" rx="6" ry="5.2" fill="'+c.b+'" stroke="'+shade(c.b,-70)+'" stroke-opacity=".5" stroke-width="1"/><ellipse cx="'+(x-1.4)+'" cy="'+(y-1.6)+'" rx="2.2" ry="1.4" fill="#fff" opacity=".55"/>'}
+  function wShield(){var id='sh'+(++uid);
+   var sh='M-13.5 -16H13.5V4C13.5 13 6 19 0 23C-6 19 -13.5 13 -13.5 4Z', inn='M-10 -12.6H10V4C10 11 4.6 15.6 0 18.8C-4.6 15.6 -10 11 -10 4Z';
+   return '<defs><linearGradient id="'+id+'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".5" stop-color="#e2b955"/><stop offset="1" stop-color="#a97c24"/></linearGradient><linearGradient id="'+id+'b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7f9cf0"/><stop offset="1" stop-color="#3a52b4"/></linearGradient></defs>'
+   +'<g transform="translate(34 12)"><path d="'+sh+'" fill="url(#'+id+'g)" stroke="#7a5818" stroke-width="1.3" stroke-linejoin="round"/>'
+   +'<path d="'+inn+'" fill="url(#'+id+'b)" stroke="#2f428f" stroke-width="1" stroke-linejoin="round"/>'
+   +'<path d="M0 -12.6H10V4C10 11 4.6 15.6 0 18.8Z" fill="#26388a" opacity=".38"/>'
+   +'<path d="M-8.6 -11L-8.6 3" stroke="#fff" stroke-opacity=".5" stroke-width="1.4" stroke-linecap="round"/>'
+   +'<path d="M0 -8L2.4 0L10 2.2L2.4 4.6L0 13L-2.4 4.6L-10 2.2L-2.4 0Z" transform="translate(0 0) scale(.62) translate(0 1.5)" fill="url(#'+id+'g)" stroke="#7a5818" stroke-width="1.3" stroke-linejoin="round"/>'
+   +'<circle cx="-10.6" cy="-13.2" r="1.1" fill="#fff0b8" stroke="#7a5818" stroke-width=".5"/><circle cx="10.6" cy="-13.2" r="1.1" fill="#fff0b8" stroke="#7a5818" stroke-width=".5"/></g>'}
+  const WHG = {h1:'#fbf6e8',h2:'#d9d0b6',h3:'#a39a7e',ln:'#6a634a',dk:'#4a4535',tr:'#f2d27c',trd:'#9c7a28'};
+  const WHS = {h1:'#f6f9ff',h2:'#c1cde2',h3:'#7f8eaa',ln:'#3f4b66',dk:'#2f3850',tr:'#f2d27c',trd:'#9c7a28'};
+  const wSwordX = ()=> wSword().replace('translate(-38 4) rotate(-24)','translate(-37 6) rotate(-16) scale(.72)');
+  const wHandF = (c,x,y)=>{ const ln = shade(c.b,-95); return `<circle cx="${x}" cy="${y}" r="6" fill="${c.b}" stroke="${ln}" stroke-opacity=".75" stroke-width="1.2"/><ellipse cx="${x-2.2}" cy="${y-2.8}" rx="2.4" ry="1.4" fill="#fff" opacity=".65"/>`; };
+  const wShieldS = (sc)=> `<g transform="translate(2 -5) scale(${sc})" style="transform-origin:34px 12px">${wShield()}</g>`;
+  function warrior(c){
+    const J = jelly(CUTE, c.b, [-17,-14,-48], [-11,-20], 12, 26, 28);
+    const face = `<g class="look"><g class="eye">${bigEye(-12.5,1,5.4,6.2)}${bigEye(12.5,1,5.4,6.2)}</g></g><path d="M-4.6 8.4Q0 8.2 4.6 8.4Q3.6 15.4 0 15.4Q-3.6 15.4 -4.6 8.4Z" fill="#ef6a8a" stroke="#4a2b3a" stroke-width="1.2" stroke-linejoin="round"/><path d="M-1.8 12.8Q0 11.4 1.8 12.8" stroke="#ff9db5" stroke-width="1.4" fill="none" stroke-linecap="round"/>${blushPair(22,9,5.4)}`;
+    return `<svg class="ionsk" %S overflow="visible" viewBox="-44 -52 88 90"><defs>${J.defs}</defs>${J.under}${J.over}${face}${wHelmOn(WHS,.8,-6,0,0)}${wSwordX()}${wHandF(c,-35.4,11.6)}${wShieldS(.85)}</svg>`;
   }
 
   /* 픽셀(도트) 슬라임 — 16×13 도트, 눈 깜빡임·튀는 동작은 프레임을 끊어서 */
@@ -109348,16 +109454,46 @@ window.bhSlimeHop = function(el){
   function body(skin, _x, light, dark){
     if (skin==='horn') return horn({a:light, b:dark});
     if (skin==='sprout') return cute(skin, {a:light, b:dark});
+    if (skin==='mage') return mage({a:light, b:dark});
+    if (skin==='fairy') return fairy({a:light, b:dark});
+    if (skin==='warrior') return warrior({a:light, b:dark});
     return dome(skin, {a:light, b:dark});
   }
   // SVG 안에 직접 넣은 스타일 — 게임(이미지로 불러옴)에서도 움직인다
   const STY = '<style>.bd{transform-box:fill-box;transform-origin:50% 100%;animation:skBr 3.2s ease-in-out infinite}.eye{transform-box:fill-box;transform-origin:50% 50%;animation:skBl 4.6s infinite}@keyframes skBr{0%,100%{transform:scale(1,1)}50%{transform:scale(1.035,.955)}}@keyframes skBl{0%,92%,100%{transform:scaleY(1)}95.5%{transform:scaleY(.08)}}@media(prefers-reduced-motion:reduce){.bd,.eye{animation:none}}</style>';
-  function render(skin, size, colorId){
+  // 이펙트(반짝·스파크·연기·불꽃) — 기본 슬라임 말고 다른 스킨에도 얹는다
+  const FXTOP = {bobble:-27, defense:-27, horn:-42, sprout:-38, mage:-60, fairy:-34, warrior:-40};
+  function fxLayer(skin, effect, col){
+    const R0 = {back:'', front:''};
+    if (!effect || effect==='none') return R0;
+    const c0 = shade(col.b,-25), lt = shade(col.a,60);
+    if (skin==='pixel'){
+      const px1 = (x,y,w,h,f,o)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" opacity="${o||1}"/>`;
+      const star = (x,y)=> px1(x,y,1,1,c0);
+      if (effect==='glitter') R0.front = star(1,1)+star(14,0);
+      else if (effect==='spark') R0.front = star(1,1);
+      else if (effect==='smoke') R0.front = px1(5,-2,3,2,lt,.7)+px1(8,-3,2,2,lt,.55);
+      else if (effect==='flame') R0.front = px1(7,-3,2,1,'#ffb020')+px1(6,-2,4,1,'#ff7a18')+px1(7,-1,2,1,'#ff3d2e');
+      return R0;
+    }
+    const T = FXTOP[skin] != null ? FXTOP[skin] : -27, HW = skin==='fairy' ? 52 : skin==='warrior' ? 44 : 38;
+    const t = (x,y,fs,o,ch,fill)=>`<text x="${x}" y="${y}" font-size="${fs}" fill="${fill||c0}" opacity="${o}">${ch}</text>`;
+    if (effect==='glitter') R0.front = t(-HW-3,T+10,12,.85,'✦')+t(HW-4,T+4,10,.7,'✦');
+    else if (effect==='spark') R0.front = t(-HW-2,T+12,13,.82,'✦');
+    else if (effect==='smoke') R0.back = `<ellipse cx="-8" cy="${T-8}" rx="9" ry="7" fill="${lt}" opacity=".55"/><ellipse cx="3" cy="${T-16}" rx="7" ry="6" fill="${lt}" opacity=".4"/>`;
+    else if (effect==='flame') R0.back = `<text x="-9" y="${T-2}" font-size="16">🔥</text>`;
+    return R0;
+  }
+
+  function render(skin, size, colorId, effect){
     const col = getSlimeColor(colorId);
-    if (skin==='pixel') return pixelSlime(col.a, col.b, size);
+    const F = fxLayer(skin, effect, col);
+    if (skin==='pixel') return pixelSlime(col.a, col.b, size).replace('</svg>', F.front+'</svg>');
     // 파스텔 쪽 색(a)이 너무 옅으면 몸통이 배경에 묻혀서, 윗면은 a·아랫면은 b로 쓴다
-    return body(skin, 0, col.a, col.b).replace('%S', px(size))
-      .replace('</defs>', '</defs>'+STY+'<g class="bd">').replace('</svg>', '</g></svg>');
+    let _svg = body(skin, 0, col.a, col.b).replace('%S', px(size));
+    if (effect && effect!=='none' && !/overflow="visible"/.test(_svg)) _svg = _svg.replace('class="ionsk"','class="ionsk" overflow="visible"');
+    return _svg
+      .replace('</defs>', '</defs>'+STY+F.back+'<g class="bd">').replace('</svg>', '</g>'+F.front+'</svg>');
   }
   const curSkin = (o)=> { const s = (o && o.skin) || getSlimeData().skin || 'classic'; return SK.some(k=>k.id===s) ? s : 'classic'; };
 
@@ -109381,12 +109517,31 @@ window.bhSlimeHop = function(el){
   window.buildSlimeSVG = function(stage, size, o){
     o = o || {}; const sk = curSkin(o);
     if (sk==='classic') return origBuild.apply(this, arguments);
-    return render(sk, size||160, o.colorId || getSlimeData().colorId || 'mint');
+    return render(sk, size||160, o.colorId || getSlimeData().colorId || 'mint', o.effect || getSlimeData().effect || 'none');
   };
   window.buildMiniSlimeSVG = function(stage, size, o){
     o = o || {}; const sk = curSkin(o);
     if (sk==='classic') return origMini.apply(this, arguments);
     return render(sk, size||40, o.colorId || getSlimeData().colorId || 'mint');
+  };
+
+  // 정답/오답 리액션(표정 교체)이 기본 슬라임으로 되돌리던 문제 — mood 로 그리는 호출도 현재 스킨으로
+  const origSlime = window.slimeSVG;
+  window.slimeSVG = function(opts){
+    opts = opts || {};
+    if (!opts.mood) return origSlime.apply(this, arguments);
+    if (opts.skin==='classic') return origSlime.apply(this, arguments);
+    const sk = curSkin();
+    if (sk==='classic') return origSlime.apply(this, arguments);
+    const sl = getSlimeData();
+    let svg = render(sk, opts.size || 60, sl.colorId || 'mint', 'none');
+    if (sk!=='pixel' && opts.mood!=='normal'){
+      let ov = '';
+      if (opts.mood==='sparkle') ov = '<text x="-37" y="-14" font-size="18" fill="#fbbf24">✦</text><text x="25" y="-20" font-size="15" fill="#fbbf24">✦</text><text x="28" y="8" font-size="11" fill="#fcd34d">✦</text>';
+      else if (opts.mood==='tears') ov = '<path d="M-14 6 q-5 8 0 12 q5 -4 0 -12z" fill="#38bdf8" stroke="#0284c7" stroke-width="1"/><path d="M14 6 q-5 8 0 12 q5 -4 0 -12z" fill="#38bdf8" stroke="#0284c7" stroke-width="1"/>';
+      if (ov) svg = svg.replace('</svg>', ov+'</svg>');
+    }
+    return svg;
   };
 
   // 꾸미기 모달에 '스타일' 줄 추가
